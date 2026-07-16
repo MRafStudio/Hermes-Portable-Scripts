@@ -1,4 +1,4 @@
-REM scripts\Settings.bat
+@REM scripts\Settings.bat
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -7,8 +7,10 @@ for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 set "CONFIG_FILE=%SCRIPTS_DIR%\Config.ini"
 
-REM ESC (без PS_WRAPPER!)
-for /f %%a in ('powershell -NoProfile -Command "Write-Host ([char]27) -NoNewline"') do set "ESC=%%a"
+REM ============================================================================
+REM   Получение ESC
+REM ============================================================================
+for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 :settings_menu
 cls
