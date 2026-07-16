@@ -6,7 +6,7 @@ setlocal enabledelayedexpansion
 set "AUTOCLOSE=0"
 if "%1"=="1" set "AUTOCLOSE=1"
 
-title Установка HF Hub
+title Hermes Portable — Установка HuggingFace Hub
 
 REM ============================================================================
 REM   Определение путей
@@ -16,6 +16,8 @@ set "DATA_DIR=%ROOT_DIR%\data"
 set "APPDATA=%DATA_DIR%\appdata"
 set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
 set "PYTHON_EXE=%PYTHON_DIR%\python.exe"
+set "UV_DIR=%ROOT_DIR%\data\hermes\bin"
+set "UV_EXE=%UV_DIR%\uv.exe"
 set "HF_DIR=%ROOT_DIR%\hf"
 
 REM ============================================================================
@@ -43,10 +45,16 @@ REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 REM ============================================================================
-REM   Проверка Python
+REM   Проверка Python и UV
 REM ============================================================================
 if not exist "%PYTHON_EXE%" (
     echo   %ESC%[1;31m[ОШИБКА] Python не установлен! Сначала запустите установку Python.%ESC%[0m
+    if "%AUTOCLOSE%"=="0" pause
+    exit /b 1
+)
+
+if not exist "%UV_EXE%" (
+    echo   %ESC%[1;31m[ОШИБКА] UV не найден!%ESC%[0m
     if "%AUTOCLOSE%"=="0" pause
     exit /b 1
 )
@@ -63,7 +71,7 @@ echo.
 REM ============================================================================
 REM   Добавляем Python в PATH (включая Scripts)
 REM ============================================================================
-set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%"
+set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%UV_DIR%;%PATH%"
 
 REM ============================================================================
 REM   Проверка установленного hf.exe
@@ -85,12 +93,12 @@ goto hf_install
 
 :hf_install
 REM ============================================================================
-REM   Установка huggingface-hub
+REM   Установка huggingface-hub через uv pip
 REM ============================================================================
 echo.
 echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mУстановка huggingface-hub...%ESC%[0m
 
-"%PYTHON_EXE%" -m pip install huggingface-hub --no-warn-script-location --cache-dir "%PIP_CACHE_DIR%"
+"%UV_EXE%" pip install huggingface-hub --python "%PYTHON_EXE%"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось установить huggingface-hub.%ESC%[0m
@@ -104,12 +112,12 @@ goto hf_done
 
 :hf_update
 REM ============================================================================
-REM   Обновление huggingface-hub
+REM   Обновление huggingface-hub через uv pip
 REM ============================================================================
 echo.
 echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mОбновление huggingface-hub...%ESC%[0m
 
-"%PYTHON_EXE%" -m pip install --upgrade huggingface-hub --no-warn-script-location --cache-dir "%PIP_CACHE_DIR%"
+"%UV_EXE%" pip install --upgrade huggingface-hub --python "%PYTHON_EXE%"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;33m  .   Не удалось обновить. Используется текущая версия.%ESC%[0m

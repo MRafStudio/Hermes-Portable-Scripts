@@ -150,6 +150,7 @@ echo.
 call "%SCRIPTS_DIR%\InstallOrUpdate-Desktop.bat" 0
 goto menu
 
+:install_kobold
 REM Проверка GPU на минимальный контекст Hermes (65536)
 call "%SCRIPTS_DIR%\DetectGPU.bat"
 
