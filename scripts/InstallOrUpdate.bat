@@ -150,15 +150,6 @@ echo.
 call "%SCRIPTS_DIR%\InstallOrUpdate-Desktop.bat" 0
 goto menu
 
-:install_kobold
-REM Проверяем — а можно ли?
-if not "!KOBOLD_ENABLED!"=="1" (
-    echo   %ESC%[1;31m[ОШИБКА] KoboldCpp отключен в Config.ini.%ESC%[0m
-    echo   %ESC%[33m         Включите через Настройки [2] → KoboldCpp.%ESC%[0m
-    timeout /t 3 /nobreak >nul
-    goto menu
-)
-
 REM Проверка GPU на минимальный контекст Hermes (65536)
 call "%SCRIPTS_DIR%\DetectGPU.bat"
 
