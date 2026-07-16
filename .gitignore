@@ -1,0 +1,58 @@
+# ============================================================
+#               Hermes Portable — .gitignore
+# ============================================================
+
+# --- Изолированные данные (создаются скриптами) ---
+data/
+repo/
+models/
+python-*/
+python/
+output/
+logs/
+*.log
+
+# --- Генерируемые файлы ---
+*.wav
+*.mp3
+*.safetensors
+*.bin
+*.ckpt
+*.pth
+
+# --- Windows ---
+*.exe
+*.dll
+*.zip
+*.7z
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# --- IDE ---
+.vs/
+.vscode/
+.idea/
+*.sln
+*.pyproj
+*.user
+
+# --- Пользовательские настройки (генерируются автоматом) ---
+scripts/Config.ini
+.env
+
+# --- Случайные папки кэша (если есть)
+Microsoft/
+pip/
+
+# --- Репозитории
+node-dist/
+uv/
+/scripts/en-locale/en.ts
+/kobold/1000
+/scripts/zh-locale/zh.ts
+/scripts/ru-locale/ru.ts.bak

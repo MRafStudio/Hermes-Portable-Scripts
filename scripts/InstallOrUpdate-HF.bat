@@ -1,0 +1,146 @@
+@REM scripts\InstallOrUpdate-HF.bat
+@echo off
+chcp 65001 >nul
+setlocal enabledelayedexpansion
+
+set "AUTOCLOSE=0"
+if "%1"=="1" set "AUTOCLOSE=1"
+
+title Установка HF Hub
+
+REM ============================================================================
+REM   Определение путей
+REM ============================================================================
+for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
+set "DATA_DIR=%ROOT_DIR%\data"
+set "APPDATA=%DATA_DIR%\appdata"
+set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
+set "PYTHON_EXE=%PYTHON_DIR%\python.exe"
+set "HF_DIR=%ROOT_DIR%\hf"
+
+REM ============================================================================
+REM   Изоляция данных
+REM ============================================================================
+set "TEMP=%DATA_DIR%\temp"
+set "TMP=%DATA_DIR%\temp"
+set "LOCALAPPDATA=%DATA_DIR%\localappdata"
+set "HOME=%DATA_DIR%\home"
+set "USERPROFILE=%DATA_DIR%\home"
+set "PIP_CACHE_DIR=%DATA_DIR%\pip-cache"
+set "HF_HOME=%DATA_DIR%\huggingface"
+
+if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" 2>nul
+if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
+if not exist "%APPDATA%" mkdir "%APPDATA%" 2>nul
+if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%" 2>nul
+if not exist "%HOME%" mkdir "%HOME%" 2>nul
+if not exist "%PIP_CACHE_DIR%" mkdir "%PIP_CACHE_DIR%" 2>nul
+if not exist "%HF_HOME%" mkdir "%HF_HOME%" 2>nul
+
+REM ============================================================================
+REM   Получение ESC
+REM ============================================================================
+for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
+
+REM ============================================================================
+REM   Проверка Python
+REM ============================================================================
+if not exist "%PYTHON_EXE%" (
+    echo   %ESC%[1;31m[ОШИБКА] Python не установлен! Сначала запустите установку Python.%ESC%[0m
+    if "%AUTOCLOSE%"=="0" pause
+    exit /b 1
+)
+
+cls
+echo.
+echo  %ESC%[1;36m################################################################################%ESC%[0m
+echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
+echo  %ESC%[1;36m##%ESC%[0m               %ESC%[1;37mHermes Portable%ESC%[0m   %ESC%[1;33m—%ESC%[0m   %ESC%[1;33mУстановка HuggingFace Hub%ESC%[0m              %ESC%[1;36m##%ESC%[0m
+echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
+echo  %ESC%[1;36m################################################################################%ESC%[0m
+echo.
+
+REM ============================================================================
+REM   Добавляем Python в PATH (включая Scripts)
+REM ============================================================================
+set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%"
+
+REM ============================================================================
+REM   Проверка установленного hf.exe
+REM ============================================================================
+echo   %ESC%[1;33m[1/2]%ESC%[0m %ESC%[1mПроверка HuggingFace Hub...%ESC%[0m
+
+where hf >nul 2>nul
+if !errorlevel! equ 0 (
+    for /f "tokens=*" %%a in ('where hf 2^>nul') do set "HF_PATH=%%a"
+    echo   %ESC%[1;32m  +   HuggingFace Hub уже установлен.%ESC%[0m
+    echo   %ESC%[2m       Путь: !HF_PATH!%ESC%[0m
+    echo.
+    echo   %ESC%[1;33m  →   Обновление...%ESC%[0m
+    goto hf_update
+)
+
+echo   %ESC%[1;33m  →   HuggingFace Hub не найден. Установка...%ESC%[0m
+goto hf_install
+
+:hf_install
+REM ============================================================================
+REM   Установка huggingface-hub
+REM ============================================================================
+echo.
+echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mУстановка huggingface-hub...%ESC%[0m
+
+"%PYTHON_EXE%" -m pip install huggingface-hub --no-warn-script-location --cache-dir "%PIP_CACHE_DIR%"
+
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось установить huggingface-hub.%ESC%[0m
+    echo   %ESC%[33m       Проверьте соединение с интернетом.%ESC%[0m
+    if "%AUTOCLOSE%"=="0" pause
+    exit /b 1
+)
+
+echo   %ESC%[1;32m  +   HuggingFace Hub установлен.%ESC%[0m
+goto hf_done
+
+:hf_update
+REM ============================================================================
+REM   Обновление huggingface-hub
+REM ============================================================================
+echo.
+echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mОбновление huggingface-hub...%ESC%[0m
+
+"%PYTHON_EXE%" -m pip install --upgrade huggingface-hub --no-warn-script-location --cache-dir "%PIP_CACHE_DIR%"
+
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;33m  .   Не удалось обновить. Используется текущая версия.%ESC%[0m
+) else (
+    echo   %ESC%[1;32m  +   HuggingFace Hub обновлён.%ESC%[0m
+)
+
+:hf_done
+echo.
+echo   %ESC%[1;33m  →   Проверка hf.exe...%ESC%[0m
+
+where hf >nul 2>nul
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;31m  [ОШИБКА] hf.exe не найден в PATH.%ESC%[0m
+    echo   %ESC%[33m         Попробуйте перезапустить скрипт.%ESC%[0m
+    if "%AUTOCLOSE%"=="0" pause
+    exit /b 1
+)
+
+echo   %ESC%[1;32m  +   hf.exe доступен.%ESC%[0m
+
+echo.
+echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
+echo   %ESC%[1;32mHuggingFace Hub готов!%ESC%[0m
+echo   %ESC%[2m  hf.exe: доступен%ESC%[0m
+echo   %ESC%[2m  HF_HOME: %HF_HOME%%ESC%[0m
+echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
+
+if "%AUTOCLOSE%"=="1" (
+    call "%~dp0SmartPause.bat" 5
+) else (
+    pause
+)
+exit /b 0
