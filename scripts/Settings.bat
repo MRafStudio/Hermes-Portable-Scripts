@@ -21,35 +21,43 @@ echo  %ESC%[1;36m###############################################################
 echo.
 
 set "CUR_KOBOLD_ENABLED=0"
+set "CUR_KOBOLD_PORT=5001"
 
 if exist "%CONFIG_FILE%" (
     for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_ENABLED=" "%CONFIG_FILE%"') do set "CUR_KOBOLD_ENABLED=%%b"
+    for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_PORT=" "%CONFIG_FILE%"') do set "CUR_KOBOLD_PORT=%%b"
 )
 
 set "CUR_KOBOLD_ENABLED=%CUR_KOBOLD_ENABLED: =%"
+set "CUR_KOBOLD_PORT=%CUR_KOBOLD_PORT: =%"
+
+if "!CUR_KOBOLD_ENABLED!"=="" set "CUR_KOBOLD_ENABLED=0"
+if "!CUR_KOBOLD_PORT!"=="" set "CUR_KOBOLD_PORT=5001"
 
 echo   %ESC%[1;33mТекущие параметры:%ESC%[0m
 
-if "!CUR_KOBOLD_ENABLED!"=="" (
-    echo     KoboldCpp:      %ESC%[2m^(не указано^)%ESC%[0m
-) else if "!CUR_KOBOLD_ENABLED!"=="1" (
+if "!CUR_KOBOLD_ENABLED!"=="1" (
     echo     KoboldCpp:      %ESC%[1;32mВКЛЮЧЕН%ESC%[0m
 ) else (
     echo     KoboldCpp:      %ESC%[1;31mВЫКЛЮЧЕН%ESC%[0m
 )
 
+echo     Порт:           %ESC%[1;33m%CUR_KOBOLD_PORT%%ESC%[0m
+
 echo.
 
 echo   %ESC%[1;37m[1]%ESC%[0m KoboldCpp (вкл/выкл)
+echo   %ESC%[1;37m[2]%ESC%[0m Изменить порт KoboldCpp
 echo.
 echo   %ESC%[1;37m[0]%ESC%[0m Назад в главное меню
 echo.
 set "choice="
-set /p "choice=%ESC%[33mВыберите параметр (0-1): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите параметр (0-2): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" exit /b 0
 if "%choice%"=="1" goto set_kobold
+if "%choice%"=="2" goto set_port
 goto settings_menu
 
 :set_kobold
@@ -73,8 +81,42 @@ if "%kobold_choice%"=="1" (
     ) else (
         set "NEW_KOBOLD=1"
     )
-    call "%SCRIPTS_DIR%\CreateConfig.bat" "!NEW_KOBOLD!"
+    call "%SCRIPTS_DIR%\CreateConfig.bat" "!NEW_KOBOLD!" "" "" "!CUR_KOBOLD_PORT!"
     echo   %ESC%[1;32m  +   KoboldCpp: !NEW_KOBOLD!%ESC%[0m
 )
+timeout /t 3 /nobreak >nul
+goto settings_menu
+
+:set_port
+cls
+echo.
+echo   %ESC%[1;33mТекущий порт: %CUR_KOBOLD_PORT%%ESC%[0m
+echo.
+set /p "NEW_PORT=%ESC%[33mВведите новый порт (Enter для отмены): %ESC%[0m"
+set "NEW_PORT=%NEW_PORT: =%"
+if "!NEW_PORT!"=="" goto settings_menu
+
+REM Проверка что введён число (set /a для числовых операций)
+set /a "PORT_CHECK=!NEW_PORT! + 0" >nul 2>&1
+if "!PORT_CHECK!"=="0" if not "!NEW_PORT!"=="0" (
+    echo   %ESC%[1;31m[ОШИБКА] Порт должен быть числом!%ESC%[0m
+    timeout /t 3 /nobreak >nul
+    goto settings_menu
+)
+
+REM Проверка диапазона
+if !NEW_PORT! LSS 1024 (
+    echo   %ESC%[1;31m[ОШИБКА] Порт должен быть >= 1024!%ESC%[0m
+    timeout /t 3 /nobreak >nul
+    goto settings_menu
+)
+if !NEW_PORT! GTR 65535 (
+    echo   %ESC%[1;31m[ОШИБКА] Порт должен быть <= 65535!%ESC%[0m
+    timeout /t 3 /nobreak >nul
+    goto settings_menu
+)
+
+call "%SCRIPTS_DIR%\CreateConfig.bat" "!CUR_KOBOLD_ENABLED!" "" "" "!NEW_PORT!"
+echo   %ESC%[1;32m  +   Порт обновлён: !NEW_PORT!%ESC%[0m
 timeout /t 3 /nobreak >nul
 goto settings_menu
