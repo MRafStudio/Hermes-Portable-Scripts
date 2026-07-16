@@ -13,12 +13,12 @@ REM   Определение путей
 REM ============================================================================
 for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "DATA_DIR=%ROOT_DIR%\data"
-set "APPDATA=%DATA_DIR%\appdata"
-set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
-set "PYTHON_EXE=%PYTHON_DIR%\python.exe"
-set "UV_DIR=%ROOT_DIR%\data\hermes\bin"
+set "HERMES_HOME=%ROOT_DIR%\data\hermes"
+set "REPO_DIR=%HERMES_HOME%\hermes-agent"
+set "VENV_DIR=%REPO_DIR%\venv"
+set "VENV_PYTHON=%VENV_DIR%\Scripts\python.exe"
+set "UV_DIR=%HERMES_HOME%\bin"
 set "UV_EXE=%UV_DIR%\uv.exe"
-set "HF_DIR=%ROOT_DIR%\hf"
 
 REM ============================================================================
 REM   Изоляция данных
@@ -33,7 +33,6 @@ set "HF_HOME=%DATA_DIR%\huggingface"
 
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" 2>nul
 if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
-if not exist "%APPDATA%" mkdir "%APPDATA%" 2>nul
 if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%" 2>nul
 if not exist "%HOME%" mkdir "%HOME%" 2>nul
 if not exist "%PIP_CACHE_DIR%" mkdir "%PIP_CACHE_DIR%" 2>nul
@@ -45,10 +44,12 @@ REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 REM ============================================================================
-REM   Проверка Python и UV
+REM   Проверка venv Hermes
 REM ============================================================================
-if not exist "%PYTHON_EXE%" (
-    echo   %ESC%[1;31m[ОШИБКА] Python не установлен! Сначала запустите установку Python.%ESC%[0m
+if not exist "%VENV_PYTHON%" (
+    echo   %ESC%[1;31m[ОШИБКА] Venv Hermes не найден!%ESC%[0m
+    echo   %ESC%[33m       Путь: %VENV_PYTHON%%ESC%[0m
+    echo   %ESC%[33m       Сначала запустите установку зависимостей Hermes.%ESC%[0m
     if "%AUTOCLOSE%"=="0" pause
     exit /b 1
 )
@@ -69,9 +70,9 @@ echo  %ESC%[1;36m###############################################################
 echo.
 
 REM ============================================================================
-REM   Добавляем Python в PATH (включая Scripts)
+REM   Добавляем venv в PATH
 REM ============================================================================
-set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%UV_DIR%;%PATH%"
+set "PATH=%VENV_DIR%\Scripts;%UV_DIR%;%PATH%"
 
 REM ============================================================================
 REM   Проверка установленного hf.exe
@@ -93,12 +94,12 @@ goto hf_install
 
 :hf_install
 REM ============================================================================
-REM   Установка huggingface-hub через uv pip
+REM   Установка huggingface-hub через uv pip в venv
 REM ============================================================================
 echo.
 echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mУстановка huggingface-hub...%ESC%[0m
 
-"%UV_EXE%" pip install huggingface-hub --python "%PYTHON_EXE%"
+"%UV_EXE%" pip install huggingface-hub --python "%VENV_PYTHON%"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось установить huggingface-hub.%ESC%[0m
@@ -112,12 +113,12 @@ goto hf_done
 
 :hf_update
 REM ============================================================================
-REM   Обновление huggingface-hub через uv pip
+REM   Обновление huggingface-hub через uv pip в venv
 REM ============================================================================
 echo.
 echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mОбновление huggingface-hub...%ESC%[0m
 
-"%UV_EXE%" pip install --upgrade huggingface-hub --python "%PYTHON_EXE%"
+"%UV_EXE%" pip install --upgrade huggingface-hub --python "%VENV_PYTHON%"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;33m  .   Не удалось обновить. Используется текущая версия.%ESC%[0m
