@@ -198,7 +198,7 @@ if "%KOBOLD_ENABLED%"=="1" (
 echo.
 echo %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановка / Обновление компонентов%ESC%[0m
 echo %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИнструменты%ESC%[0m
-if "%KOBOLD_ENABLED%"=="1" (
+if "%KCPP_INSTALLED%"=="1" (
     echo %ESC%[1;37m[3]%ESC%[0m %ESC%[1mНастройки%ESC%[0m %ESC%[2m^(Kobold^)%ESC%[0m
 )
 
