@@ -21,7 +21,7 @@ REM Получение ESC
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 REM Определение GPU
-call "%SCRIPTS_DIR%\DetectGPU.bat"
+call "%SCRIPTS_DIR%\DetectGPU.bat" quiet
 
 REM Страховка: если DetectGPU не вернул VRAM — считаем нулём
 if not defined GPU_VRAM_NUM set "GPU_VRAM_NUM=0"
