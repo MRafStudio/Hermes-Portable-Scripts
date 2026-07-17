@@ -48,48 +48,51 @@ call "%SCRIPTS_DIR%\DetectGPU.bat"
 REM Выбираем модель по GPU
 if "%GPU_TYPE%"=="NVIDIA" (
     if %GPU_VRAM_NUM% GEQ 32000 (
-        REM RTX 5090/5080 32GB — Qwen3.6-27B Q5_K_M
+        REM RTX 5090/5080 32GB
         set "DEFAULT_MODEL=Qwen_Qwen3.6-27B-Q5_K_M.gguf"
         set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen3.6-27B-f16.gguf"
         set "MODEL_REPO=bartowski/Qwen_Qwen3.6-27B-GGUF"
         set "MODEL_SIZE=21 GB"
         set "MMPROJ_SIZE=928 MB"
     ) else if %GPU_VRAM_NUM% GEQ 24000 (
-        REM RTX 4090/3090 24GB — Qwen3.6-27B Q4_K_M
+        REM RTX 4090/3090 24GB
         set "DEFAULT_MODEL=Qwen_Qwen3.6-27B-Q3_K_M.gguf"
         set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen3.6-27B-f16.gguf"
         set "MODEL_REPO=bartowski/Qwen_Qwen3.6-27B-GGUF"
         set "MODEL_SIZE=15 GB"
         set "MMPROJ_SIZE=928 MB"
     ) else if %GPU_VRAM_NUM% GEQ 16000 (
-        REM 16GB — Qwen2.5-VL-14B Q4_K_M
-        set "DEFAULT_MODEL=Qwen_Qwen2.5-VL-14B-Instruct-Q4_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen2.5-VL-14B-Instruct-f16.gguf"
-        set "MODEL_REPO=bartowski/Qwen_Qwen2.5-VL-14B-Instruct-GGUF"
-        set "MODEL_SIZE=8.5 GB"
-        set "MMPROJ_SIZE=500 MB"
-    ) else (
-        REM 8-12GB — Qwen2.5-VL-7B Q4_K_M (дефолт)
-        set "DEFAULT_MODEL=Qwen_Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen2.5-VL-7B-Instruct-f16.gguf"
-        set "MODEL_REPO=bartowski/Qwen_Qwen2.5-VL-7B-Instruct-GGUF"
-        set "MODEL_SIZE=4.7 GB"
-        set "MMPROJ_SIZE=1.4 GB"
-    )
-) else if "%GPU_TYPE%"=="AMD" (
-    if %GPU_VRAM_NUM% GEQ 24000 (
-        set "DEFAULT_MODEL=Qwen_Qwen3.6-27B-Q3_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen3.6-27B-f16.gguf"
-        set "MODEL_REPO=bartowski/Qwen_Qwen3.6-27B-GGUF"
-        set "MODEL_SIZE=15 GB"
-        set "MMPROJ_SIZE=928 MB"
-    ) else if %GPU_VRAM_NUM% GEQ 16000 (
+        REM 16GB
         set "DEFAULT_MODEL=Qwen3.6-14B-A3B-FableVibes-Q4_K_M.gguf"
         set "DEFAULT_MMPROJ=Qwen3.6-14B-A3B-FableVibes-mmproj-F16.gguf"
         set "MODEL_REPO=tvall43/Qwen3.6-14B-A3B-FableVibes-GGUF"
         set "MODEL_SIZE=8.5 GB"
         set "MMPROJ_SIZE=900 MB"
     ) else (
+        REM 8-12GB
+        set "DEFAULT_MODEL=Qwen2.5-VL-7B-Instruct-Q5_K_M.gguf"
+        set "DEFAULT_MMPROJ=mmproj-F16.gguf"
+        set "MODEL_REPO=unsloth/Qwen2.5-VL-7B-Instruct-GGUF"
+        set "MODEL_SIZE=5.5 GB"
+        set "MMPROJ_SIZE=1.4 GB"
+    )
+) else if "%GPU_TYPE%"=="AMD" (
+    if %GPU_VRAM_NUM% GEQ 24000 (
+        REM 24GB
+        set "DEFAULT_MODEL=Qwen_Qwen3.6-27B-Q3_K_M.gguf"
+        set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen3.6-27B-f16.gguf"
+        set "MODEL_REPO=bartowski/Qwen_Qwen3.6-27B-GGUF"
+        set "MODEL_SIZE=15 GB"
+        set "MMPROJ_SIZE=928 MB"
+    ) else if %GPU_VRAM_NUM% GEQ 16000 (
+        REM 16GB
+        set "DEFAULT_MODEL=Qwen3.6-14B-A3B-FableVibes-Q4_K_M.gguf"
+        set "DEFAULT_MMPROJ=Qwen3.6-14B-A3B-FableVibes-mmproj-F16.gguf"
+        set "MODEL_REPO=tvall43/Qwen3.6-14B-A3B-FableVibes-GGUF"
+        set "MODEL_SIZE=8.5 GB"
+        set "MMPROJ_SIZE=900 MB"
+    ) else (
+        REM 8-12GB
         set "DEFAULT_MODEL=Qwen2.5-VL-7B-Instruct-Q5_K_M.gguf"
         set "DEFAULT_MMPROJ=mmproj-F16.gguf"
         set "MODEL_REPO=unsloth/Qwen2.5-VL-7B-Instruct-GGUF"
