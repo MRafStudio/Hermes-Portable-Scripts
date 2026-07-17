@@ -62,7 +62,7 @@ set "MODEL_SIZE="
 set "MMPROJ_SIZE="
 
 REM Настраиваем модели на основании расчётов
-call "%SCRIPTS_DIR%\Models_Setup.bat" %AUTOCLOSE%
+call "%SCRIPTS_DIR%\Model-Setup.bat" %AUTOCLOSE%
 if !errorlevel! neq 0 exit /b 1
     
 REM Получаем их из Config.ini
