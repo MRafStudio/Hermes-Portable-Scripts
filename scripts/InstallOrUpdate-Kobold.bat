@@ -40,74 +40,6 @@ set "TRANSFORMERS_CACHE=%HF_HOME%"
 set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
 set "PYTHON_EXE=%PYTHON_DIR%\python.exe"
 
-REM ============================================================================
-REM   Определение GPU и выбор модели
-REM ============================================================================
-call "%SCRIPTS_DIR%\DetectGPU.bat"
-
-REM Выбираем модель по GPU
-if "%GPU_TYPE%"=="NVIDIA" (
-    if %GPU_VRAM_NUM% GEQ 32000 (
-        REM RTX 5090/5080 32GB
-        set "DEFAULT_MODEL=Qwen_Qwen3.6-27B-Q5_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen3.6-27B-f16.gguf"
-        set "MODEL_REPO=bartowski/Qwen_Qwen3.6-27B-GGUF"
-        set "MODEL_SIZE=21 GB"
-        set "MMPROJ_SIZE=928 MB"
-    ) else if %GPU_VRAM_NUM% GEQ 24000 (
-        REM RTX 4090/3090 24GB
-        set "DEFAULT_MODEL=Qwen_Qwen3.6-27B-Q3_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen3.6-27B-f16.gguf"
-        set "MODEL_REPO=bartowski/Qwen_Qwen3.6-27B-GGUF"
-        set "MODEL_SIZE=15 GB"
-        set "MMPROJ_SIZE=928 MB"
-    ) else if %GPU_VRAM_NUM% GEQ 16000 (
-        REM 16GB
-        set "DEFAULT_MODEL=Qwen3.6-14B-A3B-FableVibes-Q4_K_M.gguf"
-        set "DEFAULT_MMPROJ=Qwen3.6-14B-A3B-FableVibes-mmproj-F16.gguf"
-        set "MODEL_REPO=tvall43/Qwen3.6-14B-A3B-FableVibes-GGUF"
-        set "MODEL_SIZE=8.5 GB"
-        set "MMPROJ_SIZE=900 MB"
-    ) else (
-        REM 8-12GB
-        set "DEFAULT_MODEL=Qwen2.5-VL-7B-Instruct-Q5_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-F16.gguf"
-        set "MODEL_REPO=unsloth/Qwen2.5-VL-7B-Instruct-GGUF"
-        set "MODEL_SIZE=5.5 GB"
-        set "MMPROJ_SIZE=1.4 GB"
-    )
-) else if "%GPU_TYPE%"=="AMD" (
-    if %GPU_VRAM_NUM% GEQ 24000 (
-        REM 24GB
-        set "DEFAULT_MODEL=Qwen_Qwen3.6-27B-Q3_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen3.6-27B-f16.gguf"
-        set "MODEL_REPO=bartowski/Qwen_Qwen3.6-27B-GGUF"
-        set "MODEL_SIZE=15 GB"
-        set "MMPROJ_SIZE=928 MB"
-    ) else if %GPU_VRAM_NUM% GEQ 16000 (
-        REM 16GB
-        set "DEFAULT_MODEL=Qwen3.6-14B-A3B-FableVibes-Q4_K_M.gguf"
-        set "DEFAULT_MMPROJ=Qwen3.6-14B-A3B-FableVibes-mmproj-F16.gguf"
-        set "MODEL_REPO=tvall43/Qwen3.6-14B-A3B-FableVibes-GGUF"
-        set "MODEL_SIZE=8.5 GB"
-        set "MMPROJ_SIZE=900 MB"
-    ) else (
-        REM 8-12GB
-        set "DEFAULT_MODEL=Qwen2.5-VL-7B-Instruct-Q5_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-F16.gguf"
-        set "MODEL_REPO=unsloth/Qwen2.5-VL-7B-Instruct-GGUF"
-        set "MODEL_SIZE=5.5 GB"
-        set "MMPROJ_SIZE=1.4 GB"
-    )
-) else (
-    REM Intel/Unknown — минимальная модель
-    set "DEFAULT_MODEL=Qwen_Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"
-    set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen2.5-VL-7B-Instruct-f16.gguf"
-    set "MODEL_REPO=bartowski/Qwen_Qwen2.5-VL-7B-Instruct-GGUF"
-    set "MODEL_SIZE=4.7 GB"
-    set "MMPROJ_SIZE=1.4 GB"
-)
-
 REM Создаём изолированные папки
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" 2>nul
 if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
@@ -119,6 +51,32 @@ if not exist "%HF_HOME%" mkdir "%HF_HOME%" 2>nul
 if not exist "%KCPP_DIR%" mkdir "%KCPP_DIR%" 2>nul
 if not exist "%MODELS_DIR%" mkdir "%MODELS_DIR%" 2>nul
 if not exist "%WHISPER_DIR%" mkdir "%WHISPER_DIR%" 2>nul
+
+REM ============================================================================
+REM   Получаем параметры моделей и адрес загрузки
+REM ============================================================================
+set "DEFAULT_MODEL="
+set "DEFAULT_MMPROJ="
+set "MODEL_REPO="
+set "MODEL_SIZE="
+set "MMPROJ_SIZE="
+
+REM Настраиваем модели на основании расчётов
+call "%SCRIPTS_DIR%\Models_Setup.bat" %AUTOCLOSE%
+if !errorlevel! neq 0 exit /b 1
+    
+REM Получаем их из Config.ini
+for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_MODEL=" "%CONFIG_FILE%"') do set "DEFAULT_MODEL=%%b"
+for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_MMPROJ=" "%CONFIG_FILE%"') do set "DEFAULT_MMPROJ=%%b"
+for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_MODEL_REPO=" "%CONFIG_FILE%"') do set "MODEL_REPO=%%b"
+
+set "DEFAULT_MODEL=%DEFAULT_MODEL: =%"
+set "DEFAULT_MMPROJ=%DEFAULT_MMPROJ: =%"
+set "MODEL_REPO=%MODEL_REPO: =%"
+
+REM Размеры берём из Models_Setup.bat (если он вызывался) или дефолт
+if "!MODEL_SIZE!"=="" set "MODEL_SIZE=?"
+if "!MMPROJ_SIZE!"=="" set "MMPROJ_SIZE=?"
 
 REM ============================================================================
 REM   Получение ESC
@@ -222,6 +180,7 @@ if exist "%KCPP_EXE%" (
     
     if "!CURRENT_VERSION!"=="!LATEST_VERSION_CLEAN!" (
         echo   %ESC%[1;32m  +   У вас последняя версия.%ESC%[0m
+        echo.
         goto :skip_kcpp_update
     ) else (
         echo   %ESC%[1;33m  -   Доступна новая версия.%ESC%[0m

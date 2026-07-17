@@ -37,7 +37,7 @@ REM ============================================================================
 REM   Проверка файлов
 REM ============================================================================
 if not exist "%CONFIG_YAML%" (
-    echo   %ESC%[1;33m  !   config.yaml не найден:%ESC%[0m
+    echo   %ESC%[1;33m  i   config.yaml не найден:%ESC%[0m
     echo   %ESC%[2m       %CONFIG_YAML%%ESC%[0m
     echo.
     echo   %ESC%[1;33m  .   Патч пропущен.%ESC%[0m
@@ -88,7 +88,7 @@ if %PATCH_RESULT% equ 0 (
 ) else if %PATCH_RESULT% equ 1 (
     echo   %ESC%[1;33m  .   config.yaml уже настроен для KoboldCpp.%ESC%[0m
 ) else (
-    echo   %ESC%[1;31m[ОШИБКА] Патч не применён (код: %PATCH_RESULT%).%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Патч не применён ^(код: %PATCH_RESULT%^).%ESC%[0m
     echo   %ESC%[33m       Восстановите из бэкапа: %BACKUP_FILE%%ESC%[0m
 )
 

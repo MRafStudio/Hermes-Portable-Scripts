@@ -1,7 +1,6 @@
 @REM scripts\Models_Setup.bat
 @echo off
 chcp 65001 >nul
-setlocal enabledelayedexpansion
 
 REM ============================================================================
 REM   Определение модели по GPU и сохранение в Config.ini
@@ -24,7 +23,7 @@ call "%SCRIPTS_DIR%\DetectGPU.bat"
 cls
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
-echo  %ESC%[1;36m##%ESC%[0m              %ESC%[1;37mHermes Portable%ESC%[0m   —   %ESC%[1;33mВыбор модели KoboldCpp%ESC%[0m              %ESC%[1;36m##%ESC%[0m
+echo  %ESC%[1;36m##%ESC%[0m                 %ESC%[1;37mHermes Portable%ESC%[0m   —   %ESC%[1;33mВыбор модели KoboldCpp%ESC%[0m               %ESC%[1;36m##%ESC%[0m
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
 
