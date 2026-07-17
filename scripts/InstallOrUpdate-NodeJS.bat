@@ -9,16 +9,18 @@ if "%1"=="1" set "AUTOCLOSE=1"
 title Hermes Portable — Установка Node.js Portable
 
 REM ============================================================================
-REM   Получение ESC через PowerShell
-REM ============================================================================
-for /f %%a in ('powershell -NoProfile -Command "Write-Host ([char]27) -NoNewline"') do set "ESC=%%a"
-
-REM ============================================================================
 REM   Определение путей
 REM ============================================================================
 for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
-set "NODE_DIR=%ROOT_DIR%\node-dist"
+set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
+set "HERMES_HOME=%ROOT_DIR%\data\hermes"
+set "NODE_DIR=%HERMES_HOME%\node"
 set "NODE_EXE=%NODE_DIR%\node.exe"
+
+REM ============================================================================
+REM   Сохраняем РЕАЛЬНЫЕ пути ДО изоляции
+REM ============================================================================
+set "REAL_LOCALAPPDATA=%LOCALAPPDATA%"
 
 REM ============================================================================
 REM   Изоляция данных
@@ -29,6 +31,12 @@ set "TMP=%DATA_DIR%\temp"
 
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" 2>nul
 if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
+if not exist "%HERMES_HOME%" mkdir "%HERMES_HOME%" 2>nul
+
+REM ============================================================================
+REM   Получение ESC (стандартный трюк, как в остальных скриптах)
+REM ============================================================================
+for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 cls
 echo.
@@ -40,7 +48,7 @@ echo  %ESC%[1;36m###############################################################
 echo.
 
 REM ============================================================================
-REM   Проверка разрядности
+REM   ШАГ 0: Проверка разрядности
 REM ============================================================================
 echo   %ESC%[1;33m[0/2]%ESC%[0m %ESC%[1mПроверка разрядности Windows...%ESC%[0m
 set "ARCH_OK=0"
@@ -57,14 +65,53 @@ echo   %ESC%[1;32m  +   Система 64-разрядная ^(x64^).%ESC%[0m
 echo.
 
 REM ============================================================================
-REM   ШАГ 1: Проверка существующей установки
+REM   ШАГ 1: Проверка Node.js (глобальный -> локальный)
 REM ============================================================================
 echo   %ESC%[1;33m[1/2]%ESC%[0m %ESC%[1mПроверка Node.js...%ESC%[0m
 
+REM --- 1. Глобальный Node.js (ПРИОРИТЕТ): стандартные пути ---
+set "GLOBAL_NODE="
+if exist "%ProgramFiles%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles%\nodejs"
+if not defined GLOBAL_NODE if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles(x86)%\nodejs"
+if not defined GLOBAL_NODE if exist "%REAL_LOCALAPPDATA%\Programs\nodejs\node.exe" set "GLOBAL_NODE=%REAL_LOCALAPPDATA%\Programs\nodejs"
+
+REM --- Глобальный Node.js: реестр (HKLM + WOW6432Node + HKCU) ---
+if not defined GLOBAL_NODE (
+    for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
+        if "%%a"=="InstallPath" (
+            if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+        )
+    )
+)
+if not defined GLOBAL_NODE (
+    for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Node.js" /v InstallPath 2^>nul') do (
+        if "%%a"=="InstallPath" (
+            if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+        )
+    )
+)
+if not defined GLOBAL_NODE (
+    for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKCU\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
+        if "%%a"=="InstallPath" (
+            if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+        )
+    )
+)
+
+if defined GLOBAL_NODE (
+    echo   %ESC%[1;32m  +   Обнаружен глобальный Node.js%ESC%[0m
+    echo   %ESC%[2m       !GLOBAL_NODE!\%ESC%[0m
+    set /p "=%ESC%[2m       Версия: %ESC%[0m" <nul
+    for /f "delims=" %%v in ('"!GLOBAL_NODE!\node.exe" --version 2^>nul') do echo %%v
+    echo   %ESC%[1;33m  .   Локальная установка не требуется — Hermes использует глобальный.%ESC%[0m
+    goto node_done
+)
+
+REM --- 2. Локальный Node.js: уже установлен? ---
 if exist "%NODE_EXE%" (
     "%NODE_EXE%" --version >nul 2>nul
     if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   Node.js уже установлен.%ESC%[0m
+        echo   %ESC%[1;32m  +   Локальный Node.js уже установлен.%ESC%[0m
         set /p "=%ESC%[2m       Версия: %ESC%[0m" <nul
         for /f "delims=" %%v in ('"%NODE_EXE%" --version 2^>nul') do echo %%v
         goto node_done
@@ -127,6 +174,9 @@ echo   %ESC%[1;33m  →   Распаковка...%ESC%[0m
 if exist "%NODE_DIR%" rmdir /s /q "%NODE_DIR%"
 mkdir "%NODE_DIR%" 2>nul
 
+REM Чистим каталог распаковки от прошлых запусков
+if exist "%TEMP%\node_extract" rmdir /s /q "%TEMP%\node_extract" 2>nul
+
 REM ============================================================================
 REM   Распаковка: сначала 7-Zip, потом PowerShell (fallback)
 REM ============================================================================
@@ -147,7 +197,7 @@ if not defined SEVENZIP (
 if defined SEVENZIP (
     echo   %ESC%[2m       Распаковка через 7-Zip...%ESC%[0m
     "%SEVENZIP%" x "%TEMP%\!NODE_ZIP!" -o"%TEMP%\node_extract" -y >nul 2>&1
-    
+
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   Распаковка через 7-Zip завершена.%ESC%[0m
         goto node_move
@@ -183,12 +233,17 @@ for /f "delims=" %%v in ('"%NODE_EXE%" --version 2^>nul') do echo %%v
 :node_done
 echo.
 echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
-echo   %ESC%[1;32mNode.js готов!%ESC%[0m
-echo   %ESC%[2m  Путь: %NODE_DIR%%ESC%[0m
+if defined GLOBAL_NODE (
+    echo   %ESC%[1;32mNode.js готов ^(глобальный^)%ESC%[0m
+    echo   %ESC%[2m  Путь: !GLOBAL_NODE!%ESC%[0m
+) else (
+    echo   %ESC%[1;32mNode.js готов ^(локальный^)%ESC%[0m
+    echo   %ESC%[2m  Путь: %NODE_DIR%%ESC%[0m
+)
 echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
 
 if "%AUTOCLOSE%"=="1" (
-    call "%~dp0SmartPause.bat" 5
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
 ) else (
     pause
 )
