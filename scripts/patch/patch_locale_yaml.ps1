@@ -63,12 +63,12 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
 
 if ($modified) {
     $result | Set-Content $ConfigPath -Encoding UTF8
-    Write-Host "  +   language: changed to '$Locale' in config.yaml" -ForegroundColor Green
+    Write-Host "    +   language: changed to '$Locale' in config.yaml" -ForegroundColor Green
     exit 0
 } elseif ($languageDone) {
-    Write-Host "  .   language: already '$Locale' in config.yaml" -ForegroundColor Green
+    Write-Host "    .   language: already '$Locale' in config.yaml" -ForegroundColor Green
     exit 0
 } else {
-    Write-Host "  !   language: not found in the display block in config.yaml" -ForegroundColor Yellow
+    Write-Host "    !   language: not found in the display block in config.yaml" -ForegroundColor Yellow
     exit 1
 }
