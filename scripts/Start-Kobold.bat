@@ -87,7 +87,7 @@ REM По умолчанию — start
 REM ============================================================================
 REM   Автоопределение GPU и параметров (только для start)
 REM ============================================================================
-call "%SCRIPTS_DIR%\DetectGPU.bat"
+call "%SCRIPTS_DIR%\DetectGPU.bat" quiet
 
 REM Страховка: если DetectGPU не вернул VRAM — считаем нулём
 if not defined GPU_VRAM_NUM set "GPU_VRAM_NUM=0"
