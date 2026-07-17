@@ -31,6 +31,9 @@ Hermes/
 │   ├── InstallOrUpdate-Kobold.bat          # Установка/Обновление KoboldCpp и моделей
 │   ├── InstallOrUpdate-Repo.bat            # fallback установки/обновления локального репозитория Hermes
 │   ├── InstallOrUpdate-RU.bat              # Установка/Обновление RU локализации
+│   ├── Model-Setup.bat                     # Установка моделей
+│   ├── PatchConfigKobold.bat               # Патчер config.yaml для применения локальной LLM
+│   ├── Rebuild-Desktop.bat                 # Отдельный скрипт быстрой пересборки Hermes
 │   ├── Settings.bat                        # Минимальное управление настройками Kobold
 │   ├── SmartPause.bat                      # Умная пауза
 │   ├── Start-Hermes-Desktop.bat            # Запуск Hermes в desktop режиме
