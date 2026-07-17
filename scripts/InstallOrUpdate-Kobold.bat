@@ -21,6 +21,7 @@ REM   Пути и изоляция
 REM ============================================================================
 for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
+set "CONFIG_FILE=%SCRIPTS_DIR%\Config.ini"
 
 set "DATA_DIR=%ROOT_DIR%\data"
 set "TEMP=%DATA_DIR%\temp"
@@ -53,6 +54,11 @@ if not exist "%MODELS_DIR%" mkdir "%MODELS_DIR%" 2>nul
 if not exist "%WHISPER_DIR%" mkdir "%WHISPER_DIR%" 2>nul
 
 REM ============================================================================
+REM   Получение ESC (ДО вызова Model-Setup — тот рисует цветные меню!)
+REM ============================================================================
+for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
+
+REM ============================================================================
 REM   Получаем параметры моделей и адрес загрузки
 REM ============================================================================
 set "DEFAULT_MODEL="
@@ -64,7 +70,7 @@ set "MMPROJ_SIZE="
 REM Настраиваем модели на основании расчётов
 call "%SCRIPTS_DIR%\Model-Setup.bat" %AUTOCLOSE%
 if !errorlevel! neq 0 exit /b 1
-    
+
 REM Получаем их из Config.ini
 for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_MODEL=" "%CONFIG_FILE%"') do set "DEFAULT_MODEL=%%b"
 for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_MMPROJ=" "%CONFIG_FILE%"') do set "DEFAULT_MMPROJ=%%b"
@@ -74,14 +80,23 @@ set "DEFAULT_MODEL=%DEFAULT_MODEL: =%"
 set "DEFAULT_MMPROJ=%DEFAULT_MMPROJ: =%"
 set "MODEL_REPO=%MODEL_REPO: =%"
 
-REM Размеры берём из Models_Setup.bat (если он вызывался) или дефолт
+REM Проверяем, что Model-Setup реально записал параметры
+if "!DEFAULT_MODEL!"=="" (
+    echo   %ESC%[1;31m[ОШИБКА] KOBOLD_MODEL не задан в Config.ini%ESC%[0m
+    echo   %ESC%[33m       Model-Setup.bat не записал параметры модели.%ESC%[0m
+    if "%AUTOCLOSE%"=="0" pause
+    exit /b 1
+)
+if "!MODEL_REPO!"=="" (
+    echo   %ESC%[1;31m[ОШИБКА] KOBOLD_MODEL_REPO не задан в Config.ini%ESC%[0m
+    echo   %ESC%[33m       Model-Setup.bat не записал параметры модели.%ESC%[0m
+    if "%AUTOCLOSE%"=="0" pause
+    exit /b 1
+)
+
+REM Размеры берём из Model-Setup.bat (если он их определил) или дефолт
 if "!MODEL_SIZE!"=="" set "MODEL_SIZE=?"
 if "!MMPROJ_SIZE!"=="" set "MMPROJ_SIZE=?"
-
-REM ============================================================================
-REM   Получение ESC
-REM ============================================================================
-for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 cls
 echo.
@@ -110,9 +125,9 @@ REM ============================================================================
 REM   ШАГ 0: Проверка разрядности
 REM ============================================================================
 echo   %ESC%[1;33m[0/4]%ESC%[0m %ESC%[1mПроверка разрядности Windows...%ESC%[0m
-set ARCH_OK=0
-if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set ARCH_OK=1
-if "%PROCESSOR_ARCHITEW6432%"=="AMD64" set ARCH_OK=1
+set "ARCH_OK=0"
+if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "ARCH_OK=1"
+if "%PROCESSOR_ARCHITEW6432%"=="AMD64" set "ARCH_OK=1"
 if %ARCH_OK%==0 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] Обнаружена 32-разрядная ^(x86^) версия Windows.%ESC%[0m
@@ -131,7 +146,7 @@ REM ============================================================================
 echo   %ESC%[1;33m[1/4]%ESC%[0m %ESC%[1mПроверка версии KoboldCpp...%ESC%[0m
 
 set "TEMP_JSON=%TEMP%\kobold_release_%RANDOM%.json"
-curl -s -L -o "%TEMP_JSON%" "https://api.github.com/repos/LostRuins/koboldcpp/releases/latest"
+curl -fsSL -o "%TEMP_JSON%" "https://api.github.com/repos/LostRuins/koboldcpp/releases/latest"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось получить информацию о версиях.%ESC%[0m
@@ -140,11 +155,19 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
+set "LATEST_VERSION="
 for /f "tokens=2 delims=:" %%a in ('findstr /C:"\"tag_name\"" "%TEMP_JSON%"') do (
     set "LATEST_VERSION=%%a"
     set "LATEST_VERSION=!LATEST_VERSION:"=!"
     set "LATEST_VERSION=!LATEST_VERSION: =!"
     set "LATEST_VERSION=!LATEST_VERSION:,=!"
+)
+
+if not defined LATEST_VERSION (
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось определить последнюю версию из ответа GitHub.%ESC%[0m
+    call :cleanup
+    if "%AUTOCLOSE%"=="0" pause
+    exit /b 1
 )
 
 echo   %ESC%[2m       Последняя версия: %ESC%[1;33m!LATEST_VERSION!%ESC%[0m
@@ -154,8 +177,8 @@ if "!LATEST_VERSION_CLEAN:~0,1!"=="v" set "LATEST_VERSION_CLEAN=!LATEST_VERSION_
 
 REM ============================================================================
 REM   ШАГ 2: Проверка и обновление KoboldCpp
-REM ============================================================================
 REM   ПРОПУСКАЕМ если режим "только модели"
+REM ============================================================================
 
 if "!MODE!"=="models" (
     echo   %ESC%[1;33m[2/4]%ESC%[0m %ESC%[1mПроверка KoboldCpp...%ESC%[0m
@@ -174,11 +197,12 @@ if "!MODE!"=="models" (
 )
 
 if exist "%KCPP_EXE%" (
-    for /f "tokens=1" %%a in ('"%KCPP_EXE%" --version 2^>nul') do set "CURRENT_VERSION=%%a"
-    set "CURRENT_VERSION=!CURRENT_VERSION: =!"
+    for /f "tokens=*" %%a in ('"%KCPP_EXE%" --version 2^>nul') do set "CURRENT_VERSION=%%a"
     echo   %ESC%[2m       Текущая версия: %ESC%[1;33m!CURRENT_VERSION!%ESC%[0m
-    
-    if "!CURRENT_VERSION!"=="!LATEST_VERSION_CLEAN!" (
+
+    REM Сравнение по подстроке: надёжно при любом формате вывода --version
+    echo !CURRENT_VERSION! | findstr /C:"!LATEST_VERSION_CLEAN!" >nul
+    if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   У вас последняя версия.%ESC%[0m
         echo.
         goto :skip_kcpp_update
@@ -214,10 +238,10 @@ if "!DOWNLOAD_URL!"=="" (
 echo   %ESC%[2m       Загрузка koboldcpp.exe...%ESC%[0m
 
 REM Пробуем curl
-curl -L -o "%KCPP_DIR%\koboldcpp_new.exe" --connect-timeout 30 --max-time 300 "!DOWNLOAD_URL!"
+curl -fSL -o "%KCPP_DIR%\koboldcpp_new.exe" --connect-timeout 30 --max-time 300 "!DOWNLOAD_URL!"
 if !errorlevel! equ 0 goto :download_kobold_ok
 
-echo   %ESC%[1;33m  !   curl не справился, пробуем PowerShell...%ESC%[0m
+echo   %ESC%[1;33m  ⚠  curl не справился, пробуем PowerShell...%ESC%[0m
 
 REM Fallback: PowerShell
 powershell -NoProfile -Command "try { $ProgressPreference = 'Continue'; Invoke-WebRequest -Uri '!DOWNLOAD_URL!' -OutFile '%KCPP_DIR%\koboldcpp_new.exe' -TimeoutSec 300 -UseBasicParsing } catch { exit 1 }"
@@ -225,6 +249,13 @@ if !errorlevel! equ 0 goto :download_kobold_ok
 
 echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить KoboldCpp.%ESC%[0m
 del "%KCPP_DIR%\koboldcpp_new.exe" 2>nul
+
+REM В автоматическом режиме не спрашиваем — сразу выходим с ошибкой
+if "!AUTOCLOSE!"=="1" (
+    echo   %ESC%[1;33m  .   Автоматический режим — повтор невозможен.%ESC%[0m
+    call :cleanup
+    exit /b 1
+)
 
 echo.
 echo   %ESC%[1;33m  ?   Попробовать заново? [Y/N]: %ESC%[0m
@@ -235,7 +266,7 @@ if /I "!RETRY_KOBOLD!"=="Y" (
 )
 
 call :cleanup
-if "%AUTOCLOSE%"=="0" pause
+pause
 exit /b 1
 
 :download_kobold_ok
@@ -279,7 +310,7 @@ set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%"
 
 where hf >nul 2>nul
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  !   hf.exe не найден. Установка HuggingFace Hub...%ESC%[0m
+    echo   %ESC%[1;33m  ⚠  hf.exe не найден. Установка HuggingFace Hub...%ESC%[0m
     call "%SCRIPTS_DIR%\InstallOrUpdate-HF.bat" 1
     if !errorlevel! neq 0 (
         echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить HuggingFace Hub.%ESC%[0m
@@ -295,12 +326,18 @@ echo   %ESC%[1;33m  -   Загрузка через hf.exe...%ESC%[0m
 hf download ggerganov/whisper.cpp ggml-medium.bin --local-dir "%WHISPER_DIR%"
 if !errorlevel! equ 0 goto :download_whisper_ok
 
-echo   %ESC%[1;33m  !   hf.exe не справился, пробуем PowerShell...%ESC%[0m
+echo   %ESC%[1;33m  ⚠  hf.exe не справился, пробуем PowerShell...%ESC%[0m
 powershell -NoProfile -Command "try { $ProgressPreference = 'Continue'; Invoke-WebRequest -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin' -OutFile '%WHISPER_FILE%' -TimeoutSec 300 -UseBasicParsing } catch { exit 1 }"
 if !errorlevel! equ 0 goto :download_whisper_ok
 
 echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить Whisper модель.%ESC%[0m
 del "%WHISPER_FILE%" 2>nul
+
+REM Whisper не критичен: в автоматическом режиме просто пропускаем
+if "!AUTOCLOSE!"=="1" (
+    echo   %ESC%[1;33m  ⚠  Whisper модель не загружена. Пропускаем...%ESC%[0m
+    goto :whisper_done
+)
 
 echo.
 echo   %ESC%[1;33m  ?   Попробовать заново? [Y/N]: %ESC%[0m
@@ -310,7 +347,7 @@ if /I "!RETRY_WHISPER!"=="Y" (
     goto :download_whisper
 )
 
-echo   %ESC%[1;33m  !   Whisper модель не загружена. Пропускаем...%ESC%[0m
+echo   %ESC%[1;33m  ⚠  Whisper модель не загружена. Пропускаем...%ESC%[0m
 goto :whisper_done
 
 :download_whisper_ok
@@ -353,7 +390,7 @@ set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%"
 
 where hf >nul 2>nul
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  !   hf.exe не найден. Установка HuggingFace Hub...%ESC%[0m
+    echo   %ESC%[1;33m  ⚠  hf.exe не найден. Установка HuggingFace Hub...%ESC%[0m
     call "%SCRIPTS_DIR%\InstallOrUpdate-HF.bat" 1
     if !errorlevel! neq 0 (
         echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить HuggingFace Hub.%ESC%[0m
@@ -363,26 +400,33 @@ if !errorlevel! neq 0 (
     )
 )
 
-REM Загрузка модели
-if !MODEL_OK! equ 0 (
-    echo.
-    echo   %ESC%[1;33m  -   Загрузка LLM модели...%ESC%[0m
-    echo   %ESC%[2m       %DEFAULT_MODEL% ^(%MODEL_SIZE%^)%ESC%[0m
-    echo   %ESC%[2m       Репозиторий: %MODEL_REPO%%ESC%[0m
-    echo.
-    goto download_model_start
-)
+REM ============================================================================
+REM   Загрузка модели (ПРОПУСКАЕМ если уже есть — goto, а не провал сквозь метку!)
+REM ============================================================================
+if !MODEL_OK! equ 1 goto :llm_skip_download
+
+echo.
+echo   %ESC%[1;33m  -   Загрузка LLM модели...%ESC%[0m
+echo   %ESC%[2m       %DEFAULT_MODEL% ^(%MODEL_SIZE%^)%ESC%[0m
+echo   %ESC%[2m       Репозиторий: %MODEL_REPO%%ESC%[0m
+echo.
 
 :download_model_start
 hf download %MODEL_REPO% %DEFAULT_MODEL% --local-dir "%MODELS_DIR%"
 if !errorlevel! equ 0 goto download_model_ok
 
-echo   %ESC%[1;33m  !   hf.exe не справился, пробуем PowerShell...%ESC%[0m
+echo   %ESC%[1;33m  ⚠  hf.exe не справился, пробуем PowerShell...%ESC%[0m
 powershell -NoProfile -Command "try { $ProgressPreference = 'Continue'; Invoke-WebRequest -Uri 'https://huggingface.co/%MODEL_REPO%/resolve/main/%DEFAULT_MODEL%' -OutFile '%MODEL_FILE%' -TimeoutSec 600 -UseBasicParsing } catch { exit 1 }"
 if !errorlevel! equ 0 goto download_model_ok
 
 echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить LLM модель.%ESC%[0m
 del "%MODEL_FILE%" 2>nul
+
+if "!AUTOCLOSE!"=="1" (
+    echo   %ESC%[1;33m  .   Автоматический режим — повтор невозможен.%ESC%[0m
+    call :cleanup
+    exit /b 1
+)
 
 echo.
 echo   %ESC%[1;33m  ?   Попробовать заново? [Y/N]: %ESC%[0m
@@ -393,33 +437,40 @@ if /I "!RETRY_MODEL!"=="Y" (
 )
 
 call :cleanup
-if "%AUTOCLOSE%"=="0" pause
+pause
 exit /b 1
 
 :download_model_ok
 echo   %ESC%[1;32m  +   LLM модель загружена.%ESC%[0m
 
-REM Загрузка проектора
-if !MMPROJ_OK! equ 0 (
-    echo.
-    echo   %ESC%[1;33m  -   Загрузка проектора ^(vision^)...%ESC%[0m
-    echo   %ESC%[2m       %DEFAULT_MMPROJ% ^(%MMPROJ_SIZE%^)%ESC%[0m
-    echo.
-    goto download_mmproj_start
-)
+:llm_skip_download
 
-goto model_done
+REM ============================================================================
+REM   Загрузка проектора (ПРОПУСКАЕМ если уже есть)
+REM ============================================================================
+if !MMPROJ_OK! equ 1 goto :model_done
+
+echo.
+echo   %ESC%[1;33m  -   Загрузка проектора ^(vision^)...%ESC%[0m
+echo   %ESC%[2m       %DEFAULT_MMPROJ% ^(%MMPROJ_SIZE%^)%ESC%[0m
+echo.
 
 :download_mmproj_start
 hf download %MODEL_REPO% %DEFAULT_MMPROJ% --local-dir "%MODELS_DIR%"
 if !errorlevel! equ 0 goto download_mmproj_ok
 
-echo   %ESC%[1;33m  !   hf.exe не справился, пробуем PowerShell...%ESC%[0m
+echo   %ESC%[1;33m  ⚠  hf.exe не справился, пробуем PowerShell...%ESC%[0m
 powershell -NoProfile -Command "try { $ProgressPreference = 'Continue'; Invoke-WebRequest -Uri 'https://huggingface.co/%MODEL_REPO%/resolve/main/%DEFAULT_MMPROJ%' -OutFile '%MMPROJ_FILE%' -TimeoutSec 600 -UseBasicParsing } catch { exit 1 }"
 if !errorlevel! equ 0 goto download_mmproj_ok
 
 echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить проектор.%ESC%[0m
 del "%MMPROJ_FILE%" 2>nul
+
+if "!AUTOCLOSE!"=="1" (
+    echo   %ESC%[1;33m  .   Автоматический режим — повтор невозможен.%ESC%[0m
+    call :cleanup
+    exit /b 1
+)
 
 echo.
 echo   %ESC%[1;33m  ?   Попробовать заново? [Y/N]: %ESC%[0m
@@ -430,7 +481,7 @@ if /I "!RETRY_MMPROJ!"=="Y" (
 )
 
 call :cleanup
-if "%AUTOCLOSE%"=="0" pause
+pause
 exit /b 1
 
 :download_mmproj_ok
@@ -443,27 +494,6 @@ REM ============================================================================
 REM   Обновление Config.ini — отмечаем KoboldCpp как установленный
 REM ============================================================================
 echo   %ESC%[1;33m  -   Обновление Config.ini...%ESC%[0m
-
-set "CONFIG_FILE=%SCRIPTS_DIR%\Config.ini"
-
-REM Читаем текущие значения Kobold из Config.ini
-set "OLD_KOBOLD_ENABLED=0"
-set "OLD_KOBOLD_MODEL="
-set "OLD_KOBOLD_MMPROJ="
-
-if exist "%CONFIG_FILE%" (
-    for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_ENABLED=" "%CONFIG_FILE%"') do set "OLD_KOBOLD_ENABLED=%%b"
-    for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_MODEL=" "%CONFIG_FILE%"') do set "OLD_KOBOLD_MODEL=%%b"
-    for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_MMPROJ=" "%CONFIG_FILE%"') do set "OLD_KOBOLD_MMPROJ=%%b"
-)
-
-set "OLD_KOBOLD_ENABLED=%OLD_KOBOLD_ENABLED: =%"
-set "OLD_KOBOLD_MODEL=%OLD_KOBOLD_MODEL: =%"
-set "OLD_KOBOLD_MMPROJ=%OLD_KOBOLD_MMPROJ: =%"
-
-if "!OLD_KOBOLD_ENABLED!"=="" set "OLD_KOBOLD_ENABLED=0"
-if "!OLD_KOBOLD_MODEL!"=="" set "OLD_KOBOLD_MODEL=!DEFAULT_MODEL!"
-if "!OLD_KOBOLD_MMPROJ!"=="" set "OLD_KOBOLD_MMPROJ=!DEFAULT_MMPROJ!"
 
 call "%SCRIPTS_DIR%\CreateConfig.bat" "1" "!DEFAULT_MODEL!" "!DEFAULT_MMPROJ!"
 
