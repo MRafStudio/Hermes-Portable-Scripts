@@ -1,4 +1,4 @@
-@REM scripts\Models_Setup.bat
+@REM scripts\Model-Setup.bat
 @echo off
 chcp 65001 >nul
 
@@ -6,6 +6,9 @@ REM ============================================================================
 REM   Определение модели по GPU и сохранение в Config.ini
 REM   Возвращает переменные: DEFAULT_MODEL, DEFAULT_MMPROJ, MODEL_REPO, MODEL_SIZE, MMPROJ_SIZE
 REM   %1 = AUTOCLOSE (1 = авто, 0 = интерактив)
+REM
+REM   ВНИМАНИЕ: setlocal здесь НЕ используется ОСОЗНАННО —
+REM   переменные должны остаться в окружении вызывающего скрипта!
 REM ============================================================================
 set "AUTOCLOSE=0"
 if "%1"=="1" set "AUTOCLOSE=1"
@@ -19,6 +22,9 @@ for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do 
 
 REM Определение GPU
 call "%SCRIPTS_DIR%\DetectGPU.bat"
+
+REM Страховка: если DetectGPU не вернул VRAM — считаем нулём
+if not defined GPU_VRAM_NUM set "GPU_VRAM_NUM=0"
 
 cls
 echo.
@@ -88,6 +94,17 @@ if "%GPU_TYPE%"=="NVIDIA" (
     set "MMPROJ_SIZE=1.4 GB"
 )
 
+REM ============================================================================
+REM   АВТОМАТИЧЕСКИЙ РЕЖИМ: без меню — сразу рекомендуемая модель
+REM ============================================================================
+if "%AUTOCLOSE%"=="1" (
+    echo   %ESC%[1;33mАвто-выбор модели по GPU:%ESC%[0m
+    echo   %ESC%[2m       Модель:   %DEFAULT_MODEL% ^(%MODEL_SIZE%^)%ESC%[0m
+    echo   %ESC%[2m       Проектор: %DEFAULT_MMPROJ% ^(%MMPROJ_SIZE%^)%ESC%[0m
+    echo   %ESC%[2m       Репо:     %MODEL_REPO%%ESC%[0m
+    goto save_model
+)
+
 REM Показываем выбор
 echo   %ESC%[1;33mРекомендуемая модель по GPU:%ESC%[0m
 echo   %ESC%[2m       Модель:   %DEFAULT_MODEL% ^(%MODEL_SIZE%^)%ESC%[0m
@@ -116,12 +133,31 @@ cls
 echo.
 echo   %ESC%[1;33mРучной выбор модели:%ESC%[0m
 echo.
+set "MANUAL_MODEL="
+set "MANUAL_MMPROJ="
+set "MANUAL_REPO="
+set "MANUAL_SIZE="
+set "MANUAL_MMPROJ_SIZE="
 set /p "MANUAL_MODEL=%ESC%[33mИмя файла модели (.gguf): %ESC%[0m"
 set /p "MANUAL_MMPROJ=%ESC%[33mИмя файла проектора: %ESC%[0m"
 set /p "MANUAL_REPO=%ESC%[33mРепозиторий HuggingFace (user/repo): %ESC%[0m"
 set /p "MANUAL_SIZE=%ESC%[33mРазмер модели (например: 8.5 GB): %ESC%[0m"
 set /p "MANUAL_MMPROJ_SIZE=%ESC%[33mРазмер проектора (например: 500 MB): %ESC%[0m"
 
+REM Валидация: модель и репозиторий обязательны
+if "!MANUAL_MODEL!"=="" goto :manual_invalid
+if "!MANUAL_REPO!"=="" goto :manual_invalid
+goto :manual_valid
+
+:manual_invalid
+echo.
+echo   %ESC%[1;31m[ОШИБКА] Имя модели и репозиторий обязательны!%ESC%[0m
+echo   %ESC%[33m         Повторите ввод.%ESC%[0m
+echo.
+pause
+goto manual_model
+
+:manual_valid
 set "DEFAULT_MODEL=%MANUAL_MODEL%"
 set "DEFAULT_MMPROJ=%MANUAL_MMPROJ%"
 set "MODEL_REPO=%MANUAL_REPO%"
