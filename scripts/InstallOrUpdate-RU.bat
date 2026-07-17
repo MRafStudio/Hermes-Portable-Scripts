@@ -163,7 +163,7 @@ if exist "%TYPES_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   types.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] PatchTypes.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_types.ps1 не сработал... Код: %errorlevel%%ESC%[0m
         goto error_exit
     )
 )
@@ -177,7 +177,7 @@ if exist "%LANG_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   languages.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] PatchLanguages.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_languages.ps1 не сработал... Код: %errorlevel%%ESC%[0m
         goto error_exit
     )
 )
@@ -191,7 +191,7 @@ if exist "%CATALOG_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   catalog.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] PatchCatalog.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_catalog.ps1 не сработал... Код: %errorlevel%%ESC%[0m
         goto error_exit
     )
 )

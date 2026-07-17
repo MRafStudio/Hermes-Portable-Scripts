@@ -1,4 +1,4 @@
-# \scripts\patch\patchCatalog.ps1
+# \scripts\patch\patch_catalog.ps1
 # Hermes Portable — Патч для catalog.ts
 # ============================================================================
 param(

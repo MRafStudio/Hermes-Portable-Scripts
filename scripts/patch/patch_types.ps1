@@ -1,4 +1,4 @@
-# \scripts\patch\patchTypes.ps1
+# \scripts\patch\patch_types.ps1
 # Hermes Portable — Патч для types.ts
 # ============================================================================
 param(

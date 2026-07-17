@@ -1,4 +1,4 @@
-# \scripts\patch\patchLanguages.ps1
+# \scripts\patch\patch_languages.ps1
 # Hermes Portable — Патч для languages.ts
 # ============================================================================
 param(
