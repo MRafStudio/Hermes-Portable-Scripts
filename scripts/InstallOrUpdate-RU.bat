@@ -1,4 +1,4 @@
-REM scripts\InstallOrUpdate-RU.bat
+@REM scripts\InstallOrUpdate-RU.bat
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -14,15 +14,12 @@ title Установка RU
 
 REM ============================================================================
 REM   Определение путей
+REM   Node.js здесь не используется — только копирование файлов и патчи
 REM ============================================================================
-set "SCRIPTS_DIR=%~dp0"
-if "%SCRIPTS_DIR:~-1%"=="\" set "SCRIPTS_DIR=%SCRIPTS_DIR:~0,-1%"
-
-for %%F in ("%SCRIPTS_DIR%\..") do set "ROOT_DIR=%%~fF"
+for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
+set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"
-set "NODE_DIR=%HERMES_HOME%\node"
-set "NODE_EXE=%NODE_DIR%\node.exe"
 set "RU_LOCALE_DIR=%SCRIPTS_DIR%\ru-locale"
 set "EN_LOCALE_DIR=%SCRIPTS_DIR%\en-locale"
 
@@ -43,8 +40,10 @@ if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
 if not exist "%RU_LOCALE_DIR%" mkdir "%RU_LOCALE_DIR%" 2>nul
 if not exist "%EN_LOCALE_DIR%" mkdir "%EN_LOCALE_DIR%" 2>nul
 
-REM Получение ESC (без PS_WRAPPER!)
-for /f %%a in ('powershell -NoProfile -Command "Write-Host ([char]27) -NoNewline"') do set "ESC=%%a"
+REM ============================================================================
+REM   Получение ESC (стандартный трюк, как в остальных скриптах)
+REM ============================================================================
+for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 REM cls
 echo.
@@ -82,22 +81,20 @@ if not exist "%RU_LOCALE_DIR%\ru-constants.ts" (
 echo   %ESC%[1;32m  +   Файлы локализации найдены.%ESC%[0m
 
 REM ============================================================================
-REM   ШАГ 2/5: Копирование en.ts из репозитория
+REM   ШАГ 2/4: Копирование en.ts из репозитория
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[2/5]%ESC%[0m %ESC%[1mКопирование en.ts и zh.ts из репозитория...%ESC%[0m
-
-set "REPO_I18N_DIR=%REPO_DIR%\apps\desktop\src\i18n"
+echo   %ESC%[1;33m[2/4]%ESC%[0m %ESC%[1mКопирование en.ts из репозитория...%ESC%[0m
 
 REM --- en.ts ---
-if exist "%REPO_I18N_DIR%\en.ts" (
-    copy /Y "%REPO_I18N_DIR%\en.ts" "%EN_LOCALE_DIR%\en.ts" >nul
+if exist "%I18N_DIR%\en.ts" (
+    copy /Y "%I18N_DIR%\en.ts" "%EN_LOCALE_DIR%\en.ts" >nul
     for %%F in ("%EN_LOCALE_DIR%\en.ts") do set "EN_SIZE=%%~zF"
     echo   %ESC%[1;32m  +   en.ts скопирован из репозитория ^(!EN_SIZE! байт^).%ESC%[0m
 ) else (
-    echo   %ESC%[1;33m  !   en.ts не найден в репозитории. Пробуем скачать...%ESC%[0m
+    echo   %ESC%[1;33m  ⚠  en.ts не найден в репозитории. Пробуем скачать...%ESC%[0m
     set "EN_TS_URL=https://raw.githubusercontent.com/NousResearch/hermes-agent/main/apps/desktop/src/i18n/en.ts"
-    curl -L -o "%EN_LOCALE_DIR%\en.ts" "%EN_TS_URL%"
+    curl -fsSL -o "%EN_LOCALE_DIR%\en.ts" "%EN_TS_URL%"
     if !errorlevel! neq 0 (
         echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить en.ts%ESC%[0m
         goto error_exit
@@ -140,7 +137,7 @@ if exist "%SOUL_SRC%" (
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   SOUL.md обновлён из default_soul.md.%ESC%[0m
     ) else (
-        echo   %ESC%[1;33m  !   Не удалось скопировать SOUL.md.%ESC%[0m
+        echo   %ESC%[1;33m  ⚠  Не удалось скопировать SOUL.md.%ESC%[0m
     )
 ) else (
     echo   %ESC%[1;33m  .   default_soul.md не найден, пропускаем.%ESC%[0m
@@ -162,7 +159,7 @@ if exist "%TYPES_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   types.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_types.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_types.ps1 не сработал... Код: !errorlevel!%ESC%[0m
         goto error_exit
     )
 )
@@ -176,7 +173,7 @@ if exist "%LANG_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   languages.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_languages.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_languages.ps1 не сработал... Код: !errorlevel!%ESC%[0m
         goto error_exit
     )
 )
@@ -190,7 +187,7 @@ if exist "%CATALOG_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   catalog.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_catalog.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_catalog.ps1 не сработал... Код: !errorlevel!%ESC%[0m
         goto error_exit
     )
 )
@@ -227,5 +224,9 @@ REM ============================================================================
 :error_exit
 echo.
 echo   %ESC%[1;31m[ОШИБКА] Произошла ошибка! Нажмите любую клавишу...%ESC%[0m
-pause >nul
+if "%AUTOCLOSE%"=="1" (
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
+) else (
+    pause >nul
+)
 exit /b 1
