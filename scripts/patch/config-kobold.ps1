@@ -19,11 +19,13 @@ if (-not (Test-Path $BackupPath)) {
     Write-Host "  +   Backup created: $BackupPath" -ForegroundColor DarkGray
 }
 
-# === ПРЕДВАРИТЕЛЬНЫЙ ПРОХОД: проверяем, есть ли уже context_file_max_chars в блоке model: ===
+# === ПРЕДВАРИТЕЛЬНЫЙ ПРОХОД: проверяем, есть ли уже параметры в блоке model: ===
 $allLines = Get-Content $ConfigPath -Encoding UTF8
 $inModelBlockScan = $false
 $modelBaseIndentScan = -1
 $contextFileExists = $false
+$contextLengthExists = $false
+$maxTokensExists = $false
 
 for ($i = 0; $i -lt $allLines.Count; $i++) {
     $line = $allLines[$i]
@@ -43,7 +45,12 @@ for ($i = 0; $i -lt $allLines.Count; $i++) {
         }
         if ($trimmed -match '^context_file_max_chars:') {
             $contextFileExists = $true
-            break
+        }
+        if ($trimmed -match '^context_length:') {
+            $contextLengthExists = $true
+        }
+        if ($trimmed -match '^max_tokens:') {
+            $maxTokensExists = $true
         }
     }
 }
@@ -60,11 +67,10 @@ $providerDone = $false
 $baseUrlDone = $false
 $defaultDone = $false
 $contextFileDone = $contextFileExists
-$maxTokensDone = $false
-$contextLengthDone = $false
+$maxTokensDone = $maxTokensExists
+$contextLengthDone = $contextLengthExists
 $maxSessionsDone = $false
-$insertAfterContextLength = $false
-$foundContextLengthLine = $false
+$insertAfterBaseUrl = $false
 
 for ($i = 0; $i -lt $lines.Count; $i++) {
     $line = $lines[$i]
@@ -84,12 +90,31 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
         # Проверяем, не вышли ли из блока
         if ($indent -le $modelBaseIndent -and $trimmed -ne '' -and -not $trimmed.StartsWith('#')) {
             $inModelBlock = $false
+            # === ВСТАВКА ПРИ ВЫХОДЕ ИЗ БЛОКА ===
+            # Если base_url был обработан, но параметры не вставились — вставляем ПЕРЕД выходом
+            if ($insertAfterBaseUrl) {
+                if (-not $contextLengthDone) {
+                    $result += (' ' * ($modelBaseIndent + 2)) + "context_length: $ContextLength"
+                    $contextLengthDone = $true
+                    $modified = $true
+                }
+                if (-not $maxTokensDone) {
+                    $result += (' ' * ($modelBaseIndent + 2)) + 'max_tokens: 4096'
+                    $maxTokensDone = $true
+                    $modified = $true
+                }
+                if (-not $contextFileDone) {
+                    $result += (' ' * ($modelBaseIndent + 2)) + 'context_file_max_chars: 80000'
+                    $contextFileDone = $true
+                    $modified = $true
+                }
+                $insertAfterBaseUrl = $false
+            }
             $result += $line
             continue
         }
         
-        # provider: auto/openrouter → custom (с кавычками или без)
-        # Ловит: provider: "auto" | provider: auto | provider: "openrouter" | provider: openrouter
+        # provider: auto/openrouter/custom → custom (с кавычками или без)
         if (-not $providerDone -and $trimmed -match '^provider:\s*"?auto"?') {
             $line = (' ' * ($modelBaseIndent + 2)) + 'provider: "custom"'
             $providerDone = $true
@@ -105,7 +130,6 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
         }
         
         # default: claude → local-model (с кавычками или без)
-        # Ловит: default: "anthropic/claude-opus-4.6" | default: anthropic/claude-opus-4.6
         if (-not $defaultDone -and $trimmed -match '^default:\s*"?anthropic/claude-opus-4\.6"?') {
             $line = (' ' * ($modelBaseIndent + 2)) + 'default: "local-model"'
             $defaultDone = $true
@@ -116,67 +140,65 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
         }
         
         # base_url: openrouter → localhost (с кавычками или без)
-        # Ловит: base_url: "https://openrouter.ai/api/v1" | base_url: https://openrouter.ai/api/v1
         if (-not $baseUrlDone -and $trimmed -match '^base_url:\s*"?https://openrouter\.ai/api/v1"?') {
             $line = (' ' * ($modelBaseIndent + 2)) + 'base_url: "http://127.0.0.1:5001/v1"'
             $baseUrlDone = $true
             $modified = $true
+            $insertAfterBaseUrl = $true
         }
         elseif (-not $baseUrlDone -and $trimmed -match '^base_url:\s*"?http://127\.0\.0\.1:5001/v1"?') {
             $baseUrlDone = $true
+            $insertAfterBaseUrl = $true
         }
         
         # === context_length: раскомментированная или закомментированная с цифрой ===
-        # Раскомментированная: "context_length: 131072" или context_length: 131072
         if (-not $contextLengthDone -and $trimmed -match '^context_length:\s*\d+') {
             $line = (' ' * ($modelBaseIndent + 2)) + "context_length: $ContextLength"
             $contextLengthDone = $true
-            $foundContextLengthLine = $true
             $modified = $true
-            $insertAfterContextLength = $true
         }
-        # Закомментированная: "# context_length: 131072" или #context_length: 131072
         elseif (-not $contextLengthDone -and $trimmed -match '^#\s*context_length:\s*\d+') {
             $line = (' ' * ($modelBaseIndent + 2)) + "context_length: $ContextLength"
             $contextLengthDone = $true
-            $foundContextLengthLine = $true
             $modified = $true
-            $insertAfterContextLength = $true
-        }
-        # Уже наше значение (раскомментированное)
-        elseif (-not $contextLengthDone -and $trimmed -match '^context_length:\s*' + $ContextLength) {
-            $contextLengthDone = $true
-            $foundContextLengthLine = $true
-            $insertAfterContextLength = $true
         }
         
         # === max_tokens: раскомментированная или закомментированная с цифрой ===
-        # Раскомментированная: "max_tokens: 8192" или max_tokens: 8192
         if (-not $maxTokensDone -and $trimmed -match '^max_tokens:\s*\d+') {
             $line = (' ' * ($modelBaseIndent + 2)) + 'max_tokens: 4096'
             $maxTokensDone = $true
             $modified = $true
         }
-        # Закомментированная: "# max_tokens: 8192" или #max_tokens: 8192
         elseif (-not $maxTokensDone -and $trimmed -match '^#\s*max_tokens:\s*\d+') {
             $line = (' ' * ($modelBaseIndent + 2)) + 'max_tokens: 4096'
             $maxTokensDone = $true
             $modified = $true
         }
-        # Уже наше значение (раскомментированное)
-        elseif (-not $maxTokensDone -and $trimmed -match '^max_tokens:\s*4096') {
-            $maxTokensDone = $true
+        
+        # === context_file_max_chars уже есть? ===
+        if ($trimmed -match '^context_file_max_chars:') {
+            $contextFileDone = $true
         }
         
-        # === Вставка после context_length ===
-        if ($insertAfterContextLength) {
+        # === Вставка после base_url ===
+        if ($insertAfterBaseUrl) {
             $result += $line
-            if ($foundContextLengthLine -and -not $contextFileDone) {
+            if (-not $contextLengthDone) {
+                $result += (' ' * ($modelBaseIndent + 2)) + "context_length: $ContextLength"
+                $contextLengthDone = $true
+                $modified = $true
+            }
+            if (-not $maxTokensDone) {
+                $result += (' ' * ($modelBaseIndent + 2)) + 'max_tokens: 4096'
+                $maxTokensDone = $true
+                $modified = $true
+            }
+            if (-not $contextFileDone) {
                 $result += (' ' * ($modelBaseIndent + 2)) + 'context_file_max_chars: 80000'
                 $contextFileDone = $true
                 $modified = $true
             }
-            $insertAfterContextLength = $false
+            $insertAfterBaseUrl = $false
             continue
         }
         
