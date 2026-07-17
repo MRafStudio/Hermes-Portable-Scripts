@@ -185,37 +185,86 @@ if exist "%CONFIG_YAML%" (
 )
 
 REM ============================================================================
-REM   ШАГ 4: Сборка Desktop
+REM   ШАГ 5: Пересборка Desktop с RU локализацией
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[4/4]%ESC%[0m %ESC%[1mСборка Desktop...%ESC%[0m
+echo   %ESC%[1;33m[5/6]%ESC%[0m %ESC%[1mПересборка Desktop с RU локализацией...%ESC%[0m
 echo   %ESC%[2m       Это может занять 1-3 минуты...%ESC%[0m
 
-cd /d "%REPO_DIR%"
+cd /d "%HERMES_HOME%\hermes-agent"
 
-REM Убедимся, что npm доступен
-set "PATH=%NODE_DIR%;%PATH%"
+REM === Проверка Node.js: локальный → глобальный ===
+set "NODE_CMD="
+set "NPM_CMD="
+set "IS_GLOBAL_NODE=0"
+
+REM Сначала пробуем локальный
+if exist "%HERMES_HOME%\node\node.exe" (
+    set "NODE_CMD=%HERMES_HOME%\node\node.exe"
+    set "NPM_CMD=%HERMES_HOME%\node\npm.cmd"
+    echo   %ESC%[1;33m  .   Используем локальный Node.js%ESC%[0m
+    echo   %ESC%[2m       %HERMES_HOME%\node\%ESC%[0m
+) else (
+    REM Локальный не найден — ищем глобальный в стандартных местах
+    set "GLOBAL_NODE="
+    
+    if exist "%ProgramFiles%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles%\nodejs"
+    if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles(x86)%\nodejs"
+    if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "GLOBAL_NODE=%LOCALAPPDATA%\Programs\nodejs"
+    
+    if not defined GLOBAL_NODE (
+        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
+            if "%%a"=="InstallPath" (
+                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+            )
+        )
+        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Node.js" /v InstallPath 2^>nul') do (
+            if "%%a"=="InstallPath" (
+                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+            )
+        )
+    )
+    
+    if defined GLOBAL_NODE (
+        set "NODE_CMD=!GLOBAL_NODE!\node.exe"
+        set "NPM_CMD=!GLOBAL_NODE!\npm.cmd"
+        set "IS_GLOBAL_NODE=1"
+        echo   %ESC%[1;33m  .   Используем глобальный Node.js%ESC%[0m
+        echo   %ESC%[2m       !GLOBAL_NODE!\%ESC%[0m
+    ) else (
+        echo   %ESC%[1;31m[ОШИБКА] Node.js не найден ни локально, ни глобально!%ESC%[0m
+        echo   %ESC%[1;33m  Установите Node.js или запустите InstallOrUpdate-NodeJS.bat%ESC%[0m
+        if "%AUTOCLOSE%"=="0" pause
+        exit /b 1
+    )
+)
+
+REM === ПЕРЕСБИРАЕМ PATH ТОЛЬКО ЕСЛИ ГЛОБАЛЬНЫЙ NODE.JS ===
+if "!IS_GLOBAL_NODE!"=="1" (
+    set "PATH=!GLOBAL_NODE!;%HERMES_HOME%\bin;%ProgramFiles%\Git\cmd;%windir%\system32;%windir%;%windir%\System32\Wbem;%windir%\System32\WindowsPowerShell\v1.0"
+    echo   %ESC%[2m       PATH пересобран для глобального Node.js%ESC%[0m
+)
 
 REM Установка npm-зависимостей в корне репо (workspace)
 echo   %ESC%[1;33m  .   Установка npm-зависимостей...%ESC%[0m
-call "%NODE_DIR%\npm.cmd" install 2>&1
+call "!NPM_CMD!" install 2>&1
 if errorlevel 1 (
     echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить npm-зависимости.%ESC%[0m
-    goto error_exit
+    if "%AUTOCLOSE%"=="0" pause
+    exit /b 1
 )
 echo   %ESC%[1;32m  +   npm-зависимости установлены.%ESC%[0m
 
 REM Добавляем node_modules/.bin в PATH
-set "PATH=%REPO_DIR%\node_modules\.bin;%PATH%"
+set "PATH=%HERMES_HOME%\hermes-agent\node_modules\.bin;%PATH%"
 
-cd /d "%DESKTOP_DIR%"
+cd /d "%HERMES_HOME%\hermes-agent\apps\desktop"
 
 REM Очистка кэша electron-builder для чистой пересборки
 if exist "release" rmdir /s /q "release" 2>nul
 
 REM Запускаем сборку
-echo   %ESC%[1;33m  .   Запуск npm run pack...%ESC%[0m
-call "%NODE_DIR%\npm.cmd" run pack 2>&1
+call "!NPM_CMD!" run pack 2>&1
 
 if errorlevel 1 (
     echo.
