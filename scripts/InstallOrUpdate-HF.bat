@@ -12,6 +12,7 @@ REM ============================================================================
 REM   Определение путей
 REM ============================================================================
 for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
+set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 set "DATA_DIR=%ROOT_DIR%\data"
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"
@@ -25,14 +26,23 @@ REM   Изоляция данных
 REM ============================================================================
 set "TEMP=%DATA_DIR%\temp"
 set "TMP=%DATA_DIR%\temp"
+set "APPDATA=%DATA_DIR%\appdata"
 set "LOCALAPPDATA=%DATA_DIR%\localappdata"
 set "HOME=%DATA_DIR%\home"
 set "USERPROFILE=%DATA_DIR%\home"
 set "PIP_CACHE_DIR=%DATA_DIR%\pip-cache"
 set "HF_HOME=%DATA_DIR%\huggingface"
 
+REM ============================================================================
+REM   Автономный Python (uv) — ОСНОВНАЯ цель установки hf.exe!
+REM   Именно в его каталоге Scripts его ищет InstallOrUpdate-Kobold.bat
+REM ============================================================================
+set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
+set "PYTHON_EXE=%PYTHON_DIR%\python.exe"
+
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" 2>nul
 if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
+if not exist "%APPDATA%" mkdir "%APPDATA%" 2>nul
 if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%" 2>nul
 if not exist "%HOME%" mkdir "%HOME%" 2>nul
 if not exist "%PIP_CACHE_DIR%" mkdir "%PIP_CACHE_DIR%" 2>nul
@@ -44,18 +54,21 @@ REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 REM ============================================================================
-REM   Проверка venv Hermes
+REM   Проверка обязательных компонентов
+REM   UV и uv-Python — обязательны. Venv Hermes — опционален (доп. цель).
 REM ============================================================================
-if not exist "%VENV_PYTHON%" (
-    echo   %ESC%[1;31m[ОШИБКА] Venv Hermes не найден!%ESC%[0m
-    echo   %ESC%[33m       Путь: %VENV_PYTHON%%ESC%[0m
-    echo   %ESC%[33m       Сначала запустите установку зависимостей Hermes.%ESC%[0m
+if not exist "%UV_EXE%" (
+    echo   %ESC%[1;31m[ОШИБКА] UV не найден!%ESC%[0m
+    echo   %ESC%[33m       Путь: %UV_EXE%%ESC%[0m
+    echo   %ESC%[33m       Сначала выполните полную установку через главное меню.%ESC%[0m
     if "%AUTOCLOSE%"=="0" pause
     exit /b 1
 )
 
-if not exist "%UV_EXE%" (
-    echo   %ESC%[1;31m[ОШИБКА] UV не найден!%ESC%[0m
+if not exist "%PYTHON_EXE%" (
+    echo   %ESC%[1;31m[ОШИБКА] Автономный Python не найден!%ESC%[0m
+    echo   %ESC%[33m       Путь: %PYTHON_EXE%%ESC%[0m
+    echo   %ESC%[33m       Сначала установите Python через меню [1].%ESC%[0m
     if "%AUTOCLOSE%"=="0" pause
     exit /b 1
 )
@@ -70,9 +83,10 @@ echo  %ESC%[1;36m###############################################################
 echo.
 
 REM ============================================================================
-REM   Добавляем venv в PATH
+REM   PATH: uv-Python (основной) → venv (если есть) → UV
 REM ============================================================================
-set "PATH=%VENV_DIR%\Scripts;%UV_DIR%;%PATH%"
+set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%UV_DIR%;%PATH%"
+if exist "%VENV_DIR%\Scripts" set "PATH=%VENV_DIR%\Scripts;%PATH%"
 
 REM ============================================================================
 REM   Проверка установленного hf.exe
@@ -81,7 +95,11 @@ echo   %ESC%[1;33m[1/2]%ESC%[0m %ESC%[1mПроверка HuggingFace Hub...%ESC%
 
 where hf >nul 2>nul
 if !errorlevel! equ 0 (
-    for /f "tokens=*" %%a in ('where hf 2^>nul') do set "HF_PATH=%%a"
+    REM Берём ПЕРВОЕ совпадение — именно оно и будет запускаться
+    set "HF_PATH="
+    for /f "tokens=*" %%a in ('where hf 2^>nul') do (
+        if not defined HF_PATH set "HF_PATH=%%a"
+    )
     echo   %ESC%[1;32m  +   HuggingFace Hub уже установлен.%ESC%[0m
     echo   %ESC%[2m       Путь: !HF_PATH!%ESC%[0m
     echo.
@@ -94,12 +112,13 @@ goto hf_install
 
 :hf_install
 REM ============================================================================
-REM   Установка huggingface-hub через uv pip в venv
+REM   Установка huggingface-hub: в uv-Python (обязательно) + в venv (если есть)
 REM ============================================================================
 echo.
 echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mУстановка huggingface-hub...%ESC%[0m
 
-"%UV_EXE%" pip install huggingface-hub --python "%VENV_PYTHON%"
+echo   %ESC%[2m       Цель 1: автономный Python ^(для KoboldCpp^)%ESC%[0m
+"%UV_EXE%" pip install huggingface-hub --python "%PYTHON_EXE%"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось установить huggingface-hub.%ESC%[0m
@@ -108,22 +127,34 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
+if exist "%VENV_PYTHON%" (
+    echo   %ESC%[2m       Цель 2: venv Hermes%ESC%[0m
+    "%UV_EXE%" pip install huggingface-hub --python "%VENV_PYTHON%"
+    if !errorlevel! neq 0 (
+        echo   %ESC%[1;33m  ⚠  В venv установить не удалось ^(не критично^).%ESC%[0m
+    )
+)
+
 echo   %ESC%[1;32m  +   HuggingFace Hub установлен.%ESC%[0m
 goto hf_done
 
 :hf_update
 REM ============================================================================
-REM   Обновление huggingface-hub через uv pip в venv
+REM   Обновление huggingface-hub: в uv-Python + в venv (если есть)
 REM ============================================================================
 echo.
 echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mОбновление huggingface-hub...%ESC%[0m
 
-"%UV_EXE%" pip install --upgrade huggingface-hub --python "%VENV_PYTHON%"
+"%UV_EXE%" pip install --upgrade huggingface-hub --python "%PYTHON_EXE%"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;33m  .   Не удалось обновить. Используется текущая версия.%ESC%[0m
 ) else (
     echo   %ESC%[1;32m  +   HuggingFace Hub обновлён.%ESC%[0m
+)
+
+if exist "%VENV_PYTHON%" (
+    "%UV_EXE%" pip install --upgrade huggingface-hub --python "%VENV_PYTHON%" >nul 2>&1
 )
 
 :hf_done
@@ -143,12 +174,12 @@ echo   %ESC%[1;32m  +   hf.exe доступен.%ESC%[0m
 echo.
 echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
 echo   %ESC%[1;32mHuggingFace Hub готов!%ESC%[0m
-echo   %ESC%[2m  hf.exe: доступен%ESC%[0m
+echo   %ESC%[2m  hf.exe:  %PYTHON_DIR%\Scripts\hf.exe%ESC%[0m
 echo   %ESC%[2m  HF_HOME: %HF_HOME%%ESC%[0m
 echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
 
 if "%AUTOCLOSE%"=="1" (
-    call "%~dp0SmartPause.bat" 5
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
 ) else (
     pause
 )
