@@ -147,7 +147,7 @@ if exist "%SOUL_SRC%" (
 )
 
 REM ============================================================================
-REM   ШАГ 4/4: Патчим конфиги TypeScript
+REM   ШАГ 4/4: Патчим конфиги TypeScript и config.yaml
 REM ============================================================================
 echo.
 echo   %ESC%[1;33m[4/4]%ESC%[0m %ESC%[1mПатчим конфиги TypeScript...%ESC%[0m
@@ -194,6 +194,13 @@ if exist "%CATALOG_FILE%" (
         echo   %ESC%[1;31m  [ОШИБКА] PatchCatalog.ps1 не сработал... Код: %errorlevel%%ESC%[0m
         goto error_exit
     )
+)
+
+REM Правим локализацию в config.yaml
+set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
+if exist "%CONFIG_YAML%" (
+    echo   %ESC%[1;33m  -   Обновление локализации в config.yaml...%ESC%[0m
+    powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch_locale_yaml.ps1" -ConfigPath "%CONFIG_YAML%" -Locale ru
 )
 
 REM ============================================================================

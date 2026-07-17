@@ -1,0 +1,74 @@
+# scripts\patch\patch_locale_yaml.ps1
+# Правка language: в блоке display: в config.yaml
+
+param(
+    [Parameter(Mandatory=$true)]
+    [string]$ConfigPath,
+    [Parameter(Mandatory=$true)]
+    [string]$Locale
+)
+
+if (-not (Test-Path $ConfigPath)) {
+    Write-Host "  !   config.yaml not found: $ConfigPath" -ForegroundColor Yellow
+    exit 1
+}
+
+$lines = Get-Content $ConfigPath -Encoding UTF8
+$result = @()
+$modified = $false
+$inDisplayBlock = $false
+$displayBaseIndent = -1
+$languageDone = $false
+
+for ($i = 0; $i -lt $lines.Count; $i++) {
+    $line = $lines[$i]
+    $trimmed = $line.TrimStart()
+    $indent = $line.Length - $trimmed.Length
+    
+    # === Определяем блок display: ===
+    if (-not $inDisplayBlock -and $trimmed -match '^display:\s*$') {
+        $inDisplayBlock = $true
+        $displayBaseIndent = $indent
+        $result += $line
+        continue
+    }
+    
+    # === Внутри блока display: ===
+    if ($inDisplayBlock) {
+        # Проверяем, не вышли ли из блока
+        if ($indent -le $displayBaseIndent -and $trimmed -ne '' -and -not $trimmed.StartsWith('#')) {
+            $inDisplayBlock = $false
+            $result += $line
+            continue
+        }
+        
+        # language: с кавычками или без → заменяем на переданное значение
+        # Ловит: language: ru | language: "en" | language: "zh" | language: default
+        if (-not $languageDone -and $trimmed -match '^language:\s*"?[^"]*"?') {
+            $line = (' ' * ($displayBaseIndent + 2)) + "language: $Locale"
+            $languageDone = $true
+            $modified = $true
+        }
+        # Уже наше значение
+        elseif (-not $languageDone -and $trimmed -match '^language:\s*' + [regex]::Escape($Locale)) {
+            $languageDone = $true
+        }
+        
+        $result += $line
+        continue
+    }
+    
+    $result += $line
+}
+
+if ($modified) {
+    $result | Set-Content $ConfigPath -Encoding UTF8
+    Write-Host "  +   language: changed to '$Locale' in config.yaml" -ForegroundColor Green
+    exit 0
+} elseif ($languageDone) {
+    Write-Host "  .   language: already '$Locale' in config.yaml" -ForegroundColor Green
+    exit 0
+} else {
+    Write-Host "  !   language: not found in the display block in config.yaml" -ForegroundColor Yellow
+    exit 1
+}
