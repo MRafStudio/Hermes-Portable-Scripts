@@ -16,34 +16,64 @@ REM   6. Fallback по имени — если Registry/WMI/dxdiag не сраб
 REM   7. Новые карты добавлять в fallback по шаблону:
 REM      echo.!GPU_NAME!|findstr /I "НАЗВАНИЕ">nul&&set "GPU_VRAM_MB=МБАЙТ"
 REM   8. ПРИОРИТЕТ: NVIDIA/AMD > Intel (ищем дискретную карту первой!)
+REM
+REM   ИЗВЕСТНЫЕ ЛОВУШКИ (не наступать повторно!):
+REM   - WMI Win32_VideoController.AdapterRAM — uint32, КЭП на ~4GB (4095/4096).
+REM     Показания выше 4GB через WMI недостижимы, только Registry/dxdiag.
+REM   - dxdiag вывод ЛОКАЛИЗОВАН: на RU Windows "Имя платы"/"Память дисплея"/"МБ".
+REM   - Результат метода применяем ТОЛЬКО если VRAM>0 (иначе затрём хорошие данные).
+REM   - Файл держать в UTF-8 + chcp 65001 (в PS-команде есть кириллица в regex).
 REM ============================================================================
 
 set "GPU_TYPE=UNKNOWN"
 set "GPU_NAME=Не определена"
 set "GPU_VRAM_MB=0"
 
-REM === Метод 1: Registry (ищем NVIDIA/AMD в приоритете) ===
-for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { $regPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}'; $keys = Get-ChildItem $regPath -ErrorAction SilentlyContinue | Where-Object { $_.GetValue('DriverDesc') -match 'NVIDIA|AMD|Radeon|GeForce' }; if (-not $keys) { $keys = Get-ChildItem $regPath -ErrorAction SilentlyContinue | Where-Object { $_.GetValue('HardwareInformation.qwMemorySize') -ne $null -or $_.GetValue('HardwareInformation.MemorySize') -ne $null } }; if ($keys) { $key = $keys | Select-Object -First 1; $mem = $key.GetValue('HardwareInformation.qwMemorySize'); if (-not $mem) { $mem = $key.GetValue('HardwareInformation.MemorySize') }; $name = $key.GetValue('DriverDesc'); Write-Output ('NAME=' + $name); Write-Output ('VRAM=' + [math]::Round($mem / 1MB)) } else { Write-Output 'NAME=UNKNOWN'; Write-Output 'VRAM=0' } } catch { Write-Output 'NAME=UNKNOWN'; Write-Output 'VRAM=0' }" 2^>nul') do (
+REM === Метод 1: Registry (точные байты qwMemorySize; призраки пропускаем) ===
+set "M_NAME="
+set "M_VRAM=0"
+for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { $regPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}'; $best = $null; Get-ChildItem $regPath -ErrorAction SilentlyContinue | ForEach-Object { $name = $_.GetValue('DriverDesc'); $mem = $_.GetValue('HardwareInformation.qwMemorySize'); if (-not $mem) { $mem = $_.GetValue('HardwareInformation.MemorySize') }; if ($name -and $mem -and [int64]$mem -gt 0) { $prio = 0; if ($name -match 'NVIDIA|GeForce|AMD|Radeon') { $prio = 1 }; $score = [int64]$mem + $prio * [int64]1099511627776; if (-not $best -or $score -gt $best.Score) { $best = @{ Score = $score; Name = $name; Mem = [int64]$mem } } } }; if ($best) { Write-Output ('NAME=' + $best.Name); Write-Output ('VRAM=' + [math]::Round($best.Mem / 1MB)) } else { Write-Output 'NAME='; Write-Output 'VRAM=0' } } catch { Write-Output 'NAME='; Write-Output 'VRAM=0' }" 2^>nul') do (
     set "LINE=%%a"
-    echo.!LINE!|findstr /B "NAME=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "GPU_NAME=%%b"
-    echo.!LINE!|findstr /B "VRAM=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "GPU_VRAM_MB=%%b"
+    echo.!LINE!|findstr /B "NAME=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "M_NAME=%%b"
+    echo.!LINE!|findstr /B "VRAM=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "M_VRAM=%%b"
+)
+if !M_VRAM! GTR 0 (
+    set "GPU_VRAM_MB=!M_VRAM!"
+    if not "!M_NAME!"=="" set "GPU_NAME=!M_NAME!"
 )
 
-REM === Метод 2: WMI fallback (ищем NVIDIA/AMD в приоритете, потом макс VRAM) ===
+REM === Метод 2: WMI fallback (ВНИМАНИЕ: AdapterRAM кэпится на ~4GB!) ===
 if "!GPU_VRAM_MB!"=="0" (
-    for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { $gpu = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -match 'NVIDIA|AMD|Radeon|GeForce' } | Select-Object -First 1; if (-not $gpu) { $gpu = Get-CimInstance Win32_VideoController | Where-Object { $_.AdapterRAM -gt 0 } | Sort-Object AdapterRAM -Descending | Select-Object -First 1 }; $name = $gpu.Name; $ram = [math]::Round($gpu.AdapterRAM / 1MB); if ($ram -gt 4096) { $ram = [math]::Round($ram) }; Write-Output ('NAME=' + $name); Write-Output ('VRAM=' + $ram) } catch { Write-Output 'NAME=UNKNOWN'; Write-Output 'VRAM=0' }" 2^>nul') do (
+    set "M_NAME="
+    set "M_VRAM=0"
+    for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { $gpu = Get-CimInstance Win32_VideoController -ErrorAction Stop | Where-Object { $_.Name -match 'NVIDIA|AMD|Radeon|GeForce' } | Select-Object -First 1; if (-not $gpu) { $gpu = Get-CimInstance Win32_VideoController | Sort-Object AdapterRAM -Descending | Select-Object -First 1 }; if ($gpu) { Write-Output ('NAME=' + $gpu.Name); Write-Output ('VRAM=' + [math]::Round($gpu.AdapterRAM / 1MB)) } else { Write-Output 'NAME='; Write-Output 'VRAM=0' } } catch { Write-Output 'NAME='; Write-Output 'VRAM=0' }" 2^>nul') do (
         set "LINE=%%a"
-        echo.!LINE!|findstr /B "NAME=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "GPU_NAME=%%b"
-        echo.!LINE!|findstr /B "VRAM=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "GPU_VRAM_MB=%%b"
+        echo.!LINE!|findstr /B "NAME=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "M_NAME=%%b"
+        echo.!LINE!|findstr /B "VRAM=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "M_VRAM=%%b"
+    )
+    if !M_VRAM! GTR 0 (
+        set "GPU_VRAM_MB=!M_VRAM!"
+        if not "!M_NAME!"=="" set "GPU_NAME=!M_NAME!"
     )
 )
 
-REM === Метод 3: dxdiag ===
-if "!GPU_VRAM_MB!"=="4095" (
-    for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { $dxdiag = & dxdiag /t \"$env:TEMP\dxdiag.txt\" 2^>$null; Start-Sleep -Seconds 2; $content = Get-Content \"$env:TEMP\dxdiag.txt\" -Raw; if ($content -match 'Display Memory: (\d+) MB') { $vram = [int]$matches[1]; $name = 'Unknown'; if ($content -match 'Card name: (.+)') { $name = $matches[1].Trim() }; Write-Output ('NAME=' + $name); Write-Output ('VRAM=' + $vram) } else { Write-Output 'NAME=UNKNOWN'; Write-Output 'VRAM=0' } } catch { Write-Output 'NAME=UNKNOWN'; Write-Output 'VRAM=0' }" 2^>nul') do (
+REM === Метод 3: dxdiag (только при подозрительном VRAM: 0 или WMI-кэп 4095/4096) ===
+set "NEED_DXDIAG=0"
+if "!GPU_VRAM_MB!"=="0" set "NEED_DXDIAG=1"
+if "!GPU_VRAM_MB!"=="4095" set "NEED_DXDIAG=1"
+if "!GPU_VRAM_MB!"=="4096" set "NEED_DXDIAG=1"
+
+if "!NEED_DXDIAG!"=="1" (
+    set "M_NAME="
+    set "M_VRAM=0"
+    for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { $tmp = Join-Path $env:TEMP 'dxdiag_gpu.txt'; if (Test-Path $tmp) { Remove-Item $tmp -Force -ErrorAction SilentlyContinue }; & dxdiag /t $tmp | Out-Null; $n = 0; while ((-not (Test-Path $tmp)) -and ($n -lt 60)) { Start-Sleep -Milliseconds 500; $n++ }; Start-Sleep -Seconds 1; $content = Get-Content $tmp -Raw -ErrorAction Stop; $vram = 0; $name = ''; if ($content -match 'Dedicated Memory: +(\d+) MB') { $vram = [int]$matches[1] } elseif ($content -match 'Выделенная память: +(\d+) МБ') { $vram = [int]$matches[1] } elseif ($content -match 'Display Memory: +(\d+) MB') { $vram = [int]$matches[1] } elseif ($content -match 'Память дисплея: +(\d+) МБ') { $vram = [int]$matches[1] }; if ($content -match 'Card name: +(.+)') { $name = $matches[1].Trim() } elseif ($content -match 'Имя платы: +(.+)') { $name = $matches[1].Trim() }; Write-Output ('NAME=' + $name); Write-Output ('VRAM=' + $vram) } catch { Write-Output 'NAME='; Write-Output 'VRAM=0' }" 2^>nul') do (
         set "LINE=%%a"
-        echo.!LINE!|findstr /B "NAME=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "GPU_NAME=%%b"
-        echo.!LINE!|findstr /B "VRAM=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "GPU_VRAM_MB=%%b"
+        echo.!LINE!|findstr /B "NAME=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "M_NAME=%%b"
+        echo.!LINE!|findstr /B "VRAM=">nul&&for /f "tokens=2 delims==" %%b in ("!LINE!") do set "M_VRAM=%%b"
+    )
+    if !M_VRAM! GTR 0 (
+        set "GPU_VRAM_MB=!M_VRAM!"
+        if not "!M_NAME!"=="" if /I not "!M_NAME!"=="Unknown" set "GPU_NAME=!M_NAME!"
     )
 )
 
