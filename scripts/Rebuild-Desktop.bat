@@ -3,6 +3,12 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
+REM ============================================================================
+REM   Параметры: 1 = AUTOCLOSE (не ждать нажатия клавиши)
+REM ============================================================================
+set "AUTOCLOSE=0"
+if "%1"=="1" set "AUTOCLOSE=1"
+
 title Пересборка Desktop
 
 REM ============================================================================
@@ -14,11 +20,18 @@ set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"
 set "DESKTOP_DIR=%REPO_DIR%\apps\desktop"
 set "NODE_DIR=%HERMES_HOME%\node"
+set "NODE_EXE=%NODE_DIR%\node.exe"
 
 REM Пути к файлам локализации
 set "RU_LOCALE_DIR=%SCRIPTS_DIR%\ru-locale"
 set "I18N_DIR=%REPO_DIR%\apps\desktop\src\i18n"
 set "SETTINGS_DIR=%REPO_DIR%\apps\desktop\src\app\settings"
+
+REM ============================================================================
+REM   Сохраняем РЕАЛЬНЫЕ пути ДО изоляции
+REM   (нужны для поиска глобального Node.js)
+REM ============================================================================
+set "REAL_LOCALAPPDATA=%LOCALAPPDATA%"
 
 REM ============================================================================
 REM   Изоляция данных (ничего в систему!)
@@ -64,6 +77,80 @@ REM   Получение ESC
 REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
+REM ============================================================================
+REM   Определение Node.js (глобальный -> локальный) — ДО любых операций!
+REM   Это скрипт пересборки: Node обязателен. Нет ни глобального,
+REM   ни локального — сообщаем и выходим (установка через главное меню).
+REM ============================================================================
+set "NODE_CMD="
+set "NPM_CMD="
+set "IS_GLOBAL_NODE=0"
+set "GLOBAL_NODE="
+
+REM --- 1. Глобальный Node.js: стандартные пути (ПРИОРИТЕТ) ---
+if exist "%ProgramFiles%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles%\nodejs"
+if not defined GLOBAL_NODE if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles(x86)%\nodejs"
+if not defined GLOBAL_NODE if exist "%REAL_LOCALAPPDATA%\Programs\nodejs\node.exe" set "GLOBAL_NODE=%REAL_LOCALAPPDATA%\Programs\nodejs"
+
+REM --- 2. Глобальный Node.js: реестр (HKLM + WOW6432Node + HKCU) ---
+if not defined GLOBAL_NODE (
+    for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
+        if "%%a"=="InstallPath" (
+            if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+        )
+    )
+)
+if not defined GLOBAL_NODE (
+    for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Node.js" /v InstallPath 2^>nul') do (
+        if "%%a"=="InstallPath" (
+            if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+        )
+    )
+)
+if not defined GLOBAL_NODE (
+    for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKCU\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
+        if "%%a"=="InstallPath" (
+            if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+        )
+    )
+)
+
+if defined GLOBAL_NODE (
+    set "NODE_CMD=!GLOBAL_NODE!\node.exe"
+    set "NPM_CMD=!GLOBAL_NODE!\npm.cmd"
+    set "IS_GLOBAL_NODE=1"
+    REM --- СРАЗУ пересобираем PATH под глобальный Node.js ---
+    set "PATH=!GLOBAL_NODE!;%HERMES_HOME%\bin;%ProgramFiles%\Git\cmd;%windir%\system32;%windir%;%windir%\System32\Wbem;%windir%\System32\WindowsPowerShell\v1.0"
+    goto :node_ready
+)
+
+REM --- 3. Локальный Node.js (fallback, если глобального нет) ---
+if exist "%NODE_EXE%" (
+    set "NODE_CMD=%NODE_EXE%"
+    set "NPM_CMD=%NODE_DIR%\npm.cmd"
+    goto :node_ready
+)
+
+REM --- Node.js не найден вообще: пересборка невозможна ---
+cls
+echo.
+echo %ESC%[1;31m################################################################################%ESC%[0m
+echo %ESC%[1;31m##                                                                            ##%ESC%[0m
+echo %ESC%[1;31m##%ESC%[0m                        %ESC%[1;37mNode.js не найден в системе%ESC%[0m                         %ESC%[1;31m##%ESC%[0m
+echo %ESC%[1;31m##                                                                            ##%ESC%[0m
+echo %ESC%[1;31m################################################################################%ESC%[0m
+echo.
+echo %ESC%[1;31m[ОШИБКА] Node.js не найден ни глобально, ни локально.%ESC%[0m
+echo.
+echo %ESC%[1;33mПересборка Desktop невозможна без Node.js.%ESC%[0m
+echo %ESC%[1;37m  Выполните полную установку через главное меню%ESC%[0m
+echo %ESC%[1;37m  или запустите scripts\InstallOrUpdate-NodeJS.bat%ESC%[0m
+echo.
+if "%AUTOCLOSE%"=="0" pause
+exit /b 1
+
+:node_ready
+
 cls
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
@@ -73,22 +160,24 @@ echo  %ESC%[1;36m##                                                             
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
 
+REM --- Какой Node.js выбран (определён выше) ---
+if "!IS_GLOBAL_NODE!"=="1" (
+    echo   %ESC%[1;33m  .   Node.js: глобальный%ESC%[0m
+    echo   %ESC%[2m       !GLOBAL_NODE!\%ESC%[0m
+) else (
+    echo   %ESC%[1;33m  .   Node.js: локальный%ESC%[0m
+    echo   %ESC%[2m       %NODE_DIR%\%ESC%[0m
+)
+
 REM ============================================================================
 REM   ШАГ 1: Проверка компонентов
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[1/4]%ESC%[0m %ESC%[1mПроверка компонентов...%ESC%[0m
+echo   %ESC%[1;33m[1/5]%ESC%[0m %ESC%[1mПроверка компонентов...%ESC%[0m
 
 REM Проверяем репозиторий
 if not exist "%REPO_DIR%\apps\desktop\package.json" (
     echo   %ESC%[1;31m[ОШИБКА] Desktop app не найден в репозитории!%ESC%[0m
-    echo   %ESC%[33m       Сначала выполните полную установку через главное меню.%ESC%[0m
-    goto error_exit
-)
-
-REM Проверяем Node.js
-if not exist "%NODE_DIR%\node.exe" (
-    echo   %ESC%[1;31m[ОШИБКА] Node.js не найден: %NODE_DIR%\node.exe%ESC%[0m
     echo   %ESC%[33m       Сначала выполните полную установку через главное меню.%ESC%[0m
     goto error_exit
 )
@@ -110,7 +199,7 @@ REM ============================================================================
 REM   ШАГ 2: Копирование файлов RU локализации в репозиторий
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[2/4]%ESC%[0m %ESC%[1mКопирование файлов RU локализации...%ESC%[0m
+echo   %ESC%[1;33m[2/5]%ESC%[0m %ESC%[1mКопирование файлов RU локализации...%ESC%[0m
 
 copy /Y "%RU_LOCALE_DIR%\ru.ts" "%I18N_DIR%\ru.ts" >nul
 if !errorlevel! neq 0 (
@@ -130,7 +219,7 @@ REM ============================================================================
 REM   ШАГ 3: Патчим конфиги TypeScript
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[3/4]%ESC%[0m %ESC%[1mПатчим конфиги TypeScript...%ESC%[0m
+echo   %ESC%[1;33m[3/5]%ESC%[0m %ESC%[1mПатчим конфиги TypeScript...%ESC%[0m
 
 set "PATCH_DIR=%SCRIPTS_DIR%\patch"
 
@@ -143,7 +232,7 @@ if exist "%TYPES_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   types.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_types.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_types.ps1 не сработал... Код: !errorlevel!%ESC%[0m
         goto error_exit
     )
 )
@@ -157,7 +246,7 @@ if exist "%LANG_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   languages.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_languages.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_languages.ps1 не сработал... Код: !errorlevel!%ESC%[0m
         goto error_exit
     )
 )
@@ -171,7 +260,7 @@ if exist "%CATALOG_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   catalog.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_catalog.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_catalog.ps1 не сработал... Код: !errorlevel!%ESC%[0m
         goto error_exit
     )
 )
@@ -185,73 +274,24 @@ if exist "%CONFIG_YAML%" (
 )
 
 REM ============================================================================
-REM   ШАГ 5: Пересборка Desktop с RU локализацией
+REM   ШАГ 4: Пересборка Desktop с RU локализацией
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[5/6]%ESC%[0m %ESC%[1mПересборка Desktop с RU локализацией...%ESC%[0m
+echo   %ESC%[1;33m[4/5]%ESC%[0m %ESC%[1mПересборка Desktop с RU локализацией...%ESC%[0m
 echo   %ESC%[2m       Это может занять 1-3 минуты...%ESC%[0m
 
 cd /d "%HERMES_HOME%\hermes-agent"
 
-REM === Проверка Node.js: локальный → глобальный ===
-set "NODE_CMD="
-set "NPM_CMD="
-set "IS_GLOBAL_NODE=0"
-
-REM Сначала пробуем локальный
-if exist "%HERMES_HOME%\node\node.exe" (
-    set "NODE_CMD=%HERMES_HOME%\node\node.exe"
-    set "NPM_CMD=%HERMES_HOME%\node\npm.cmd"
-    echo   %ESC%[1;33m  .   Используем локальный Node.js%ESC%[0m
-    echo   %ESC%[2m       %HERMES_HOME%\node\%ESC%[0m
-) else (
-    REM Локальный не найден — ищем глобальный в стандартных местах
-    set "GLOBAL_NODE="
-    
-    if exist "%ProgramFiles%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles%\nodejs"
-    if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles(x86)%\nodejs"
-    if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "GLOBAL_NODE=%LOCALAPPDATA%\Programs\nodejs"
-    
-    if not defined GLOBAL_NODE (
-        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
-            if "%%a"=="InstallPath" (
-                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
-            )
-        )
-        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Node.js" /v InstallPath 2^>nul') do (
-            if "%%a"=="InstallPath" (
-                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
-            )
-        )
-    )
-    
-    if defined GLOBAL_NODE (
-        set "NODE_CMD=!GLOBAL_NODE!\node.exe"
-        set "NPM_CMD=!GLOBAL_NODE!\npm.cmd"
-        set "IS_GLOBAL_NODE=1"
-        echo   %ESC%[1;33m  .   Используем глобальный Node.js%ESC%[0m
-        echo   %ESC%[2m       !GLOBAL_NODE!\%ESC%[0m
-    ) else (
-        echo   %ESC%[1;31m[ОШИБКА] Node.js не найден ни локально, ни глобально!%ESC%[0m
-        echo   %ESC%[1;33m  Установите Node.js или запустите InstallOrUpdate-NodeJS.bat%ESC%[0m
-        if "%AUTOCLOSE%"=="0" pause
-        exit /b 1
-    )
-)
-
-REM === ПЕРЕСБИРАЕМ PATH ТОЛЬКО ЕСЛИ ГЛОБАЛЬНЫЙ NODE.JS ===
-if "!IS_GLOBAL_NODE!"=="1" (
-    set "PATH=!GLOBAL_NODE!;%HERMES_HOME%\bin;%ProgramFiles%\Git\cmd;%windir%\system32;%windir%;%windir%\System32\Wbem;%windir%\System32\WindowsPowerShell\v1.0"
-    echo   %ESC%[2m       PATH пересобран для глобального Node.js%ESC%[0m
-)
+REM === Node.js уже определён в начале скрипта (NODE_CMD / NPM_CMD) ===
+echo   %ESC%[1;33m  .   Используем Node.js:%ESC%[0m
+echo   %ESC%[2m       !NODE_CMD!%ESC%[0m
 
 REM Установка npm-зависимостей в корне репо (workspace)
 echo   %ESC%[1;33m  .   Установка npm-зависимостей...%ESC%[0m
 call "!NPM_CMD!" install 2>&1
 if errorlevel 1 (
     echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить npm-зависимости.%ESC%[0m
-    if "%AUTOCLOSE%"=="0" pause
-    exit /b 1
+    goto error_exit
 )
 echo   %ESC%[1;32m  +   npm-зависимости установлены.%ESC%[0m
 
@@ -275,10 +315,10 @@ if errorlevel 1 (
 echo   %ESC%[1;32m  +   Desktop собран.%ESC%[0m
 
 REM ============================================================================
-REM   Проверка результата
+REM   ШАГ 5: Проверка результата
 REM ============================================================================
 echo.
-echo   %ESC%[1;33mПроверка результата...%ESC%[0m
+echo   %ESC%[1;33m[5/5]%ESC%[0m %ESC%[1mПроверка результата...%ESC%[0m
 
 set "EXE_FOUND=0"
 set "EXE_PATH="
@@ -331,5 +371,9 @@ REM ============================================================================
 :error_exit
 echo.
 echo   %ESC%[1;31m[ОШИБКА] Пересборка прервана! Нажмите любую клавишу...%ESC%[0m
-pause >nul
+if "%AUTOCLOSE%"=="1" (
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
+) else (
+    pause >nul
+)
 exit /b 1

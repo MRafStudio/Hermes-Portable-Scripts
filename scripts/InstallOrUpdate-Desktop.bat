@@ -285,7 +285,7 @@ REM 3. Проверяем коммиты (HEAD)
 cd /d "%HERMES_HOME%\hermes-agent"
 git rev-parse --verify HEAD >nul 2>&1
 if errorlevel 1 (
-    echo   %ESC%[1;33m  !   Репозиторий без коммитов ^(ZIP-загрузка^).%ESC%[0m
+    echo   %ESC%[1;33m  ⚠    Репозиторий без коммитов ^(ZIP-загрузка^).%ESC%[0m
     echo   %ESC%[1;33m  →   Используем GITHUB_SHA для сборки...%ESC%[0m
     set "GITHUB_SHA=0000000000000000000000000000000000000000"
     cd /d "%ROOT_DIR%"
@@ -309,7 +309,7 @@ if !NEEDS_REPO! equ 1 (
 
 REM 4. Проверяем Python venv и hermes.exe
 if not exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" (
-    echo   %ESC%[1;33m  !   Hermes CLI не найден ^(venv не создан или deps не установлены^).%ESC%[0m
+    echo   %ESC%[1;33m  ⚠    Hermes CLI не найден ^(venv не создан или deps не установлены^).%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 
@@ -320,7 +320,7 @@ if exist "%LOCALAPPDATA%\ms-playwright\chromium-*" set "PLAYWRIGHT_OK=1"
 if exist "%LOCALAPPDATA%\ms-playwright\chromium" set "PLAYWRIGHT_OK=1"
 if exist "%HERMES_HOME%\hermes-agent\node_modules\playwright\package.json" set "PLAYWRIGHT_OK=1"
 if !PLAYWRIGHT_OK! equ 0 (
-    echo   %ESC%[1;33m  i   Browser tools ^(Playwright^) не установлены.%ESC%[0m
+    echo   %ESC%[1;33m  ⚠    Browser tools ^(Playwright^) не установлены.%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 
@@ -331,7 +331,7 @@ if exist "%HERMES_HOME%\hermes-agent\apps\desktop\node_modules\electron\package.
 if exist "%LOCALAPPDATA%\electron\Cache" set "ELECTRON_OK=1"
 if exist "%HERMES_HOME%\hermes-agent\apps\desktop\node_modules\electron\dist\electron.exe" set "ELECTRON_OK=1"
 if !ELECTRON_OK! equ 0 (
-    echo   %ESC%[1;33m  i   Desktop-зависимости ^(Electron^) не установлены.%ESC%[0m
+    echo   %ESC%[1;33m  ⚠    Desktop-зависимости ^(Electron^) не установлены.%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 
