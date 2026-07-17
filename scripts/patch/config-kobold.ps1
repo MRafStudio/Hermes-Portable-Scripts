@@ -225,7 +225,7 @@ if ($modified) {
     
     $result | Set-Content $ConfigPath -Encoding UTF8
     
-    Write-Host "  +   config.yaml success patched for KoboldCpp." -ForegroundColor Green
+    Write-Host "    +   config.yaml success patched for KoboldCpp." -ForegroundColor Green
     Write-Host "        provider: custom" -ForegroundColor DarkGray
     Write-Host "        base_url: http://127.0.0.1:5001/v1" -ForegroundColor DarkGray
     Write-Host "        default: local-model" -ForegroundColor DarkGray
@@ -235,7 +235,7 @@ if ($modified) {
     Write-Host "        max_tokens: 4096" -ForegroundColor DarkGray
     Write-Host "        context_length: $ContextLength" -ForegroundColor DarkGray
 } else {
-    Write-Host "  +   config.yaml already configured for KoboldCpp." -ForegroundColor Green
+    Write-Host "    +   config.yaml already configured for KoboldCpp." -ForegroundColor Green
 }
 
 exit 0

@@ -9,7 +9,7 @@ param(
 )
 
 if (-not (Test-Path $ConfigPath)) {
-    Write-Host "  !   config.yaml не найден: $ConfigPath" -ForegroundColor Yellow
+    Write-Host "  !   config.yaml not found: $ConfigPath" -ForegroundColor Yellow
     exit 1
 }
 
@@ -63,12 +63,12 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
 
 if ($modified) {
     $result | Set-Content $ConfigPath -Encoding UTF8
-    Write-Host "  +   Порт в config.yaml обновлён: $NewPort" -ForegroundColor Green
+    Write-Host "  +   The port in config.yaml has been updated: $NewPort" -ForegroundColor Green
     exit 0
 } elseif ($isLocalModel) {
-    Write-Host "  .   Порт в config.yaml уже актуален." -ForegroundColor Green
+    Write-Host "  .   The port in config.yaml is already up to date." -ForegroundColor Green
     exit 0
 } else {
-    Write-Host "  .   Не local-model конфигурация, порт не меняем." -ForegroundColor Yellow
+    Write-Host "  .   Not a local-model configuration, we’re not changing the port." -ForegroundColor Yellow
     exit 1
 }
