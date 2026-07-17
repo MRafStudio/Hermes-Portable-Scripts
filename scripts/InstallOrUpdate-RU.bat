@@ -151,7 +151,6 @@ REM   ШАГ 4/4: Патчим конфиги TypeScript и config.yaml
 REM ============================================================================
 echo.
 echo   %ESC%[1;33m[4/4]%ESC%[0m %ESC%[1mПатчим конфиги TypeScript...%ESC%[0m
-pause
 set "PATCH_DIR=%SCRIPTS_DIR%\patch"
 
 REM --- types.ts ---
