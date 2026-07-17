@@ -177,6 +177,7 @@ if exist "%CATALOG_FILE%" (
 )
 
 REM Правим локализацию в config.yaml
+echo.
 set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
 if exist "%CONFIG_YAML%" (
     echo   %ESC%[1;33m  -   Обновление локализации в config.yaml...%ESC%[0m
