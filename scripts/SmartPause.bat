@@ -1,4 +1,4 @@
-REM scripts\SmartPause.bat
+@REM scripts\SmartPause.bat
 @echo off
 chcp 65001 >nul
 
@@ -9,10 +9,14 @@ REM   Параметры:
 REM     1 — время ожидания в секундах (1-10, по умолчанию 5)
 REM     2 — сообщение (по умолчанию "Авто-продолжение через N сек...")
 REM   Без параметров — дефолт: 5 сек, стандартное сообщение
+REM
+REM   ВНИМАНИЕ: setlocal ОТСУТСТВОВАТЬ намеренно — ESC, установленный здесь,
+REM   должен вернуться вызывающему. Рабочие переменные SP_* зачищаются
+REM   перед выходом вручную.
 REM ============================================================================
 
 if not defined ESC (
-    for /f %%a in ('powershell -NoProfile -Command "Write-Host ([char]27) -NoNewline"') do set "ESC=%%a"
+    for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 )
 
 set "SP_TIME=5"
@@ -49,6 +53,7 @@ echo   %ESC%[1;33m  →  %SP_MSG%%ESC%[0m
 echo   %ESC%[2m       ^(нажмите любую клавишу для остановки^)%ESC%[0m
 
 set "SP_TMP=%TEMP%\_sp_%RANDOM%.tmp"
+set "SP_PS1=%TEMP%\_sp_%RANDOM%.ps1"
 
 set /a "SP_ITER=%SP_TIME% * 10"
 
@@ -64,21 +69,31 @@ set /a "SP_ITER=%SP_TIME% * 10"
     echo }
     echo $r = if ^($k^) { 'STOP' } else { 'CONT' }
     echo Out-File -FilePath '%SP_TMP%' -InputObject $r -Encoding ASCII
-) > "%TEMP%\_sp_script.ps1"
+) > "%SP_PS1%"
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%TEMP%\_sp_script.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SP_PS1%"
 
 set "SP_RESULT=CONT"
 if exist "%SP_TMP%" (
     set /p "SP_RESULT=" < "%SP_TMP%"
     del "%SP_TMP%" 2>nul
-    del "%TEMP%\_sp_script.ps1" 2>nul
 )
+del "%SP_PS1%" 2>nul
 
 if "%SP_RESULT%"=="STOP" (
     echo.
     echo   %ESC%[1;33m  Остановлено. Нажмите Enter для продолжения...%ESC%[0m
     pause >nul
 )
+
+REM --- Зачистка рабочих переменных (ESC оставляем вызывающему!) ---
+set "SP_TIME="
+set "SP_MSG="
+set "SP_TEST="
+set "SP_NUMERIC="
+set "SP_TMP="
+set "SP_PS1="
+set "SP_ITER="
+set "SP_RESULT="
 
 exit /b 0
