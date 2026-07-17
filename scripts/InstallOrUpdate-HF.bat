@@ -65,7 +65,7 @@ if not exist "%UV_EXE%" (
 )
 
 if not exist "%PYTHON_EXE%" (
-    echo   %ESC%[1;31m[ОШИБКА] Автономный Python (uv) не найден%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Автономный Python ^(uv^) не найден%ESC%[0m
     echo   %ESC%[33m       Путь: %PYTHON_EXE%%ESC%[0m
     echo   %ESC%[33m       Сначала запустите полную установку Hermes.%ESC%[0m
     if "%AUTOCLOSE%"=="0" pause
