@@ -3,9 +3,10 @@
 chcp 65001 >nul
 
 REM ============================================================================
-REM   Параметры: ACTION [AUTOCLOSE]
+REM   Параметры: ACTION [AUTOCLOSE] [DEBUG]
 REM   ACTION: start | stop | status
 REM   AUTOCLOSE: 1 = SmartPause 5sec, 0 = pause (default)
+REM   DEBUG: 1 = запуск с cmd /k (окно остаётся — отладка из Tools.bat), 0 = cmd /c (default)
 REM   Возвращает: 1 = успех/запущен, -1 = ошибка/не запущен
 REM   ВНИМАНИЕ: вызывающие должны проверять код через equ, а не errorlevel-геq!
 REM ============================================================================
@@ -14,6 +15,9 @@ if "%ACTION%"=="" set "ACTION=start"
 
 set "AUTOCLOSE=0"
 if "%2"=="1" set "AUTOCLOSE=1"
+
+set "KOBOLD_DEBUG=0"
+if "%3"=="1" set "KOBOLD_DEBUG=1"
 
 setlocal enabledelayedexpansion
 
@@ -329,10 +333,17 @@ echo   %ESC%[2m       Порт: %KOBOLD_PORT%%ESC%[0m
 echo.
 
 REM Запуск в НОВОМ окне (cmd /c: продакшн — окно закрывается вместе с KoboldCpp)
+REM Отладочный запуск с cmd /k (DEBUG=1) — только через Tools.bat!
+set "KCPP_CMD=/c"
+set "KCPP_TITLE=KoboldCpp"
+if "!KOBOLD_DEBUG!"=="1" (
+    set "KCPP_CMD=/k"
+    set "KCPP_TITLE=KoboldCpp (ОТЛАДКА)"
+)
 if defined KCPP_MMPROJ (
-    start "KoboldCpp — %GPU_NAME%" cmd /c ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --gpulayers 999 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --gpulayers 999 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 ) else (
-    start "KoboldCpp — %GPU_NAME%" cmd /c ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --gpulayers 999 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --gpulayers 999 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 )
 
 echo   %ESC%[1;32m  +   KoboldCpp запущен в отдельном окне.%ESC%[0m
