@@ -317,15 +317,36 @@ if exist "%HERMES_HOME%\node\node.exe" (
     echo   %ESC%[1;33m  .   Используем локальный Node.js%ESC%[0m
     echo   %ESC%[2m       %HERMES_HOME%\node\%ESC%[0m
 ) else (
-    REM Локальный не найден — проверяем глобальный
-    where node >nul 2>nul
-    if !errorlevel! equ 0 (
-        for /f "tokens=*" %%a in ('where node 2^>nul') do set "NODE_CMD=%%a"
-        for /f "tokens=*" %%a in ('where npm 2^>nul') do set "NPM_CMD=%%a"
+    REM Локальный не найден — ищем глобальный в стандартных местах
+    set "GLOBAL_NODE="
+    
+    REM Проверяем стандартные пути установки Node.js
+    if exist "%ProgramFiles%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles%\nodejs"
+    if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles(x86)%\nodejs"
+    if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "GLOBAL_NODE=%LOCALAPPDATA%\Programs\nodejs"
+    
+    REM Проверяем через реестр (если установлен инсталлятором)
+    if not defined GLOBAL_NODE (
+        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
+            if "%%a"=="InstallPath" (
+                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+            )
+        )
+        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Node.js" /v InstallPath 2^>nul') do (
+            if "%%a"=="InstallPath" (
+                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+            )
+        )
+    )
+    
+    if defined GLOBAL_NODE (
+        set "NODE_CMD=!GLOBAL_NODE!\node.exe"
+        set "NPM_CMD=!GLOBAL_NODE!\npm.cmd"
         echo   %ESC%[1;33m  .   Используем глобальный Node.js%ESC%[0m
-        echo   %ESC%[2m       !NODE_CMD!%ESC%[0m
+        echo   %ESC%[2m       !GLOBAL_NODE!\%ESC%[0m
     ) else (
         echo   %ESC%[1;31m[ОШИБКА] Node.js не найден ни локально, ни глобально!%ESC%[0m
+        echo   %ESC%[1;33m  Установите Node.js или запустите InstallOrUpdate-NodeJS.bat%ESC%[0m
         if "%AUTOCLOSE%"=="0" pause
         exit /b 1
     )
