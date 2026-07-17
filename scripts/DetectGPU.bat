@@ -6,6 +6,9 @@ setlocal enabledelayedexpansion
 REM ============================================================================
 REM   Определение GPU: тип, имя, VRAM
 REM ============================================================================
+REM   Вызов: call DetectGPU.bat [force]
+REM     force — принудительный повторный детект (игнорировать кэш сессии)
+REM
 REM   ПРАВИЛА (никогда не удалять, только дополнять):
 REM   1. Всегда возвращает 4 переменные: GPU_TYPE, GPU_NAME, GPU_VRAM_MB, GPU_VRAM_NUM
 REM   2. Всегда через endlocal & set "VAR=VALUE" — иначе переменные потеряются
@@ -25,14 +28,22 @@ REM   - Результат метода применяем ТОЛЬКО если
 REM   - Файл держать в UTF-8 + chcp 65001 (в PS-команде есть кириллица в regex).
 REM ============================================================================
 
-set "GPU_TYPE=UNKNOWN"
-set "GPU_NAME=Не определена"
-set "GPU_VRAM_MB=0"
-
 REM === ESC (если вызвали из скрипта без ESC) ===
 if not defined ESC (
     for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 )
+
+REM === Кэш сессии: GPU уже определён — повторный детект не нужен ===
+if /I not "%~1"=="force" (
+    if defined GPU_TYPE if defined GPU_VRAM_NUM (
+        echo   %ESC%[2m  .   GPU уже определён: !GPU_NAME! ^(VRAM: !GPU_VRAM_MB! MB^)%ESC%[0m
+        exit /b 0
+    )
+)
+
+set "GPU_TYPE=UNKNOWN"
+set "GPU_NAME=Не определена"
+set "GPU_VRAM_MB=0"
 
 echo.
 echo   %ESC%[1;33m  →   Определение видеокарты...%ESC%[0m
@@ -124,7 +135,7 @@ set "GPU_VRAM_NUM=!GPU_VRAM_NUM:"=!"
 set /a "GPU_VRAM_NUM=!GPU_VRAM_NUM!" 2>nul
 if !GPU_VRAM_NUM! EQU 0 set "GPU_VRAM_NUM=!GPU_VRAM_MB!"
 
-REM === Итог детекта ===
+REM === Итог детекта (виден и вызывающему, и при ручном запуске) ===
 echo   %ESC%[1;32m  +   GPU: !GPU_NAME!%ESC%[0m
 echo   %ESC%[2m       Тип: !GPU_TYPE! ^| VRAM: !GPU_VRAM_MB! MB%ESC%[0m
 echo.
