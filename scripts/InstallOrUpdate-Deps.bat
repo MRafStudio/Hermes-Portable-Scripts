@@ -206,21 +206,54 @@ if !errorlevel! neq 0 (
 echo   %ESC%[1;32m  +   Baseline imports OK.%ESC%[0m
 
 REM ============================================================================
-REM   ШАГ 4: Node.js зависимости (workspace root)
+REM   Определение Node.js: локальный → глобальный
 REM ============================================================================
-echo.
-echo   %ESC%[1;33m[4/5]%ESC%[0m %ESC%[1mУстановка Node.js зависимостей...%ESC%[0m
+set "NODE_CMD="
+set "NPM_CMD="
+set "NPX_CMD="
+set "IS_GLOBAL_NODE=0"
 
-if not exist "%NODE_EXE%" (
-    echo   %ESC%[1;33m  .   Node.js не найден. Пропускаем ^(browser tools будут недоступны^).%ESC%[0m
-    goto node_done
+REM Сначала пробуем локальный
+if exist "%NODE_EXE%" (
+    set "NODE_CMD=%NODE_EXE%"
+    set "NPM_CMD=%NODE_DIR%\npm.cmd"
+    set "NPX_CMD=%NODE_DIR%\npx.cmd"
+    echo   %ESC%[1;33m  .   Используем локальный Node.js%ESC%[0m
+) else (
+    REM Ищем глобальный в стандартных местах
+    set "GLOBAL_NODE="
+    
+    if exist "%ProgramFiles%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles%\nodejs"
+    if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles(x86)%\nodejs"
+    if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "GLOBAL_NODE=%LOCALAPPDATA%\Programs\nodejs"
+    
+    if not defined GLOBAL_NODE (
+        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
+            if "%%a"=="InstallPath" (
+                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+            )
+        )
+        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Node.js" /v InstallPath 2^>nul') do (
+            if "%%a"=="InstallPath" (
+                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+            )
+        )
+    )
+    
+    if defined GLOBAL_NODE (
+        set "NODE_CMD=!GLOBAL_NODE!\node.exe"
+        set "NPM_CMD=!GLOBAL_NODE!\npm.cmd"
+        set "NPX_CMD=!GLOBAL_NODE!\npx.cmd"
+        set "IS_GLOBAL_NODE=1"
+        echo   %ESC%[1;33m  .   Используем глобальный Node.js: !GLOBAL_NODE!%ESC%[0m
+    ) else (
+        echo   %ESC%[1;33m  .   Node.js не найден ни локально, ни глобально.%ESC%[0m
+    )
 )
 
-cd /d "%REPO_DIR%"
-
-if not exist "package.json" (
-    echo   %ESC%[1;33m  .   package.json не найден. Пропускаем.%ESC%[0m
-    goto node_done
+REM === ПЕРЕСБИРАЕМ PATH ТОЛЬКО ЕСЛИ ГЛОБАЛЬНЫЙ NODE.JS ===
+if "!IS_GLOBAL_NODE!"=="1" (
+    set "PATH=!GLOBAL_NODE!;%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%UV_DIR%;%PATH%"
 )
 
 echo   %ESC%[1;33m  -   npm install (workspace root)...%ESC%[0m
