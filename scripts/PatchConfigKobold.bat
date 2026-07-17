@@ -16,7 +16,7 @@ for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
-set "PATCH_SCRIPT=%SCRIPTS_DIR%\patch\config-kobold.ps1"
+set "PATCH_SCRIPT=%SCRIPTS_DIR%\patch\config_kobold.ps1"
 set "BACKUP_FILE=%CONFIG_YAML%.bak"
 
 REM ============================================================================
