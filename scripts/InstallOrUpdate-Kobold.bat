@@ -84,16 +84,16 @@ if "%GPU_TYPE%"=="NVIDIA" (
         set "MODEL_SIZE=15 GB"
         set "MMPROJ_SIZE=928 MB"
     ) else if %GPU_VRAM_NUM% GEQ 16000 (
-        set "DEFAULT_MODEL=Qwen_Qwen2.5-VL-14B-Instruct-Q4_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen2.5-VL-14B-Instruct-f16.gguf"
-        set "MODEL_REPO=bartowski/Qwen_Qwen2.5-VL-14B-Instruct-GGUF"
+        set "DEFAULT_MODEL=Qwen3.6-14B-A3B-FableVibes-Q4_K_M.gguf"
+        set "DEFAULT_MMPROJ=Qwen3.6-14B-A3B-FableVibes-mmproj-F16.gguf"
+        set "MODEL_REPO=tvall43/Qwen3.6-14B-A3B-FableVibes-GGUF"
         set "MODEL_SIZE=8.5 GB"
-        set "MMPROJ_SIZE=500 MB"
+        set "MMPROJ_SIZE=900 MB"
     ) else (
-        set "DEFAULT_MODEL=Qwen_Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"
-        set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen2.5-VL-7B-Instruct-f16.gguf"
-        set "MODEL_REPO=bartowski/Qwen_Qwen2.5-VL-7B-Instruct-GGUF"
-        set "MODEL_SIZE=4.7 GB"
+        set "DEFAULT_MODEL=Qwen2.5-VL-7B-Instruct-Q5_K_M.gguf"
+        set "DEFAULT_MMPROJ=mmproj-F16.gguf"
+        set "MODEL_REPO=unsloth/Qwen2.5-VL-7B-Instruct-GGUF"
+        set "MODEL_SIZE=5.5 GB"
         set "MMPROJ_SIZE=1.4 GB"
     )
 ) else (
