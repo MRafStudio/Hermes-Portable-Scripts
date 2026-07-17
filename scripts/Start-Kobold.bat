@@ -347,7 +347,7 @@ if not exist "%CONFIG_YAML_BAK%" (
 REM Запускаем PowerShell скрипт патча с передачей KCPP_CTX
 echo   %ESC%[1;33m  -   Патчим config.yaml (context=!KCPP_CTX!)...%ESC%[0m
 
-powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\config-kobold.ps1" -ConfigPath "%CONFIG_YAML%" -ContextLength !KCPP_CTX!
+powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\config_kobold.ps1" -ConfigPath "%CONFIG_YAML%" -ContextLength !KCPP_CTX!
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m  [ОШИБКА] Не удалось пропатчить config.yaml.%ESC%[0m
