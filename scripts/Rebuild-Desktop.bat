@@ -137,13 +137,13 @@ set "PATCH_DIR=%SCRIPTS_DIR%\patch"
 REM --- types.ts ---
 set "TYPES_FILE=%I18N_DIR%\types.ts"
 if exist "%TYPES_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\PatchTypes.ps1" -FilePath "%TYPES_FILE%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_types.ps1" -FilePath "%TYPES_FILE%"
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   types.ts пропатчен.%ESC%[0m
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   types.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] PatchTypes.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_types.ps1 не сработал... Код: %errorlevel%%ESC%[0m
         goto error_exit
     )
 )
@@ -151,13 +151,13 @@ if exist "%TYPES_FILE%" (
 REM --- languages.ts ---
 set "LANG_FILE=%I18N_DIR%\languages.ts"
 if exist "%LANG_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\PatchLanguages.ps1" -FilePath "%LANG_FILE%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_languages.ps1" -FilePath "%LANG_FILE%"
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   languages.ts пропатчен.%ESC%[0m
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   languages.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] PatchLanguages.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_languages.ps1 не сработал... Код: %errorlevel%%ESC%[0m
         goto error_exit
     )
 )
@@ -165,15 +165,22 @@ if exist "%LANG_FILE%" (
 REM --- catalog.ts ---
 set "CATALOG_FILE=%I18N_DIR%\catalog.ts"
 if exist "%CATALOG_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\PatchCatalog.ps1" -FilePath "%CATALOG_FILE%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_catalog.ps1" -FilePath "%CATALOG_FILE%"
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   catalog.ts пропатчен.%ESC%[0m
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   catalog.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] PatchCatalog.ps1 не сработал... Код: %errorlevel%%ESC%[0m
+        echo   %ESC%[1;31m  [ОШИБКА] patch_catalog.ps1 не сработал... Код: %errorlevel%%ESC%[0m
         goto error_exit
     )
+)
+
+REM Правим локализацию в config.yaml
+set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
+if exist "%CONFIG_YAML%" (
+    echo   %ESC%[1;33m  -   Обновление локализации в config.yaml...%ESC%[0m
+    powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch_locale_yaml.ps1" -ConfigPath "%CONFIG_YAML%" -Locale ru
 )
 
 REM ============================================================================
