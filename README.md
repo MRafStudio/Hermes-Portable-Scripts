@@ -1,4 +1,4 @@
-# Hermes Portable
+# Hermes Desktop - Portable
 
 ## Описание
 
