@@ -22,6 +22,12 @@ set "NODE_DIR=%HERMES_HOME%\node"
 set "NODE_EXE=%NODE_DIR%\node.exe"
 
 REM ============================================================================
+REM   Сохраняем РЕАЛЬНЫЕ пути ДО изоляции
+REM   (нужны для поиска глобального Node.js)
+REM ============================================================================
+set "REAL_LOCALAPPDATA=%LOCALAPPDATA%"
+
+REM ============================================================================
 REM   Изоляция данных
 REM ============================================================================
 set "DATA_DIR=%ROOT_DIR%\data"
@@ -70,6 +76,65 @@ if not exist "%REPO_DIR%\.git" (
     goto error_exit
 )
 
+REM ============================================================================
+REM   Определение Node.js (глобальный -> локальный) — ДО любых npm-операций!
+REM   Глобальный в приоритете (как в InstallOrUpdate-Desktop.bat).
+REM   Нет ни глобального, ни локального — Node-шаги будут пропущены (HAS_NODE=0).
+REM ============================================================================
+set "NODE_CMD="
+set "NPM_CMD="
+set "NPX_CMD="
+set "IS_GLOBAL_NODE=0"
+set "HAS_NODE=0"
+set "GLOBAL_NODE="
+
+REM --- 1. Глобальный Node.js: стандартные пути (ПРИОРИТЕТ) ---
+if exist "%ProgramFiles%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles%\nodejs"
+if not defined GLOBAL_NODE if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles(x86)%\nodejs"
+if not defined GLOBAL_NODE if exist "%REAL_LOCALAPPDATA%\Programs\nodejs\node.exe" set "GLOBAL_NODE=%REAL_LOCALAPPDATA%\Programs\nodejs"
+
+REM --- 2. Глобальный Node.js: реестр (HKLM + WOW6432Node + HKCU) ---
+if not defined GLOBAL_NODE (
+    for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
+        if "%%a"=="InstallPath" (
+            if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+        )
+    )
+)
+if not defined GLOBAL_NODE (
+    for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Node.js" /v InstallPath 2^>nul') do (
+        if "%%a"=="InstallPath" (
+            if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+        )
+    )
+)
+if not defined GLOBAL_NODE (
+    for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKCU\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
+        if "%%a"=="InstallPath" (
+            if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
+        )
+    )
+)
+
+if defined GLOBAL_NODE (
+    set "NODE_CMD=!GLOBAL_NODE!\node.exe"
+    set "NPM_CMD=!GLOBAL_NODE!\npm.cmd"
+    set "NPX_CMD=!GLOBAL_NODE!\npx.cmd"
+    set "IS_GLOBAL_NODE=1"
+    set "HAS_NODE=1"
+    goto :node_ready
+)
+
+REM --- 3. Локальный Node.js (fallback, если глобального нет) ---
+if exist "%NODE_EXE%" (
+    set "NODE_CMD=%NODE_EXE%"
+    set "NPM_CMD=%NODE_DIR%\npm.cmd"
+    set "NPX_CMD=%NODE_DIR%\npx.cmd"
+    set "HAS_NODE=1"
+)
+
+:node_ready
+
 REM cls
 echo.
 echo  %ESC%[1;35m################################################################################%ESC%[0m
@@ -79,10 +144,27 @@ echo  %ESC%[1;35m##                                                             
 echo  %ESC%[1;35m################################################################################%ESC%[0m
 echo.
 
+REM --- Какой Node.js выбран (определён выше) ---
+if "!IS_GLOBAL_NODE!"=="1" (
+    echo   %ESC%[1;33m  .   Node.js: глобальный%ESC%[0m
+    echo   %ESC%[2m       !GLOBAL_NODE!\%ESC%[0m
+) else (
+    if "!HAS_NODE!"=="1" (
+        echo   %ESC%[1;33m  .   Node.js: локальный%ESC%[0m
+        echo   %ESC%[2m       %NODE_DIR%\%ESC%[0m
+    ) else (
+        echo   %ESC%[1;33m  .   Node.js: не найден — Node-шаги будут пропущены%ESC%[0m
+    )
+)
+
 REM ============================================================================
-REM   Добавляем в PATH
+REM   Добавляем в PATH (Node — под выбранный вариант)
 REM ============================================================================
-set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%UV_DIR%;%NODE_DIR%;%PATH%"
+if "!IS_GLOBAL_NODE!"=="1" (
+    set "PATH=!GLOBAL_NODE!;%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%UV_DIR%;%PATH%"
+) else (
+    set "PATH=%NODE_DIR%;%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%UV_DIR%;%PATH%"
+)
 
 REM ============================================================================
 REM   ПРЕДУПРЕЖДЕНИЕ
@@ -132,7 +214,7 @@ if "%warn_choice%"=="0" (
 REM ============================================================================
 REM   ШАГ 1: Создание venv через uv
 REM ============================================================================
-echo   %ESC%[1;33m[1/5]%ESC%[0m %ESC%[1mСоздание виртуального окружения...%ESC%[0m
+echo   %ESC%[1;33m[1/6]%ESC%[0m %ESC%[1mСоздание виртуального окружения...%ESC%[0m
 
 cd /d "%REPO_DIR%"
 
@@ -156,7 +238,7 @@ REM ============================================================================
 REM   ШАГ 2: Установка зависимостей через uv sync
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[2/5]%ESC%[0m %ESC%[1mУстановка зависимостей (uv sync --extra all --locked)...%ESC%[0m
+echo   %ESC%[1;33m[2/6]%ESC%[0m %ESC%[1mУстановка зависимостей (uv sync --extra all --locked)...%ESC%[0m
 echo   %ESC%[2m       Это может занять 5-15 минут...%ESC%[0m
 
 set "UV_PROJECT_ENVIRONMENT=%REPO_DIR%\venv"
@@ -173,7 +255,7 @@ REM ============================================================================
 REM   Fallback: uv pip install
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[2/5]%ESC%[0m %ESC%[1mFallback: uv pip install -e ".[all]"...%ESC%[0m
+echo   %ESC%[1;33m[2/6]%ESC%[0m %ESC%[1mFallback: uv pip install -e ".[all]"...%ESC%[0m
 
 "%UV_EXE%" pip install -e ".[all]"
 
@@ -193,7 +275,7 @@ REM ============================================================================
 REM   ШАГ 3: Проверка baseline imports
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[3/5]%ESC%[0m %ESC%[1mПроверка установки...%ESC%[0m
+echo   %ESC%[1;33m[3/6]%ESC%[0m %ESC%[1mПроверка установки...%ESC%[0m
 
 "%REPO_DIR%\venv\Scripts\python.exe" -c "import dotenv, openai, rich, prompt_toolkit" >nul 2>nul
 if !errorlevel! neq 0 (
@@ -206,61 +288,24 @@ if !errorlevel! neq 0 (
 echo   %ESC%[1;32m  +   Baseline imports OK.%ESC%[0m
 
 REM ============================================================================
-REM   Определение Node.js: локальный → глобальный
+REM   ШАГ 4: Node.js-зависимости (workspace root)
 REM ============================================================================
-set "NODE_CMD="
-set "NPM_CMD="
-set "NPX_CMD="
-set "IS_GLOBAL_NODE=0"
+echo.
+echo   %ESC%[1;33m[4/6]%ESC%[0m %ESC%[1mУстановка Node.js-зависимостей...%ESC%[0m
 
-REM Сначала пробуем локальный
-if exist "%NODE_EXE%" (
-    set "NODE_CMD=%NODE_EXE%"
-    set "NPM_CMD=%NODE_DIR%\npm.cmd"
-    set "NPX_CMD=%NODE_DIR%\npx.cmd"
-    echo   %ESC%[1;33m  .   Используем локальный Node.js%ESC%[0m
-) else (
-    REM Ищем глобальный в стандартных местах
-    set "GLOBAL_NODE="
-    
-    if exist "%ProgramFiles%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles%\nodejs"
-    if exist "%ProgramFiles(x86)%\nodejs\node.exe" set "GLOBAL_NODE=%ProgramFiles(x86)%\nodejs"
-    if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "GLOBAL_NODE=%LOCALAPPDATA%\Programs\nodejs"
-    
-    if not defined GLOBAL_NODE (
-        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\Node.js" /v InstallPath 2^>nul') do (
-            if "%%a"=="InstallPath" (
-                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
-            )
-        )
-        for /f "skip=2 tokens=1,2*" %%a in ('reg query "HKLM\SOFTWARE\WOW6432Node\Node.js" /v InstallPath 2^>nul') do (
-            if "%%a"=="InstallPath" (
-                if exist "%%c\node.exe" set "GLOBAL_NODE=%%c"
-            )
-        )
-    )
-    
-    if defined GLOBAL_NODE (
-        set "NODE_CMD=!GLOBAL_NODE!\node.exe"
-        set "NPM_CMD=!GLOBAL_NODE!\npm.cmd"
-        set "NPX_CMD=!GLOBAL_NODE!\npx.cmd"
-        set "IS_GLOBAL_NODE=1"
-        echo   %ESC%[1;33m  .   Используем глобальный Node.js: !GLOBAL_NODE!%ESC%[0m
-    ) else (
-        echo   %ESC%[1;33m  .   Node.js не найден ни локально, ни глобально.%ESC%[0m
-    )
+if "!HAS_NODE!"=="0" (
+    echo   %ESC%[1;33m  .   Node.js не найден — пропускаем npm install.%ESC%[0m
+    echo   %ESC%[2m       Запустите InstallOrUpdate-NodeJS.bat и повторите.%ESC%[0m
+    goto node_done
 )
 
-REM === ПЕРЕСБИРАЕМ PATH ТОЛЬКО ЕСЛИ ГЛОБАЛЬНЫЙ NODE.JS ===
-if "!IS_GLOBAL_NODE!"=="1" (
-    set "PATH=!GLOBAL_NODE!;%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%UV_DIR%;%PATH%"
-)
-
+echo   %ESC%[1;33m  .   Используем Node.js:%ESC%[0m
+echo   %ESC%[2m       !NODE_CMD!%ESC%[0m
 echo   %ESC%[1;33m  -   npm install (workspace root)...%ESC%[0m
 echo   %ESC%[2m       Это может занять 5-15 минут...%ESC%[0m
 
 :retry_node_deps
-call "%NODE_DIR%\npm.cmd" install
+call "!NPM_CMD!" install
 
 if !errorlevel! equ 0 (
     echo   %ESC%[1;32m  +   Node.js зависимости установлены.%ESC%[0m
@@ -274,7 +319,7 @@ echo   %ESC%[1;33m  !   npm install failed. Пробуем скачать Electr
 
 if exist "%SCRIPTS_DIR%\Download-Electron.bat" (
     call "%SCRIPTS_DIR%\Download-Electron.bat"
-    
+
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   Electron скачан вручную. Повторяем npm install...%ESC%[0m
         goto :retry_node_deps
@@ -295,9 +340,9 @@ REM ============================================================================
 REM   ШАГ 5: Playwright Chromium
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[5/5]%ESC%[0m %ESC%[1mУстановка Playwright Chromium...%ESC%[0m
+echo   %ESC%[1;33m[5/6]%ESC%[0m %ESC%[1mУстановка Playwright Chromium...%ESC%[0m
 
-if not exist "%NODE_EXE%" (
+if "!HAS_NODE!"=="0" (
     echo   %ESC%[1;33m  .   Node.js не найден. Пропускаем.%ESC%[0m
     goto playwright_done
 )
@@ -307,7 +352,7 @@ cd /d "%REPO_DIR%"
 echo   %ESC%[1;33m  -   npx playwright install chromium...%ESC%[0m
 echo   %ESC%[2m       Это может занять 3-10 минут...%ESC%[0m
 
-call "%NODE_DIR%\npx.cmd" --yes playwright install chromium
+call "!NPX_CMD!" --yes playwright install chromium
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;33m  .   Playwright Chromium install failed ^(не критично^).%ESC%[0m
@@ -323,7 +368,7 @@ REM ============================================================================
 echo.
 echo   %ESC%[1;33m[6/6]%ESC%[0m %ESC%[1mУстановка Desktop-зависимостей (Electron)...%ESC%[0m
 
-if not exist "%NODE_EXE%" (
+if "!HAS_NODE!"=="0" (
     echo   %ESC%[1;33m  .   Node.js не найден. Пропускаем.%ESC%[0m
     goto desktop_deps_done
 )
@@ -341,7 +386,7 @@ echo   %ESC%[2m       Это может занять 5-10 минут...%ESC%[0m
 REM Retry: 3 попытки с задержкой
 set "NPM_RETRY=0"
 :desktop_npm_retry
-call "%NODE_DIR%\npm.cmd" install
+call "!NPM_CMD!" install
 if errorlevel 1 (
     set /a "NPM_RETRY+=1"
     if !NPM_RETRY! lss 3 (
