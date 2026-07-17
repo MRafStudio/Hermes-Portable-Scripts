@@ -157,7 +157,7 @@ set "PATCH_DIR=%SCRIPTS_DIR%\patch"
 REM --- types.ts ---
 set "TYPES_FILE=%I18N_DIR%\types.ts"
 if exist "%TYPES_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\PatchTypes.ps1" -FilePath "%TYPES_FILE%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_types.ps1" -FilePath "%TYPES_FILE%"
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   types.ts пропатчен.%ESC%[0m
     ) else if !errorlevel! equ 1 (
@@ -171,7 +171,7 @@ if exist "%TYPES_FILE%" (
 REM --- languages.ts ---
 set "LANG_FILE=%I18N_DIR%\languages.ts"
 if exist "%LANG_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\PatchLanguages.ps1" -FilePath "%LANG_FILE%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_languages.ps1" -FilePath "%LANG_FILE%"
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   languages.ts пропатчен.%ESC%[0m
     ) else if !errorlevel! equ 1 (
@@ -185,7 +185,7 @@ if exist "%LANG_FILE%" (
 REM --- catalog.ts ---
 set "CATALOG_FILE=%I18N_DIR%\catalog.ts"
 if exist "%CATALOG_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\PatchCatalog.ps1" -FilePath "%CATALOG_FILE%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_catalog.ps1" -FilePath "%CATALOG_FILE%"
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   catalog.ts пропатчен.%ESC%[0m
     ) else if !errorlevel! equ 1 (
