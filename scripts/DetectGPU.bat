@@ -29,6 +29,15 @@ set "GPU_TYPE=UNKNOWN"
 set "GPU_NAME=Не определена"
 set "GPU_VRAM_MB=0"
 
+REM === ESC (если вызвали из скрипта без ESC) ===
+if not defined ESC (
+    for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
+)
+
+echo.
+echo   %ESC%[1;33m  →   Определение видеокарты...%ESC%[0m
+echo   %ESC%[2m       Запросы к системе могут занять несколько секунд — это нормально.%ESC%[0m
+
 REM === Метод 1: Registry (точные байты qwMemorySize; призраки пропускаем) ===
 set "M_NAME="
 set "M_VRAM=0"
@@ -64,6 +73,7 @@ if "!GPU_VRAM_MB!"=="4095" set "NEED_DXDIAG=1"
 if "!GPU_VRAM_MB!"=="4096" set "NEED_DXDIAG=1"
 
 if "!NEED_DXDIAG!"=="1" (
+    echo   %ESC%[1;33m  →   Уточнение через dxdiag — может занять до 30 секунд, ждите...%ESC%[0m
     set "M_NAME="
     set "M_VRAM=0"
     for /f "tokens=*" %%a in ('powershell -NoProfile -Command "try { $tmp = Join-Path $env:TEMP 'dxdiag_gpu.txt'; if (Test-Path $tmp) { Remove-Item $tmp -Force -ErrorAction SilentlyContinue }; & dxdiag /t $tmp | Out-Null; $n = 0; while ((-not (Test-Path $tmp)) -and ($n -lt 60)) { Start-Sleep -Milliseconds 500; $n++ }; Start-Sleep -Seconds 1; $content = Get-Content $tmp -Raw -ErrorAction Stop; $vram = 0; $name = ''; if ($content -match 'Dedicated Memory: +(\d+) MB') { $vram = [int]$matches[1] } elseif ($content -match 'Выделенная память: +(\d+) МБ') { $vram = [int]$matches[1] } elseif ($content -match 'Display Memory: +(\d+) MB') { $vram = [int]$matches[1] } elseif ($content -match 'Память дисплея: +(\d+) МБ') { $vram = [int]$matches[1] }; if ($content -match 'Card name: +(.+)') { $name = $matches[1].Trim() } elseif ($content -match 'Имя платы: +(.+)') { $name = $matches[1].Trim() }; Write-Output ('NAME=' + $name); Write-Output ('VRAM=' + $vram) } catch { Write-Output 'NAME='; Write-Output 'VRAM=0' }" 2^>nul') do (
@@ -113,6 +123,11 @@ set "GPU_VRAM_NUM=!GPU_VRAM_MB: =!"
 set "GPU_VRAM_NUM=!GPU_VRAM_NUM:"=!"
 set /a "GPU_VRAM_NUM=!GPU_VRAM_NUM!" 2>nul
 if !GPU_VRAM_NUM! EQU 0 set "GPU_VRAM_NUM=!GPU_VRAM_MB!"
+
+REM === Итог детекта ===
+echo   %ESC%[1;32m  +   GPU: !GPU_NAME!%ESC%[0m
+echo   %ESC%[2m       Тип: !GPU_TYPE! ^| VRAM: !GPU_VRAM_MB! MB%ESC%[0m
+echo.
 
 REM === Возврат переменных в вызывающий скрипт (ПРАВИЛО 2!) ===
 endlocal & set "GPU_TYPE=%GPU_TYPE%" & set "GPU_NAME=%GPU_NAME%" & set "GPU_VRAM_MB=%GPU_VRAM_MB%" & set "GPU_VRAM_NUM=%GPU_VRAM_NUM%"
