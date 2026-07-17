@@ -123,7 +123,7 @@ REM Правим порт в config.yaml
 set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
 if exist "%CONFIG_YAML%" (
     echo   %ESC%[1;33m  -   Обновление порта в config.yaml...%ESC%[0m
-    powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch-config-port.ps1" -ConfigPath "%CONFIG_YAML%" -NewPort !NEW_PORT!
+    powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch_config_port.ps1" -ConfigPath "%CONFIG_YAML%" -NewPort !NEW_PORT!
 )
 
 REM Предупреждение о перезапуске
