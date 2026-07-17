@@ -273,7 +273,7 @@ call "Start-Hermes-Desktop.bat" 1
 echo   %ESC%[1;32m  +   Hermes запущен!%ESC%[0m
 echo.
 echo   %ESC%[1;32mОкно закроется через 3 секунды...%ESC%[0m
-timeout /t 3 /nobreak >nul
+call "%SCRIPTS_DIR%\SmartPause.bat" 3
 exit /b 0
 
 REM ============================================================================
