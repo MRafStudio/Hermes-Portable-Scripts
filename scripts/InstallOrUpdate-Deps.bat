@@ -131,6 +131,27 @@ if exist "%NODE_EXE%" (
     set "NPM_CMD=%NODE_DIR%\npm.cmd"
     set "NPX_CMD=%NODE_DIR%\npx.cmd"
     set "HAS_NODE=1"
+    goto :node_ready
+)
+
+REM --- 4. Node.js нет вообще — устанавливаем локальный ---
+echo.
+echo   %ESC%[1;33m  →   Node.js не найден. Запускаем InstallOrUpdate-NodeJS.bat...%ESC%[0m
+call "%SCRIPTS_DIR%\InstallOrUpdate-NodeJS.bat" 1
+
+if errorlevel 1 (
+    echo   %ESC%[1;33m  i   Установка Node.js не удалась. Node-шаги будут пропущены.%ESC%[0m
+    goto :node_ready
+)
+
+REM --- Перепроверяем локальный Node.js после установки ---
+if exist "%NODE_EXE%" (
+    set "NODE_CMD=%NODE_EXE%"
+    set "NPM_CMD=%NODE_DIR%\npm.cmd"
+    set "NPX_CMD=%NODE_DIR%\npx.cmd"
+    set "HAS_NODE=1"
+) else (
+    echo   %ESC%[1;33m  i   Node.js не появился после установки. Node-шаги будут пропущены.%ESC%[0m
 )
 
 :node_ready
