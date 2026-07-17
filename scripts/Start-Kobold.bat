@@ -334,7 +334,7 @@ set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
 set "CONFIG_YAML_BAK=%HERMES_HOME%\config.yaml.bak"
 
 if not exist "%CONFIG_YAML%" (
-    echo   %ESC%[1;33m  !   config.yaml не найден. Пропускаем патч.%ESC%[0m
+    echo   %ESC%[1;33m  i   config.yaml не найден. Пропускаем патч.%ESC%[0m
     goto kobold_done
 )
 
