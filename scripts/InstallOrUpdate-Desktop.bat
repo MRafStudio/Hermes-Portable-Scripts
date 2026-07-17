@@ -22,6 +22,7 @@ for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "NODE_DIR=%HERMES_HOME%\node"
+set "NODE_EXE=%NODE_DIR%\node.exe"
 
 REM ============================================================================
 REM   Сохраняем РЕАЛЬНЫЕ пути ДО изоляции
@@ -375,6 +376,12 @@ if errorlevel 1 (
 )
 
 echo   %ESC%[1;32m  +   RU локализация применена.%ESC%[0m
+
+echo   %ESC%[2m  [DEBUG] IS_GLOBAL_NODE=[!IS_GLOBAL_NODE!] GLOBAL_NODE=[!GLOBAL_NODE!]%ESC%[0m
+echo   %ESC%[2m  [DEBUG] NODE_DIR=[!NODE_DIR!]%ESC%[0m
+echo   %ESC%[2m  [DEBUG] NODE_EXE=[!NODE_EXE!]%ESC%[0m
+echo   %ESC%[2m  [DEBUG] NODE_CMD=[!NODE_CMD!]%ESC%[0m
+echo   %ESC%[2m  [DEBUG] NPM_CMD=[!NPM_CMD!]%ESC%[0m
 
 REM ============================================================================
 REM   ШАГ 5: Пересборка Desktop с RU локализацией

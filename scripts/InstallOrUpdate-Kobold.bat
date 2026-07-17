@@ -503,9 +503,22 @@ echo.
 REM ============================================================================
 REM   Патч config.yaml для KoboldCpp
 REM ============================================================================
+set "PATCH_PORT=5001"
+for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_PORT=" "%ROOT_DIR%\scripts\Config.ini" 2^>nul') do set "PATCH_PORT=%%b"
+set "PATCH_PORT=%PATCH_PORT: =%"
+
 echo.
-echo   %ESC%[1;33m  -   Патч config.yaml для KoboldCpp?%ESC%[0m
+echo   %ESC%[1;33m  ─── Патч config.yaml для KoboldCpp ───%ESC%[0m
 echo   %ESC%[2m       Путь: %ROOT_DIR%\data\hermes\config.yaml%ESC%[0m
+echo.
+echo   %ESC%[1m  Что изменит патч:%ESC%[0m
+echo     %ESC%[1;33m*%ESC%[0m Hermes переключится на ЛОКАЛЬНУЮ LLM ^(KoboldCpp^)%ESC%[0m
+echo     %ESC%[2m    Адрес: http://127.0.0.1:!PATCH_PORT! ^(custom сервер^)%ESC%[0m
+echo     %ESC%[2m    Модель: !DEFAULT_MODEL!%ESC%[0m
+echo     %ESC%[1;33m*%ESC%[0m Текущие настройки модели в config.yaml будут ПЕРЕЗАПИСАНЫ.%ESC%[0m
+echo.
+echo   %ESC%[2m  config.yaml всегда можно открыть и изменить вручную:%ESC%[0m
+echo   %ESC%[2m  главное меню - Инструменты ^(Tools.bat^) - пункт [3] Открыть config.yaml%ESC%[0m
 echo.
 echo   %ESC%[1;37m[Y]%ESC%[0m %ESC%[1mДа, применить патч%ESC%[0m
 echo   %ESC%[1;37m[N]%ESC%[0m %ESC%[1mНет, пропустить%ESC%[0m
