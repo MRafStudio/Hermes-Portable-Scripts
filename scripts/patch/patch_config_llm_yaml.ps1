@@ -8,7 +8,8 @@
 # Семантика: ENFORCE с идемпотентностью. Ключи, принадлежащие патчу
 # (provider, default, base_url, context_length), ПРИВОДЯТСЯ к целевым
 # значениям: отличается — исправляем, совпадает — не трогаем (и тогда
-# честный "already configured"). max_tokens патчу НЕ принадлежит.
+# честный "already configured"), ДУБЛИКАТ — удаляем.
+# max_tokens патчу НЕ принадлежит (только по явному -MaxTokens > 0).
 
 param(
     [Parameter(Mandatory=$true)]
@@ -29,11 +30,15 @@ if (-not (Test-Path $BackupPath)) {
     Write-Host "  +   Backup created: $BackupPath" -ForegroundColor DarkGray
 }
 
-# === ПРЕДВАРИТЕЛЬНЫЙ ПРОХОД: проверяем наличие context_file_max_chars в model: ===
+# === ПРЕДВАРИТЕЛЬНЫЙ ПРОХОД: что вообще есть в блоке model: ===
+# (для ВСТАВКИ: не плодить новые строки, если параметр уже существует —
+#  активный ИЛИ закомментированный; enforce существующих — ниже в цикле)
 $allLines = Get-Content $ConfigPath -Encoding UTF8
 $inModelBlockScan = $false
 $modelBaseIndentScan = -1
 $contextFileExists = $false
+$contextLengthExists = $false
+$maxTokensExists = $false
 
 for ($i = 0; $i -lt $allLines.Count; $i++) {
     $line = $allLines[$i]
@@ -53,6 +58,12 @@ for ($i = 0; $i -lt $allLines.Count; $i++) {
         }
         if ($trimmed -match '^context_file_max_chars:') {
             $contextFileExists = $true
+        }
+        if ($trimmed -match '^#?\s*context_length:\s*\d+') {
+            $contextLengthExists = $true
+        }
+        if ($trimmed -match '^#?\s*max_tokens:\s*\d+') {
+            $maxTokensExists = $true
         }
     }
 }
@@ -98,12 +109,12 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
             $inModelBlock = $false
             # === ВСТАВКА ПРИ ВЫХОДЕ ИЗ БЛОКА ===
             if ($insertAfterBaseUrl) {
-                if (-not $contextLengthDone) {
+                if (-not $contextLengthDone -and -not $contextLengthExists) {
                     $result += (' ' * ($modelBaseIndent + 2)) + "context_length: $ContextLength"
                     $contextLengthDone = $true
                     $modified = $true
                 }
-                if (-not $maxTokensDone) {
+                if (-not $maxTokensDone -and -not $maxTokensExists) {
                     $result += (' ' * ($modelBaseIndent + 2)) + "max_tokens: $MaxTokens"
                     $maxTokensDone = $true
                     $modified = $true
@@ -160,6 +171,11 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
             $contextLengthDone = $true
             $modified = $true
         }
+        elseif ($contextLengthDone -and $trimmed -match '^context_length:\s*\d+') {
+            # ДУБЛИКАТ активной строки — удаляем (не кладём в результат)
+            $modified = $true
+            continue
+        }
 
         # === max_tokens: ТОЛЬКО если передан извне (> 0), тоже enforce ===
         if (-not $maxTokensDone -and $trimmed -match '^max_tokens:\s*(\d+)') {
@@ -174,6 +190,11 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
             $maxTokensDone = $true
             $modified = $true
         }
+        elseif ($maxTokensDone -and $MaxTokens -gt 0 -and $trimmed -match '^max_tokens:\s*\d+') {
+            # ДУБЛИКАТ активной строки — удаляем (только при enforce-режиме)
+            $modified = $true
+            continue
+        }
 
         # === context_file_max_chars уже есть? ===
         if ($trimmed -match '^context_file_max_chars:') {
@@ -183,12 +204,12 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
         # === Вставка после base_url ===
         if ($insertAfterBaseUrl) {
             $result += $line
-            if (-not $contextLengthDone) {
+            if (-not $contextLengthDone -and -not $contextLengthExists) {
                 $result += (' ' * ($modelBaseIndent + 2)) + "context_length: $ContextLength"
                 $contextLengthDone = $true
                 $modified = $true
             }
-            if (-not $maxTokensDone) {
+            if (-not $maxTokensDone -and -not $maxTokensExists) {
                 $result += (' ' * ($modelBaseIndent + 2)) + "max_tokens: $MaxTokens"
                 $maxTokensDone = $true
                 $modified = $true
