@@ -113,7 +113,7 @@ REM ============================================================================
 if "%GPU_TYPE%"=="NVIDIA" (
     if %GPU_VRAM_NUM% GEQ 32000 (
         set "KCPP_CTX=65536"
-        set "KCPP_BATCH=2048"
+        set "KCPP_BATCH=4096"
     ) else if %GPU_VRAM_NUM% GEQ 24000 (
         set "KCPP_CTX=65536"
         set "KCPP_BATCH=2048"
@@ -166,12 +166,6 @@ if "%GPU_TYPE%"=="NVIDIA" (
     set "KCPP_FLASH="
 )
 
-REM Честный вывод параметров (ctx из переменной, а не литерал!)
-if "!KCPP_FLASH!"=="" (
-    echo   %ESC%[1;33m  i   Параметры: ctx=!KCPP_CTX!, gen=!KCPP_GENAMT!, batch=!KCPP_BATCH!, flashattn=off%ESC%[0m
-) else (
-    echo   %ESC%[1;36m  i   Параметры: ctx=!KCPP_CTX!, gen=!KCPP_GENAMT!, batch=!KCPP_BATCH!, flashattn=on%ESC%[0m
-)
 goto :do_start
 
 REM ============================================================================
@@ -330,6 +324,13 @@ if !errorlevel! equ 0 (
     exit /b 1
 )
 
+REM Честный вывод параметров (ctx из переменной, а не литерал!)
+if "!KCPP_FLASH!"=="" (
+    echo   %ESC%[1;33m  i   Параметры: ctx=!KCPP_CTX!, gen=!KCPP_GENAMT!, batch=!KCPP_BATCH!, flashattn=off%ESC%[0m
+) else (
+    echo   %ESC%[1;36m  i   Параметры: ctx=!KCPP_CTX!, gen=!KCPP_GENAMT!, batch=!KCPP_BATCH!, flashattn=on%ESC%[0m
+)
+
 echo   %ESC%[1;33m  -   Запуск KoboldCpp в отдельном окне...%ESC%[0m
 echo   %ESC%[2m       Модель: %KOBOLD_MODEL%%ESC%[0m
 echo   %ESC%[2m       Порт: %KOBOLD_PORT%%ESC%[0m
@@ -344,13 +345,33 @@ if "!KOBOLD_DEBUG!"=="1" (
     set "KCPP_TITLE=KoboldCpp (ОТЛАДКА)"
 )
 if defined KCPP_MMPROJ (
-    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --gpulayers 999 --genlimit !KCPP_GENAMT! --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 ) else (
-    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --gpulayers 999 --genlimit !KCPP_GENAMT! --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 )
 
 echo   %ESC%[1;32m  +   KoboldCpp запущен в отдельном окне.%ESC%[0m
 echo   %ESC%[2m       Ожидание инициализации...%ESC%[0m
+
+REM Ждём готовности
+set "KCPP_READY=0"
+for /L %%i in (1,1,60) do (
+    if !KCPP_READY! equ 0 (
+        timeout /t 1 /nobreak >nul 2>nul
+        curl -fs http://127.0.0.1:%KOBOLD_PORT%/api/v1/model >nul 2>nul
+        if !errorlevel! equ 0 set "KCPP_READY=1"
+    )
+)
+
+if !KCPP_READY! equ 1 (
+    echo   %ESC%[1;32m  +   KoboldCpp готов!%ESC%[0m
+    echo   %ESC%[2m       URL: http://127.0.0.1:%KOBOLD_PORT%%ESC%[0m
+    set "RET=1"
+) else (
+    echo   %ESC%[1;33m  i   KoboldCpp не ответил вовремя.%ESC%[0m
+    echo   %ESC%[33m         Проверьте окно KoboldCpp вручную.%ESC%[0m
+    set "RET=-1"
+)
 
 REM ============================================================================
 REM   Патч config.yaml — ТОЛЬКО С РАЗРЕШЕНИЯ ПОЛЬЗОВАТЕЛЯ!
@@ -372,26 +393,6 @@ if /I "!PATCH_KOBOLD!"=="Y" (
 )
 
 :kobold_done
-
-REM Ждём готовности
-set "KCPP_READY=0"
-for /L %%i in (1,1,60) do (
-    if !KCPP_READY! equ 0 (
-        timeout /t 1 /nobreak >nul 2>nul
-        curl -fs http://127.0.0.1:%KOBOLD_PORT%/api/v1/model >nul 2>nul
-        if !errorlevel! equ 0 set "KCPP_READY=1"
-    )
-)
-
-if !KCPP_READY! equ 1 (
-    echo   %ESC%[1;32m  +   KoboldCpp готов!%ESC%[0m
-    echo   %ESC%[2m       URL: http://127.0.0.1:%KOBOLD_PORT%%ESC%[0m
-    set "RET=1"
-) else (
-    echo   %ESC%[1;33m  i   KoboldCpp не ответил вовремя.%ESC%[0m
-    echo   %ESC%[33m         Проверьте окно KoboldCpp вручную.%ESC%[0m
-    set "RET=-1"
-)
 
 if "%AUTOCLOSE%"=="1" (
     call "%SCRIPTS_DIR%\SmartPause.bat" 5
