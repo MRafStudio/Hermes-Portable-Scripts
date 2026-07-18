@@ -54,7 +54,7 @@ if not exist "%MODELS_DIR%" mkdir "%MODELS_DIR%" 2>nul
 if not exist "%WHISPER_DIR%" mkdir "%WHISPER_DIR%" 2>nul
 
 REM ============================================================================
-REM   Получение ESC (ДО вызова Model-Setup — тот рисует цветные меню!)
+REM   Получение ESC
 REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
