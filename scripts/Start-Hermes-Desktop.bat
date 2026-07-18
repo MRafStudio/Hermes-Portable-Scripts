@@ -124,6 +124,37 @@ if defined GLOBAL_NODE (
     echo   %ESC%[1;33mNODE:%ESC%[0m   %ESC%[2mне найден ^(для запуска не требуется^)%ESC%[0m
 )
 echo.
+
+REM ============================================================================
+REM   Автозапуск KoboldCpp (если включён в Config.ini и полностью установлен)
+REM   start 1 — без интерактива: патч config.yaml пропускается (только из меню),
+REM   уже запущен — Start-Kobold сам увидит через tasklist.
+REM ============================================================================
+set "KOBOLD_ENABLED=0"
+set "KOBOLD_MODEL="
+for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_ENABLED=" "%SCRIPTS_DIR%\Config.ini" 2^>nul') do set "KOBOLD_ENABLED=%%b"
+for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_MODEL=" "%SCRIPTS_DIR%\Config.ini" 2^>nul') do set "KOBOLD_MODEL=%%b"
+set "KOBOLD_ENABLED=%KOBOLD_ENABLED: =%"
+set "KOBOLD_MODEL=%KOBOLD_MODEL: =%"
+
+if "!KOBOLD_ENABLED!"=="1" (
+    if not exist "%ROOT_DIR%\kobold\koboldcpp.exe" (
+        echo   %ESC%[1;33m  ⚠  KoboldCpp включён, но НЕ УСТАНОВЛЕН — запускаем Hermes без локальной LLM.%ESC%[0m
+        echo   %ESC%[2m       Установка: главное меню -^> Установка / Обновление -^> KoboldCpp%ESC%[0m
+    ) else if "!KOBOLD_MODEL!"=="" (
+        echo   %ESC%[1;33m  ⚠  KoboldCpp включён, но модель не выбрана — Hermes без локальной LLM.%ESC%[0m
+    ) else if not exist "%ROOT_DIR%\kobold\models\!KOBOLD_MODEL!" (
+        echo   %ESC%[1;33m  ⚠  Модель KoboldCpp не найдена ^(!KOBOLD_MODEL!^) — Hermes без локальной LLM.%ESC%[0m
+        echo   %ESC%[2m       Загрузка: главное меню -^> Установка / Обновление -^> KoboldCpp%ESC%[0m
+    ) else (
+        echo   %ESC%[1;33m  -   KoboldCpp включён — запускаем LLM-сервер...%ESC%[0m
+        call "%SCRIPTS_DIR%\Start-Kobold.bat" start 1
+        if !errorlevel! lss 0 (
+            echo   %ESC%[1;33m  ⚠  KoboldCpp не запустился — Hermes стартует без локальной LLM.%ESC%[0m
+        )
+    )
+)
+
 echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
 echo   %ESC%[1;32mЗапуск Hermes Desktop...%ESC%[0m
 echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
