@@ -118,7 +118,7 @@ echo.
 set "choice="
 set /p "choice=%ESC%[33mВыберите: %ESC%[0m"
 
-if "%choice%"=="0" exit /b 1
+if "%choice%"=="0" exit /b 0
 if "%choice%"=="2" goto manual_model
 
 REM Сохраняем рекомендуемую
