@@ -78,7 +78,7 @@ echo   %ESC%[1;33m  -   Применение патча config.yaml...%ESC%[0m
 echo   %ESC%[2m       Путь: %CONFIG_YAML%%ESC%[0m
 echo.
 
-powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%PATCH_SCRIPT%" -ConfigPath "%CONFIG_YAML%" -ContextLength 65536
+powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%PATCH_SCRIPT%" -ConfigPath "%CONFIG_YAML%" -ContextLength 65536 -MaxTokens 8192
 set "PATCH_RESULT=%errorlevel%"
 
 echo.
