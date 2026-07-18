@@ -85,7 +85,7 @@ export const ru = defineLocale({
         'Фоновый шлюз не запустился. Попробуйте один из вариантов восстановления ниже. Ваши чаты и настройки не удаляются.',
       remoteTitle: 'Требуется вход в удалённый шлюз',
       remoteDescription:
-        'Your remote gateway session has expired. Sign in again to reconnect. Nothing here deletes your chats or settings.',
+        'Срок действия вашей сессии удалённого шлюза истёк. Войдите снова для переподключения. Ваши чаты и настройки останутся нетронутыми.',
       retry: 'Повторить',
       repairInstall: 'Восстановить установку',
       useLocalGateway: 'Использовать локальный шлюз',
@@ -188,12 +188,15 @@ export const ru = defineLocale({
     unmuteHaptics: 'Включить тактильную отдачу',
     openSettings: 'Открыть настройки',
     openStarmap: 'Открыть звёздную карту',
-    openKeybinds: 'Горячие клавиши'
+    openKeybinds: 'Горячие клавиши',
+    layoutEditor: 'Редактор макета',
+    layoutEditorTitle: 'Редактор макета — ⌘-клик сбрасывает макет',
   },
 
   keybinds: {
     title: 'Горячие клавиши',
     subtitle: open => `Кликните по сочетанию для переназначения · ${open} открывает эту панель повторно.`,
+    search: 'Поиск сочетаний клавиш…',
     rebind: 'Переназначить',
     reset: 'Сбросить по умолчанию',
     resetAll: 'Сбросить все',
@@ -219,6 +222,7 @@ export const ru = defineLocale({
       'nav.cron': 'Открыть запланированные задачи',
       'nav.agents': 'Открыть агентов',
       'session.new': 'Новая сессия',
+      'session.newTab': 'Новая вкладка сессии',
       'session.newWindow': 'Новая сессия в окне',
       'session.next': 'Следующая сессия',
       'session.prev': 'Предыдущая сессия',
@@ -247,7 +251,8 @@ export const ru = defineLocale({
       'view.prevTerminal': 'Предыдущий терминал',
       'view.closeTerminal': 'Закрыть терминал',
       'view.terminalSelection': 'Отправить выделенное из терминала в композер',
-      'view.closePreviewTab': 'Закрыть вкладку предпросмотра',
+      'view.closeTab': 'Закрыть вкладку предпросмотра',
+      'view.reopenTab': 'Восстановить закрытую вкладку',
       'view.flipPanes': 'Поменять боковые панели местами',
       'appearance.toggleMode': 'Переключить светлый / тёмный режим',
       'profile.default': 'Переключиться на профиль по умолчанию',
@@ -309,12 +314,28 @@ export const ru = defineLocale({
       providerApiKeys: 'API-ключи',
       gateway: 'Шлюз',
       apiKeys: 'Инструменты и ключи',
+      keybinds: 'Сочетания клавиш',
       keysTools: 'Инструменты',
       keysSettings: 'Настройки',
       mcp: 'MCP',
       archivedChats: 'Архивные чаты',
       about: 'О программе',
-      notifications: 'Уведомления'
+      notifications: 'Уведомления',
+      plugins: 'Plugins'
+    },
+    plugins: {
+      title: 'Плагины рабочего стола',
+      blurb: 
+        'Расширения UI, загруженные в это приложение — встроенные в сборку или помещённые в папку desktop-plugins (включая те, которые пишет Hermes). Отключение выгружает плагин на лету и сохраняется после перезапусков.',
+      count: n => `${n} установлено`,
+      openFolder: 'Открыть папку плагинов',
+      rescan: 'Просканировать заново',
+      reveal: 'Показать в файловом менеджере',
+      enable: 'Включить',
+      disable: 'Отключить',
+      failed: 'не удалось',
+      empty: 'Плагины рабочего стола пока не установлены.',
+      kinds: { bundled: 'встроенный', disk: 'на диске', runtime: 'выполняемый' }
     },
     notifications: {
       title: 'Уведомления',
@@ -540,8 +561,7 @@ export const ru = defineLocale({
       localDesc: 'Запустить приватный бэкенд Hermes на localhost. Это режим по умолчанию, работает офлайн.',
       remoteTitle: 'Удалённый шлюз',
       remoteDesc: 'Подключить эту десктопную оболочку к удалённому бэкенду Hermes.',
-      remoteAuthHint:
-        'Хостинговые шлюзы используют OAuth или имя пользователя и пароль; самостоятельно развёрнутые могут использовать токен сессии.',
+      remoteAuthHint: 'Хостинговые шлюзы используют OAuth или имя пользователя и пароль; самостоятельно развёрнутые могут использовать токен сессии.',
       cloudTitle: 'Hermes Cloud',
       cloudDesc: 'Войдите один раз в Hermes Cloud и выбирайте агентов из своего аккаунта — не нужно вставлять URL.',
       cloudSignInTitle: 'Hermes Cloud',
@@ -736,7 +756,7 @@ export const ru = defineLocale({
       removeExternalGeneric: provider => `Удалить внешние учётные данные ${provider}?`,
       removeKeyManaged: provider => `API-ключ ${provider} управляется Hermes.`,
       removeTerminalConfirm: (provider, command) =>
-        `Удалить учётные данные ${provider}? Запустите «${command}» в терминале.`,
+        `Отключить ${provider}? Эта команда запускает "${command}" в терминале для очистки учётных данных.`,
       removeTerminalRunning: provider => `Удаление учётных данных ${provider}…`,
       removedTitle: 'Учётные данные удалены',
       removedMessage: provider => `Учётные данные ${provider} удалены.`,
@@ -744,6 +764,10 @@ export const ru = defineLocale({
       noProviderKeys: 'Нет доступных API-ключей провайдеров.',
       searchKeys: 'Поиск ключей…',
       noKeysMatch: 'Совпадений не найдено',
+      localEndpoint: {
+        title: 'Локальная / пользовательская конечная точка',
+        description: 'Направьте Hermes на любую конечную точку, совместимую с OpenAI (Zyphra, vLLM, llama.cpp, Ollama и т.д.).'
+      },
       loading: 'Загрузка возможностей...'
     },
     sessions: {
@@ -985,6 +1009,7 @@ export const ru = defineLocale({
     goTo: 'Перейти к',
     goToSession: 'Перейти к сессии',
     branches: 'Ветки',
+    commands: 'Команды',
     startInBranch: branch => `Начать в ветке ${branch}`,
     commandCenter: 'Центр управления',
     appearance: 'Внешний вид',
@@ -1625,18 +1650,25 @@ sidebar: {
       rename: 'Переименовать',
       archive: 'В архив',
       newWindow: 'Новое окно',
+      hideTabBar: 'Скрыть панель вкладок',
+      openInNewTab: 'Открыть в новой вкладке',
+      openInSplit: 'Открыть в разделённом режиме',
       copyIdFailed: 'Не удалось скопировать ID сессии',
       actionsFor: title => `Действия для ${title}`,
       sessionActions: 'Действия с сессией',
       sessionRunning: 'Сессия выполняется',
       needsInput: 'Требуется ваш ввод',
       waitingForAnswer: 'Ожидание вашего ответа',
+      finishedUnread: 'Завершено — не прочитано',
+      backgroundRunning: 'Выполняется фоновая задача',
       handoffOrigin: platform => `Передано из ${platform}`,
+      ownedByProfile: profile => `Профиль: ${profile}`,
       renamed: 'Переименовано',
       renameFailed: 'Ошибка переименования',
       renameTitle: 'Переименовать сессию',
       renameDesc: 'Дайте этому чату запоминающееся название. Оставьте пустым для очистки.',
       untitledPlaceholder: 'Сессия без названия',
+      untitledChat: id => `Чат ${id}`,
       ageNow: 'сейчас',
       ageDay: 'д',
       ageHour: 'ч',
@@ -1652,12 +1684,12 @@ sidebar: {
     placeholderFollowUp: 'Отправить продолжение',
     newSessionPlaceholders: [
       'Что мы создаём?',
-      'Дайте Hermes задачу',
+      'Дайте мне задачу',
       'Что у вас на уме?',
       'Опишите, что вам нужно',
       'За что возьмёмся?',
       'Спрашивайте что угодно',
-      'Начните с цели'
+      'Обозначьте цель'
     ],
     followUpPlaceholders: [
       'Отправить продолжение',
@@ -1705,14 +1737,14 @@ sidebar: {
       '/quit': 'выйти из Hermes'
     },
     hotkeyDescs: {
-      '@': 'ссылка на файлы, папки, URL, git',
-      '/': 'палитра слэш-команд',
-      '?': 'быстрая справка (удалите для закрытия)',
-      Enter: 'отправить · Shift+Enter для перевода строки',
-      'Cmd/Ctrl+Shift+K': 'отправить следующий ход из очереди',
-      'Cmd/Ctrl+/': 'все горячие клавиши',
-      Esc: 'закрыть всплывающее окно · отменить запуск',
-      '↑ / ↓': 'перебор всплывающего окна / истории'
+      'composer.mention': 'ссылка на файлы, папки, URL, git',
+      'composer.slash': 'палитра слэш-команд',
+      'composer.help': 'быстрая справка (удалите для закрытия)',
+      'composer.sendNewline': 'отправить · Shift+Enter для перевода строки',
+      'composer.sendQueued': 'отправить следующий ход из очереди',
+      'keybinds.openPanel': 'все горячие клавиши',
+      'composer.cancel': 'закрыть всплывающее окно · отменить запуск',
+      'composer.history': 'перебор всплывающего окна / истории'
     },
     attachUrlTitle: 'Прикрепить URL',
     attachUrlDesc: 'Hermes загрузит страницу и включит её как контекст для этого хода.',
@@ -1775,7 +1807,7 @@ sidebar: {
     }
   },
 
-statusStack: {
+  statusStack: {
     agents: 'Агенты',
     background: count => `${count} фоновых`,
     subagents: count => `${count} подагент${count === 1 ? '' : 'ов'}`,
@@ -1941,6 +1973,7 @@ statusStack: {
     recommended: 'Рекомендуется',
     connected: 'Подключено',
     featuredPitch: 'Одна подписка, 300+ передовых моделей — рекомендуемый способ использования Hermes',
+    fireworksPitch: 'Прямой API модели — модели нового поколения, размещённые на Fireworks',
     openRouterPitch: 'Один ключ, сотни моделей — надёжный вариант по умолчанию',
     apiKeyOptions: {
       fireworks: {
@@ -1970,7 +2003,6 @@ statusStack: {
     flowSubtitles: {
       pkce: 'Открывает браузер для входа, затем продолжает здесь',
       device_code: 'Открывает страницу верификации в браузере — Hermes подключается автоматически',
-      loopback: 'Открывает браузер для входа — Hermes подключается автоматически',
       external: 'Войдите один раз в терминале, затем вернитесь к чату'
     },
     startingSignIn: provider => `Запуск входа для ${provider}…`,
@@ -2081,7 +2113,7 @@ statusStack: {
       off: 'Выключен',
       offDescription: 'Выполнять без запросов на подтверждение'
     },
-statusbar: {
+    statusbar: {
       unknown: 'неизвестно',
       restart: 'перезапуск',
       update: 'обновление',
@@ -2144,6 +2176,7 @@ statusbar: {
       noModel: 'нет модели',
       switchModel: 'Сменить модель',
       openModelPicker: 'Открыть выбор модели',
+      modelPinned: 'закреплено вами; новые чаты используют эту модель вместо установленной в Настройках по умолчанию',
       modelTitle: (provider, model) => `Модель · ${provider}: ${model}`,
       providerModelTitle: (provider, model) => `${provider} · ${model}`
     }
@@ -2186,7 +2219,7 @@ statusbar: {
     addToChat: 'Добавить в чат'
   },
 
-preview: {
+  preview: {
     tab: 'Предпросмотр',
     closeTab: label => `Закрыть ${label}`,
     closeOthers: 'Закрыть остальные',
@@ -2280,6 +2313,51 @@ preview: {
     }
   },
 
+  zones: {
+    showHeader: 'Показать заголовок',
+    hideHeader: 'Скрыть заголовок',
+    minimize: 'Свернуть',
+    restore: 'Восстановить',
+    closeRunningTitle: 'Закрыть работающую вкладку?',
+    closeRunningBody:
+      'Этот чат всё ещё работает (или ожидает вашего ввода). Закрытие вкладки скрывает её — сессия сохраняет свой прогресс и может быть снова открыта из боковой панели.',
+    closeRunningConfirm: 'Закрыть вкладку',
+    closeOthers: 'Закрыть другие',
+    closeToRight: 'Закрыть справа',
+    closeAll: 'Закрыть все',
+    split: dir => `Разделить ${dir}`,
+    move: dir => `Переместить ${dir}`,
+    dirUp: 'вверх',
+    dirDown: 'вниз',
+    dirLeft: 'влево',
+    dirRight: 'вправо',
+    pluginDisabled: pluginId => `Плагин "${pluginId}" отключён`,
+    pluginDisabledBody: 'Включите его снова в Настройках → Плагины, чтобы вернуть панель.',
+    missingPane: paneId => `отсутствует панель: ${paneId}`,
+    editTitle: 'Макеты',
+    editHint: 'Выберите макет или перетаскивайте панели между зонами. Щёлкните правой кнопкой по зоне для разделения.',
+    reset: 'Сбросить',
+    templates: 'Шаблоны',
+    custom: 'Пользовательские',
+    newGridLayout: 'Новый сеточный макет',
+    saveCurrentAs: 'Сохранить текущее расположение как шаблон',
+    nameLayoutPlaceholder: 'Назовите этот макет…',
+    deletePreset: name => `Удалить ${name}`,
+    zoneEditorTitle: 'Редактор зон',
+    editorHintPre: 'нажмите для разделения · ',
+    editorHintPost: ' переворачивает линию · перетаскивайте между зонами для объединения · перетаскивайте общие границы для изменения размера',
+    templateColumns: 'Колонки',
+    templateRows: 'Строки',
+    templateGrid: 'Сетка',
+    templatePriority: 'Приоритет',
+    zoneTag: index => `зона ${index}`,
+    mergeZones: count => `Объединить ${count} зон`,
+    customZoneName: count => `Пользовательская ${count}-зона`,
+    layoutNamePlaceholder: fallback => `Название макета (${fallback})`,
+    saveApply: 'Сохранить и применить',
+    notExpressible: 'это расположение взаимосвязано (пропеллер) — пока не может быть выражено как вложенные разделения',
+    zoneCount: count => `${count} зон`
+  },
   assistant: {
     thread: {
       loadingSession: 'Загрузка сессии',
