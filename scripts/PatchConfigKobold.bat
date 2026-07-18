@@ -16,7 +16,7 @@ for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
-set "PATCH_SCRIPT=%SCRIPTS_DIR%\patch\config_kobold.ps1"
+set "PATCH_SCRIPT=%SCRIPTS_DIR%\patch\patch_config_llm_yaml.ps1"
 set "BACKUP_FILE=%CONFIG_YAML%.bak"
 
 REM ============================================================================
@@ -28,7 +28,7 @@ REM Без cls: при вызове из цепочки не стираем ло
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
-echo  %ESC%[1;36m##%ESC%[0m              %ESC%[1;37mHermes Portable%ESC%[0m   —   %ESC%[1;33mПатч config.yaml для KoboldCpp%ESC%[0m      %ESC%[1;36m##%ESC%[0m
+echo  %ESC%[1;36m##%ESC%[0m             %ESC%[1;37mHermes Portable%ESC%[0m   —   %ESC%[1;33mПатч config.yaml для KoboldCpp%ESC%[0m           %ESC%[1;36m##%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
@@ -97,7 +97,7 @@ echo.
 if "%AUTOCLOSE%"=="1" (
     call "%SCRIPTS_DIR%\SmartPause.bat" 3
 ) else (
-    pause
+    rem pause
 )
 
 REM ============================================================================
