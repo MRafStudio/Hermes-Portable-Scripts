@@ -130,7 +130,8 @@ if "%GPU_TYPE%"=="NVIDIA" (
         set "KCPP_CTX=65536"
         set "KCPP_BATCH=256"
     )
-    set "KCPP_GENAMT=4096"
+	REM Максимальный размер отдаваемых токенов
+    set "KCPP_GENAMT=16384"
     set "KCPP_FLASH=--flashattention"
 ) else if "%GPU_TYPE%"=="AMD" (
     if %GPU_VRAM_NUM% GEQ 24000 (
@@ -149,16 +150,18 @@ if "%GPU_TYPE%"=="NVIDIA" (
         set "KCPP_CTX=65536"
         set "KCPP_BATCH=256"
     )
-    set "KCPP_GENAMT=4096"
+	REM Максимальный размер отдаваемых токенов
+    set "KCPP_GENAMT=16384"
     set "KCPP_FLASH=--flashattention"
 ) else if "%GPU_TYPE%"=="INTEL" (
     set "KCPP_CTX=65536"
-    set "KCPP_GENAMT=1024"
+    set "KCPP_GENAMT=8192"
     set "KCPP_BATCH=512"
     set "KCPP_FLASH="
 ) else (
     set "KCPP_CTX=65536"
-    set "KCPP_GENAMT=2048"
+	REM Максимальный размер отдаваемых токенов
+    set "KCPP_GENAMT=8192"
     set "KCPP_BATCH=512"
     set "KCPP_FLASH="
 )
@@ -341,9 +344,9 @@ if "!KOBOLD_DEBUG!"=="1" (
     set "KCPP_TITLE=KoboldCpp (ОТЛАДКА)"
 )
 if defined KCPP_MMPROJ (
-    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --gpulayers 999 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 ) else (
-    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --gpulayers 999 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 )
 
 echo   %ESC%[1;32m  +   KoboldCpp запущен в отдельном окне.%ESC%[0m
