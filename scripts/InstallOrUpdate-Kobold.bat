@@ -69,7 +69,7 @@ set "MMPROJ_SIZE="
 
 REM Настраиваем модели на основании расчётов
 call "%SCRIPTS_DIR%\Model-Setup.bat" %AUTOCLOSE%
-if !errorlevel! neq 0 exit /b 1
+REM if !errorlevel! neq 0 exit /b 1
 
 REM Получаем их из Config.ini
 for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_MODEL=" "%CONFIG_FILE%"') do set "DEFAULT_MODEL=%%b"
