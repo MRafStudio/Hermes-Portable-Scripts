@@ -345,9 +345,9 @@ if "!KOBOLD_DEBUG!"=="1" (
     set "KCPP_TITLE=KoboldCpp (ОТЛАДКА)"
 )
 if defined KCPP_MMPROJ (
-    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --gpulayers 999 --genlimit !KCPP_GENAMT! --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit !KCPP_GENAMT! --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 ) else (
-    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --gpulayers 999 --genlimit !KCPP_GENAMT! --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit !KCPP_GENAMT! --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 )
 
 echo   %ESC%[1;32m  +   KoboldCpp запущен в отдельном окне.%ESC%[0m
@@ -397,6 +397,6 @@ if /I "!PATCH_KOBOLD!"=="Y" (
 if "%AUTOCLOSE%"=="1" (
     call "%SCRIPTS_DIR%\SmartPause.bat" 5
 ) else (
-    pause
+    rem pause
 )
 exit /b %RET%
