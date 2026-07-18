@@ -531,7 +531,6 @@ set "PATCH_CHOICE=%PATCH_CHOICE: =%"
 if /I "%PATCH_CHOICE%"=="Y" (
     echo.
     call "%SCRIPTS_DIR%\PatchConfigKobold.bat" 0
-    echo.
 ) else (
     echo   %ESC%[1;33m  .   Патч config.yaml пропущен.%ESC%[0m
     echo.
