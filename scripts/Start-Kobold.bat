@@ -317,15 +317,24 @@ REM ============================================================================
 REM Проверяем, не запущен ли уже
 tasklist /FI "IMAGENAME eq koboldcpp.exe" 2>nul | findstr /I "koboldcpp.exe" >nul
 if !errorlevel! equ 0 (
-    echo   %ESC%[1;33m  .   KoboldCpp уже запущен.%ESC%[0m
-    echo   %ESC%[2m       http://127.0.0.1:%KOBOLD_PORT%%ESC%[0m
-    echo.
-    if "%AUTOCLOSE%"=="1" (
-        call "%SCRIPTS_DIR%\SmartPause.bat" 5
+    if "!KOBOLD_DEBUG!"=="1" (
+        echo   %ESC%[1;33m  -   KoboldCpp уже запущен. Останавливаем для перезапуска в отладке...%ESC%[0m
+        echo.
+        taskkill /F /IM koboldcpp.exe >nul 2>nul
+        timeout /t 2 /nobreak >nul 2>nul
+        echo   %ESC%[1;32m  +   Остановлен. Запускаем заново.%ESC%[0m
+        echo.
     ) else (
-        pause
+        echo   %ESC%[1;33m  .   KoboldCpp уже запущен.%ESC%[0m
+        echo   %ESC%[2m       http://127.0.0.1:%KOBOLD_PORT%%ESC%[0m
+        echo.
+        if "%AUTOCLOSE%"=="1" (
+            call "%SCRIPTS_DIR%\SmartPause.bat" 5
+        ) else (
+            pause
+        )
+        exit /b 1
     )
-    exit /b 1
 )
 
 REM Честный вывод параметров (ctx из переменной, а не литерал!)
