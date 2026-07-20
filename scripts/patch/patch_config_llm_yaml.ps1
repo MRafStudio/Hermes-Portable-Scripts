@@ -3,13 +3,8 @@
 # Параметры:
 #   ConfigPath     — путь к config.yaml (обязательный)
 #   ContextLength  — context_length в блоке model: (по умолчанию 65536)
-#   MaxTokens      — max_tokens; 0 или не передан — НЕ ДОБАВЛЯТЬ и НЕ ИЗМЕНЯТЬ
-#
-# Семантика: ENFORCE с идемпотентностью. Ключи, принадлежащие патчу
-# (provider, default, base_url, context_length), ПРИВОДЯТСЯ к целевым
-# значениям: отличается — исправляем, совпадает — не трогаем (и тогда
-# честный "already configured"), ДУБЛИКАТ — удаляем.
-# max_tokens патчу НЕ принадлежит (только по явному -MaxTokens > 0).
+#   MaxTokens      — >0: enforce max_tokens к этому значению;
+#                    0 или не передан — активный max_tokens КОММЕНТИРУЕТСЯ
 
 param(
     [Parameter(Mandatory=$true)]
@@ -85,9 +80,11 @@ $maxSessionsDone = $false
 $insertAfterBaseUrl = $false
 
 # === max_tokens: КЛЮЧЕВАЯ СТРОКА ===
-# Не передан (0) — все операции с max_tokens пропускаются (done = true).
-# Передан (> 0) — enforce: обновляем / раскомментируем / добавляем.
+# > 0 — enforce: обновляем / раскомментируем / добавляем.
+# 0 или не передан — активный max_tokens КОММЕНТИРУЕМ (см. цикл ниже),
+# а ВСТАВКА новых строк запрещена (done = true).
 $maxTokensDone = ($MaxTokens -le 0)
+$maxTokensCommented = $false
 
 for ($i = 0; $i -lt $lines.Count; $i++) {
     $line = $lines[$i]
@@ -177,23 +174,33 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
             continue
         }
 
-        # === max_tokens: ТОЛЬКО если передан извне (> 0), тоже enforce ===
-        if (-not $maxTokensDone -and $trimmed -match '^max_tokens:\s*(\d+)') {
-            if ($matches[1] -ne "$MaxTokens") {
+        # === max_tokens ===
+        if ($MaxTokens -gt 0) {
+            # Передан извне — enforce к значению
+            if (-not $maxTokensDone -and $trimmed -match '^max_tokens:\s*(\d+)') {
+                if ($matches[1] -ne "$MaxTokens") {
+                    $line = (' ' * ($modelBaseIndent + 2)) + "max_tokens: $MaxTokens"
+                    $modified = $true
+                }
+                $maxTokensDone = $true
+            }
+            elseif (-not $maxTokensDone -and $trimmed -match '^#\s*max_tokens:\s*\d+') {
                 $line = (' ' * ($modelBaseIndent + 2)) + "max_tokens: $MaxTokens"
+                $maxTokensDone = $true
                 $modified = $true
             }
-            $maxTokensDone = $true
-        }
-        elseif (-not $maxTokensDone -and $trimmed -match '^#\s*max_tokens:\s*\d+') {
-            $line = (' ' * ($modelBaseIndent + 2)) + "max_tokens: $MaxTokens"
-            $maxTokensDone = $true
-            $modified = $true
-        }
-        elseif ($maxTokensDone -and $MaxTokens -gt 0 -and $trimmed -match '^max_tokens:\s*\d+') {
-            # ДУБЛИКАТ активной строки — удаляем (только при enforce-режиме)
-            $modified = $true
-            continue
+            elseif ($maxTokensDone -and $trimmed -match '^max_tokens:\s*\d+') {
+                # ДУБЛИКАТ активной строки — удаляем
+                $modified = $true
+                continue
+            }
+        } else {
+            # 0 или не передан — активный max_tokens КОММЕНТИРУЕМ (отключаем)
+            if ($trimmed -match '^max_tokens:\s*\d+') {
+                $line = (' ' * $indent) + '# ' + $trimmed
+                $modified = $true
+                $maxTokensCommented = $true
+            }
         }
 
         # === context_file_max_chars уже есть? ===
@@ -255,6 +262,8 @@ if ($modified) {
     }
     if ($MaxTokens -gt 0) {
         Write-Host "        max_tokens: $MaxTokens" -ForegroundColor DarkGray
+    } elseif ($maxTokensCommented) {
+        Write-Host "        max_tokens: commented out (disabled)" -ForegroundColor DarkGray
     }
     Write-Host "        context_length: $ContextLength" -ForegroundColor DarkGray
 } else {

@@ -136,11 +136,11 @@ if "%GPU_TYPE%"=="NVIDIA" (
 	
 ) else if "%GPU_TYPE%"=="AMD" (
     if %GPU_VRAM_NUM% GEQ 24000 (
-        set "KCPP_CTX=65536"
+        set "KCPP_CTX=262144"
         set "KCPP_BATCH=4096"
     ) else if %GPU_VRAM_NUM% GEQ 16000 (
-        set "KCPP_CTX=65536"
-        set "KCPP_BATCH=1024"
+        set "KCPP_CTX=131072"
+        set "KCPP_BATCH=4096"
     ) else if %GPU_VRAM_NUM% GEQ 11000 (
         set "KCPP_CTX=65536"
         set "KCPP_BATCH=1024"
@@ -152,8 +152,9 @@ if "%GPU_TYPE%"=="NVIDIA" (
         set "KCPP_BATCH=256"
     )
 	REM Максимальный размер отдаваемых токенов
-    set "KCPP_GENAMT=32768"
+    set "KCPP_GENAMT=8192"
     set "KCPP_FLASH=--flashattention"
+    
 ) else if "%GPU_TYPE%"=="INTEL" (
     set "KCPP_CTX=65536"
     set "KCPP_GENAMT=8192"
@@ -215,6 +216,8 @@ REM ============================================================================
 REM   ACTION: start (по умолчанию)
 REM ============================================================================
 :do_start
+
+rem goto patch_yaml
 
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
@@ -374,6 +377,8 @@ if !KCPP_READY! equ 1 (
     set "RET=-1"
 )
 
+
+:patch_yaml
 REM ============================================================================
 REM   Патч config.yaml — ТОЛЬКО С РАЗРЕШЕНИЯ ПОЛЬЗОВАТЕЛЯ!
 REM   В авто-режиме — пропускаем (патч доступен через меню).
@@ -388,7 +393,7 @@ echo.
 set "PATCH_KOBOLD="
 set /p "PATCH_KOBOLD=%ESC%[33m  ?   Пропатчить config.yaml под KoboldCpp? [Y/N]: %ESC%[0m"
 if /I "!PATCH_KOBOLD!"=="Y" (
-    call "%SCRIPTS_DIR%\PatchConfigKobold.bat" %AUTOCLOSE%
+    call "%SCRIPTS_DIR%\PatchConfigKobold.bat" %AUTOCLOSE% !KCPP_CTX! 0
 ) else (
     echo   %ESC%[1;33m  .   Патч config.yaml пропущен.%ESC%[0m
 )

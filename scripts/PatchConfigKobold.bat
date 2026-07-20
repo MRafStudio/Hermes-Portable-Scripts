@@ -7,6 +7,9 @@ setlocal enabledelayedexpansion
 set "AUTOCLOSE=0"
 if "%1"=="1" set "AUTOCLOSE=1"
 
+set "CONTEXT_LENGTH=%~2"
+set "MAX_TOKENS=%~3"
+
 title Hermes Portable — Патч config.yaml для KoboldCpp
 
 REM ============================================================================
@@ -78,7 +81,7 @@ echo   %ESC%[1;33m  -   Применение патча config.yaml...%ESC%[0m
 echo   %ESC%[2m       Путь: %CONFIG_YAML%%ESC%[0m
 echo.
 
-powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%PATCH_SCRIPT%" -ConfigPath "%CONFIG_YAML%" -ContextLength 65536 -MaxTokens 8192
+powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%PATCH_SCRIPT%" -ConfigPath "%CONFIG_YAML%" -ContextLength %CONTEXT_LENGTH% -MaxTokens 0
 set "PATCH_RESULT=%errorlevel%"
 
 echo.
@@ -97,7 +100,7 @@ echo.
 if "%AUTOCLOSE%"=="1" (
     call "%SCRIPTS_DIR%\SmartPause.bat" 3
 ) else (
-    rem pause
+    pause
 )
 
 REM ============================================================================
