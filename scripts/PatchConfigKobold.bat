@@ -80,6 +80,7 @@ REM ============================================================================
 echo   %ESC%[1;33m  -   Применение патча config.yaml...%ESC%[0m
 echo   %ESC%[2m       Путь: %CONFIG_YAML%%ESC%[0m
 echo.
+echo   %ESC%[2m  ContextLength=%CONTEXT_LENGTH%%ESC%[0m
 
 powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%PATCH_SCRIPT%" -ConfigPath "%CONFIG_YAML%" -ContextLength %CONTEXT_LENGTH% -MaxTokens 0
 set "PATCH_RESULT=%errorlevel%"

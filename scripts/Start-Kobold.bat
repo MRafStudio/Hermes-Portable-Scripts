@@ -276,7 +276,7 @@ if "%AUTOCLOSE%"=="1" (
     echo   %ESC%[1;33m  -   KoboldCpp не установлен. Автоматическая установка ^(!INSTALL_MODE!^)...%ESC%[0m
     echo   %ESC%[2m       Это может занять 10-20 минут ^(загрузка моделей^)...%ESC%[0m
     echo.
-    call "%SCRIPTS_DIR%\InstallOrUpdate-Kobold.bat" "1" "!INSTALL_MODE!"
+    call "%SCRIPTS_DIR%\InstallOrUpdate-Kobold.bat" "1" "!INSTALL_MODE!" !KCPP_CTX! 0
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   Установка завершена. Перезапускаем...%ESC%[0m
         timeout /t 2 /nobreak >nul
@@ -292,7 +292,7 @@ echo   %ESC%[1;33m  i   Запустить установку KoboldCpp сейч
 set /p "INSTALL_KOBOLD="
 if /I "!INSTALL_KOBOLD!"=="Y" (
     echo   %ESC%[1;33m  -   Запуск установки ^(!INSTALL_MODE!^)...%ESC%[0m
-    call "%SCRIPTS_DIR%\InstallOrUpdate-Kobold.bat" "0" "!INSTALL_MODE!"
+    call "%SCRIPTS_DIR%\InstallOrUpdate-Kobold.bat" "0" "!INSTALL_MODE!" 
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   Установка завершена. Перезапускаем...%ESC%[0m
         timeout /t 2 /nobreak >nul

@@ -14,6 +14,9 @@ if "%1"=="1" set "AUTOCLOSE=1"
 set "MODE=full"
 if "%2"=="models" set "MODE=models"
 
+set "CONTEXT_LENGTH=%~3"
+set "MAX_TOKENS=%~4"
+
 title KoboldCpp Portable
 
 REM ============================================================================
@@ -97,6 +100,9 @@ if "!MODEL_REPO!"=="" (
 REM Размеры берём из Model-Setup.bat (если он их определил) или дефолт
 if "!MODEL_SIZE!"=="" set "MODEL_SIZE=?"
 if "!MMPROJ_SIZE!"=="" set "MMPROJ_SIZE=?"
+
+if "!CONTEXT_LENGTH!"=="" set "CONTEXT_LENGTH=65536"
+if "!MAX_TOKENS!"=="" set "MAX_TOKENS=0"
 
 cls
 echo.
@@ -530,7 +536,7 @@ set "PATCH_CHOICE=%PATCH_CHOICE: =%"
 
 if /I "%PATCH_CHOICE%"=="Y" (
     echo.
-    call "%SCRIPTS_DIR%\PatchConfigKobold.bat" 0
+    call "%SCRIPTS_DIR%\PatchConfigKobold.bat" 0 !CONTEXT_LENGTH! !MAX_TOKENS!"
 ) else (
     echo   %ESC%[1;33m  .   Патч config.yaml пропущен.%ESC%[0m
     echo.
