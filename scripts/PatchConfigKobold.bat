@@ -100,7 +100,7 @@ echo.
 if "%AUTOCLOSE%"=="1" (
     call "%SCRIPTS_DIR%\SmartPause.bat" 3
 ) else (
-    pause
+    REM pause
 )
 
 REM ============================================================================
