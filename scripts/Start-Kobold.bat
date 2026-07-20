@@ -340,18 +340,22 @@ echo   %ESC%[2m       Модель: %KOBOLD_MODEL%%ESC%[0m
 echo   %ESC%[2m       Порт: %KOBOLD_PORT%%ESC%[0m
 echo.
 
-REM Запуск в НОВОМ окне (cmd /c: продакшн — окно закрывается вместе с KoboldCpp)
-REM Отладочный запуск с cmd /k (DEBUG=1) — только через Tools.bat!
+REM Запуск в НОВОМ окне
+REM DEBUG=1 (Tools.bat): cmd /k — окно остаётся, нормальный режим
+REM DEBUG=0 (Start.bat): cmd /c + /MIN — окно сразу в панель задач
 set "KCPP_CMD=/c"
 set "KCPP_TITLE=KoboldCpp"
+set "KCPP_MIN="
 if "!KOBOLD_DEBUG!"=="1" (
     set "KCPP_CMD=/k"
     set "KCPP_TITLE=KoboldCpp (ОТЛАДКА)"
+) else (
+    set "KCPP_MIN=/MIN"
 )
 if defined KCPP_MMPROJ (
-    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start %KCPP_MIN% "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 ) else (
-    start "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
+    start %KCPP_MIN% "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH!"
 )
 
 echo   %ESC%[1;32m  +   KoboldCpp запущен в отдельном окне.%ESC%[0m
