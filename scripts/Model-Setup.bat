@@ -73,11 +73,11 @@ if "%GPU_TYPE%"=="NVIDIA" (
         set "MODEL_SIZE=15 GB"
         set "MMPROJ_SIZE=928 MB"
     ) else if %GPU_VRAM_NUM% GEQ 16000 (
-        set "DEFAULT_MODEL=8-Uncensored_Models/Speed/General/Huihui_Qwen3_VL_8B_Uncensored_Q8_0/Huihui-Qwen3-VL-8B-Instruct-abliterated.Q8_0.gguf"
-        set "DEFAULT_MMPROJ=8-Uncensored_Models/Speed/General/Huihui_Qwen3_VL_8B_Uncensored_Q8_0/Huihui-Qwen3-VL-8B-Instruct-abliterated.mmproj-f16.gguf"
-        set "MODEL_REPO=m15dg/local-ai-toolkit"
-        set "MODEL_SIZE=8.71 GB"
-        set "MMPROJ_SIZE=1.16 GB"
+        set "DEFAULT_MODEL=Qwen2.5-VL-7B-Instruct-Q5_K_M.gguf"
+        set "DEFAULT_MMPROJ=mmproj-F16.gguf"
+        set "MODEL_REPO=unsloth/Qwen2.5-VL-7B-Instruct-GGUF"
+        set "MODEL_SIZE=5.5 GB"
+        set "MMPROJ_SIZE=1.4 GB"
     ) else (
         set "DEFAULT_MODEL=Qwen2.5-VL-7B-Instruct-Q5_K_M.gguf"
         set "DEFAULT_MMPROJ=mmproj-F16.gguf"
