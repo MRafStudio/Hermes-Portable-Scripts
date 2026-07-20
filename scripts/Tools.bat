@@ -66,7 +66,7 @@ echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mОткрыть файл .env%ESC%[0m %ESC%
 echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть файл config.yaml%ESC%[0m %ESC%[2m— %HERMES_HOME%\config.yaml%ESC%[0m
 echo.
 if "%KOBOLD_ENABLED%"=="1" (
-    echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mЗапустить KoboldCpp (ОТЛАДКА)%ESC%[0m %ESC%[2m— окно остаётся открытым (cmd /k)%ESC%[0m
+    echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mЗапустить KoboldCpp ^(ОТЛАДКА^)%ESC%[0m %ESC%[2m— окно остаётся открытым ^(cmd /k^)%ESC%[0m
 )
 echo   %ESC%[1;37m[5]%ESC%[0m %ESC%[1mПересобрать Hermes Desktop и запустить%ESC%[0m %ESC%[2m— Пересборка с RU локализацией%ESC%[0m
 echo.
