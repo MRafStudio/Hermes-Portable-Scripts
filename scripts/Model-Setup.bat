@@ -44,8 +44,8 @@ if "%GPU_TYPE%"=="NVIDIA" (
         set "DEFAULT_MODEL=2-Coding_Agents/1-Architect_and_Executor/Qwen3-Coder-30B-A3B-Instruct-Q5_K_M/Qwen3-Coder-30B-A3B-Instruct-Q5_K_M.gguf"
         set "DEFAULT_MMPROJ="
         set "MODEL_REPO=m15dg/local-ai-toolkit"
-        set "MODEL_SIZE=18.6 GB"
-        set "MMPROJ_SIZE=899 MB"
+        set "MODEL_SIZE=21.7 GB"
+        set "MMPROJ_SIZE=0 MB"
     ) else if %GPU_VRAM_NUM% GEQ 24000 (
         set "DEFAULT_MODEL=Qwen_Qwen3.6-27B-Q3_K_M.gguf"
         set "DEFAULT_MMPROJ=mmproj-Qwen_Qwen3.6-27B-f16.gguf"
