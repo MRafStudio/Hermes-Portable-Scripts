@@ -362,9 +362,9 @@ if "!KOBOLD_DEBUG!"=="1" (
     set "KCPP_MIN=/MIN"
 )
 if defined KCPP_MMPROJ (
-    start %KCPP_MIN% "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --host 0.0.0.0 --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH! --usecublas normal --noavx2 --nommap"
+    start %KCPP_MIN% "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --mmproj "%KCPP_MMPROJ%" --host 0.0.0.0 --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH! --usecublas normal"
 ) else (
-    start %KCPP_MIN% "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --host 0.0.0.0 --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH! --usecublas normal --noavx2 --nommap"
+    start %KCPP_MIN% "!KCPP_TITLE! — %GPU_NAME%" cmd !KCPP_CMD! ""%KCPP_EXE%" --model "%KCPP_MODEL%" --host 0.0.0.0 --port %KOBOLD_PORT% --noshift --gpulayers 999 --genlimit 16384 --contextsize !KCPP_CTX! --defaultgenamt !KCPP_GENAMT! --batchsize !KCPP_BATCH! !KCPP_FLASH! --usecublas normal"
 )
 
 echo   %ESC%[1;32m  +   KoboldCpp запущен в отдельном окне.%ESC%[0m
