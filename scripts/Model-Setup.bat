@@ -41,9 +41,9 @@ if not "%GPU_TYPE%"=="UNKNOWN" (
 REM Авто-выбор по GPU
 if "%GPU_TYPE%"=="NVIDIA" (
     if %GPU_VRAM_NUM% GEQ 32000 (
-        set "DEFAULT_MODEL=Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q3_K_P.gguf"
-        set "DEFAULT_MMPROJ=mmproj-Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf"
-        set "MODEL_REPO=HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive"
+        set "DEFAULT_MODEL=2-Coding_Agents/1-Architect_and_Executor/Qwen3-Coder-30B-A3B-Instruct-Q5_K_M/Qwen3-Coder-30B-A3B-Instruct-Q5_K_M.gguf"
+        set "DEFAULT_MMPROJ="
+        set "MODEL_REPO=m15dg/local-ai-toolkit"
         set "MODEL_SIZE=18.6 GB"
         set "MMPROJ_SIZE=899 MB"
     ) else if %GPU_VRAM_NUM% GEQ 24000 (
