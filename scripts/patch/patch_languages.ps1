@@ -18,40 +18,40 @@ if ($content.Contains("id: 'ru'")) {
     exit 1
 }
 
-# 1. Add ru to LOCALE_OPTIONS
-$oldJaBlock = "    configValue: 'ja'`r`n  }"
-$newJaBlock = "    configValue: 'ja'`r`n  },`r`n  {`r`n    id: 'ru',`r`n    name: 'Russian',`r`n    englishName: 'Russian',`r`n    configValue: 'ru'`r`n  }"
+# 1. Add ru to LOCALE_OPTIONS (first, before 'en')
+$oldEnBlock = "  {`r`n    id: 'en',`r`n    name: 'English',"
+$newEnBlock = "  {`r`n    id: 'ru',`r`n    name: 'Russian',`r`n    englishName: 'Russian',`r`n    configValue: 'ru'`r`n  },`r`n  {`r`n    id: 'en',`r`n    name: 'English',"
 
-if ($content.Contains($oldJaBlock)) {
-    $content = $content.Replace($oldJaBlock, $newJaBlock)
+if ($content.Contains($oldEnBlock)) {
+    $content = $content.Replace($oldEnBlock, $newEnBlock)
 } else {
-    $oldJaBlockUnix = "    configValue: 'ja'`n  }"
-    if ($content.Contains($oldJaBlockUnix)) {
-        $newJaBlockUnix = "    configValue: 'ja'`n  },`n  {`n    id: 'ru',`n    name: 'Russian',`n    englishName: 'Russian',`n    configValue: 'ru'`n  }"
-        $content = $content.Replace($oldJaBlockUnix, $newJaBlockUnix)
+    $oldEnBlockUnix = "  {`n    id: 'en',`n    name: 'English',"
+    if ($content.Contains($oldEnBlockUnix)) {
+        $newEnBlockUnix = "  {`n    id: 'ru',`n    name: 'Russian',`n    englishName: 'Russian',`n    configValue: 'ru'`n  },`n  {`n    id: 'en',`n    name: 'English',"
+        $content = $content.Replace($oldEnBlockUnix, $newEnBlockUnix)
     } else {
-        Write-Error "Could not find ja locale block"
+        Write-Error "Could not find 'en' locale block"
         exit 2
     }
 }
 
-# 2. Add ru aliases to LOCALE_ALIASES
-$oldAlias = "  ja_jp: 'ja'`r`n}"
-$newAlias = "  ja_jp: 'ja',`r`n  ru: 'ru',`r`n  'ru-ru': 'ru',`r`n  ru_ru: 'ru',`r`n  'russkiy': 'ru'`r`n}"
+# 2. Add ru aliases to LOCALE_ALIASES (first, before 'en')
+$oldAlias = "  en: 'en',`r`n  'en-us': 'en',"
+$newAlias = "  ru: 'ru',`r`n  'ru-ru': 'ru',`r`n  ru_ru: 'ru',`r`n  'russkiy': 'ru',`r`n  en: 'en',`r`n  'en-us': 'en',"
 
 if ($content.Contains($oldAlias)) {
     $content = $content.Replace($oldAlias, $newAlias)
 } else {
-    $oldAliasUnix = "  ja_jp: 'ja'`n}"
+    $oldAliasUnix = "  en: 'en',`n  'en-us': 'en',"
     if ($content.Contains($oldAliasUnix)) {
-        $newAliasUnix = "  ja_jp: 'ja',`n  ru: 'ru',`n  'ru-ru': 'ru',`n  ru_ru: 'ru',`n  'russkiy': 'ru'`n}"
+        $newAliasUnix = "  ru: 'ru',`n  'ru-ru': 'ru',`n  ru_ru: 'ru',`n  'russkiy': 'ru',`n  en: 'en',`n  'en-us': 'en',"
         $content = $content.Replace($oldAliasUnix, $newAliasUnix)
     } else {
-        Write-Error "Could not find ja_jp alias"
+        Write-Error "Could not find 'en' alias"
         exit 2
     }
 }
 
 $content | Set-Content $FilePath -NoNewline -Encoding UTF8
-Write-Host "languages.ts patched."
+Write-Host "languages.ts patched (ru first)."
 exit 0
