@@ -62,13 +62,50 @@ REM ============================================================================
 REM   Проверка компонентов
 REM ============================================================================
 if not exist "%PYTHON_EXE%" (
-    echo   %ESC%[1;31m[ОШИБКА] Python не установлен!%ESC%[0m
-    goto error_exit
+    echo   %ESC%[1;33m  →   Управляемый Python не найден. Поиск альтернатив...%ESC%[0m
+    
+    REM --- Поиск глобального Python ---
+    for %%p in (python.exe python3.exe) do (
+        for /f "delims=" %%a in ('where %%p 2^>nul') do (
+            set "PYTHON_EXE=%%a"
+            goto :python_found_alt
+        )
+    )
+    for %%d in (
+        "%ProgramFiles%\Python313" "%ProgramFiles%\Python312"
+        "%ProgramFiles%\Python311" "%ProgramFiles%\Python313"
+        "%ProgramFiles(x86)%\Python313" "%ProgramFiles(x86)%\Python312"
+        "%ProgramFiles(x86)%\Python311"
+    ) do (
+        if exist "%%d\python.exe" (
+            set "PYTHON_EXE=%%d\python.exe"
+            goto :python_found_alt
+        )
+    )
+    if exist "%ROOT_DIR%\python-3.11.9\python.exe" (
+        set "PYTHON_EXE=%ROOT_DIR%\python-3.11.9\python.exe"
+        goto :python_found_alt
+    )
+    
+    :python_found_alt
+    if not defined PYTHON_EXE (
+        echo   %ESC%[1;31m[ОШИБКА] Python не найден! Установите Python 3.11 вручную.%ESC%[0m
+        goto error_exit
+    )
+    echo   %ESC%[1;32m  +   Найден альтернативный Python: %PYTHON_EXE%%ESC%[0m
 )
 
 if not exist "%UV_EXE%" (
-    echo   %ESC%[1;31m[ОШИБКА] UV не установлен!%ESC%[0m
-    goto error_exit
+    echo   %ESC%[1;33m  →   UV не найден. Запускаем InstallOrUpdate-UV.bat...%ESC%[0m
+    call "%SCRIPTS_DIR%\InstallOrUpdate-UV.bat" 1
+    if errorlevel 1 (
+        echo   %ESC%[1;31m[ОШИБКА] UV не установлен!%ESC%[0m
+        goto error_exit
+    )
+    if not exist "%UV_EXE%" (
+        echo   %ESC%[1;31m[ОШИБКА] UV не установлен (InstallOrUpdate-UV.bat не создал uv.exe)!%ESC%[0m
+        goto error_exit
+    )
 )
 
 if not exist "%REPO_DIR%\.git" (
