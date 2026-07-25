@@ -36,7 +36,7 @@ if (Test-Path $localInstallScript) {
 else {
     Write-Host "Локальный install.ps1 не найден. Скачиваем с hermes-agent.nousresearch.com..." -ForegroundColor Cyan
     try {
-        $installScript = Invoke-RestMethod -Uri "https://hermes-agent.nousresearch.com/install.ps1" -UseBasicParsing
+        [Net.ServicePointManager]::SecurityProtocol = 'Tls12'; $installScript = Invoke-RestMethod -Uri "https://hermes-agent.nousresearch.com/install.ps1" -UseBasicParsing
         Write-Host "install.ps1 успешно скачан." -ForegroundColor Green
     }
     catch {
