@@ -413,10 +413,10 @@ echo   %ESC%[1;33m[5/6]%ESC%[0m %ESC%[1mУстановка Playwright...%ESC%[0m
 
 REM --- Установка пакета playwright, если не установлен ---
 echo   %ESC%[1;33m  -   pip install playwright...%ESC%[0m
-"%REPO_DIR%\venv\Scripts\python.exe" -m pip install playwright >nul 2>&1
+"%REPO_DIR%\venv\Scripts\python.exe" -m pip install playwright
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  .   pip не сработал. Пробуем uv pip install...%ESC%[0m
-    "%UV_EXE%" pip install playwright >nul 2>&1
+    echo   %ESC%[1;33m  .   pip не сработал. Пробуем uv pip install в venv...%ESC%[0m
+    "%UV_EXE%" pip install --python "%REPO_DIR%\venv\Scripts\python.exe" playwright
 )
 if !errorlevel! equ 0 (
     echo   %ESC%[1;32m  +   Пакет playwright установлен.%ESC%[0m
