@@ -76,6 +76,12 @@ REM ============================================================================
 echo.
 echo   %ESC%[1;33m[2/3]%ESC%[0m %ESC%[1mПоиск Python...%ESC%[0m
 
+REM --- Сначала проверяем PYTHON_EXE от вызывающего скрипта ---
+if defined PYTHON_EXE if exist "%PYTHON_EXE%" (
+    echo   %ESC%[2m       Используется PYTHON_EXE от вызывающего скрипта%ESC%[0m
+    goto :python_found
+)
+
 set "PYTHON_EXE="
 
 REM --- 2a: Глобальный Python из PATH ---
@@ -116,10 +122,19 @@ if exist "%MANAGED_PYTHON%" (
 
 :python_found
 if not defined PYTHON_EXE (
-    echo   %ESC%[1;31m[ОШИБКА] Python не найден!%ESC%[0m
-    echo   %ESC%[33m       Установите Python 3.11 вручную:%ESC%[0m
-    echo   %ESC%[33m       https://www.python.org/downloads/%ESC%[0m
-    goto error_exit
+    echo   %ESC%[1;33m  .   Python не найден. Запускаем InstallOrUpdate-Python.bat...%ESC%[0m
+    call "%SCRIPTS_DIR%\InstallOrUpdate-Python.bat" 1
+    if errorlevel 1 (
+        echo   %ESC%[1;31m[ОШИБКА] Python не установлен%ESC%[0m
+        goto error_exit
+    )
+    if exist "%ROOT_DIR%\python-3.11.9\python.exe" (
+        set "PYTHON_EXE=%ROOT_DIR%\python-3.11.9\python.exe"
+        echo   %ESC%[1;32m  +   Python установлен: %PYTHON_EXE%%ESC%[0m
+    ) else (
+        echo   %ESC%[1;31m[ОШИБКА] Python ne ustanovlen ^(InstallOrUpdate-Python.bat ne sozdal python.exe^)%ESC%[0m
+        goto error_exit
+    )
 )
 
 echo   %ESC%[1;32m  +   Python найден: %PYTHON_EXE%%ESC%[0m
