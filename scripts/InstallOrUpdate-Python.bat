@@ -116,12 +116,20 @@ echo   %ESC%[2m       ~32 МБ, подождите...%ESC%[0m
 
 if exist "%TEMP%\python-3.11.9-amd64.zip" del "%TEMP%\python-3.11.9-amd64.zip" 2>nul
 
-REM --- Загрузка через curl с изоляцией ---
-curl -L -o "%TEMP%\python-3.11.9-amd64.zip" "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.zip"
-if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить Python.%ESC%[0m
-    goto error_exit
+REM --- Загрузка (curl / PowerShell fallback) ---
+where curl >nul 2>nul
+if !errorlevel! equ 0 (
+    curl -L -o "%TEMP%\python-3.11.9-amd64.zip" "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.zip"
+    if errorlevel 1 goto :dl_failed_py
+) else (
+    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.zip' -OutFile '%TEMP%\python-3.11.9-amd64.zip'"
+    if errorlevel 1 goto :dl_failed_py
 )
+goto :dl_ok_py
+:dl_failed_py
+echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить Python.%ESC%[0m
+goto error_exit
+:dl_ok_py
 echo   %ESC%[1;32m  +   Загрузка завершена.%ESC%[0m
 
 REM ============================================================================
@@ -186,11 +194,20 @@ if !errorlevel! equ 0 (
 echo   %ESC%[1;33m  .   ensurepip не сработал, пробуем get-pip.py...%ESC%[0m
 echo   %ESC%[2m       ~2 МБ, подождите...%ESC%[0m
 
-curl -L -o "%TEMP%\get-pip.py" "https://bootstrap.pypa.io/get-pip.py"
-if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m  [ОШИБКА] Не удалось загрузить get-pip.py.%ESC%[0m
-    goto pip_done
+REM --- Загрузка get-pip.py (curl / PowerShell fallback) ---
+where curl >nul 2>nul
+if !errorlevel! equ 0 (
+    curl -L -o "%TEMP%\get-pip.py" "https://bootstrap.pypa.io/get-pip.py"
+    if errorlevel 1 goto :dl_failed_pip
+) else (
+    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://bootstrap.pypa.io/get-pip.py' -OutFile '%TEMP%\get-pip.py'"
+    if errorlevel 1 goto :dl_failed_pip
 )
+goto :dl_ok_pip
+:dl_failed_pip
+echo   %ESC%[1;31m  [ОШИБКА] Не удалось загрузить get-pip.py.%ESC%[0m
+goto pip_done
+:dl_ok_pip
 
 "%PYTHON_EXE%" "%TEMP%\get-pip.py" --no-warn-script-location
 if !errorlevel! equ 0 (
