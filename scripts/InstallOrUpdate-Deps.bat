@@ -103,23 +103,23 @@ if not defined PYTHON_EXE (
             set "PYTHON_EXE=%ROOT_DIR%\python-3.11.9\python.exe"
             set "PYTHON_DIR=%ROOT_DIR%\python-3.11.9"
         ) else (
-            echo   %ESC%[1;31m[ОШИБКА] Python ne ustanovlen (InstallOrUpdate-Python.bat ne sozdal python.exe)%ESC%[0m
+            echo   %ESC%[1;31m[ОШИБКА] Python ne ustanovlen ^(InstallOrUpdate-Python.bat ne sozdal python.exe^)%ESC%[0m
             goto error_exit
         )
     )
-    echo   %ESC%[1;32m  +   Python ustanovlen: %PYTHON_EXE%%ESC%[0m
+    echo   %ESC%[1;32m  +   Python найден: %PYTHON_EXE%%ESC%[0m
 )
 
 REM --- UV ---
 if not exist "%UV_EXE%" (
-    echo   %ESC%[1;33m  .   UV ne naiden. Zapuskaem InstallOrUpdate-UV.bat...%ESC%[0m
+    echo   %ESC%[1;33m  .   UV не найден. Запускаем InstallOrUpdate-UV.bat...%ESC%[0m
     call "%SCRIPTS_DIR%\InstallOrUpdate-UV.bat" 1
     if errorlevel 1 (
-        echo   %ESC%[1;31m[OSHIBKA] UV ne ustanovlen%ESC%[0m
+        echo   %ESC%[1;31m[ОШИБКА] UV не установлен%ESC%[0m
         goto error_exit
     )
     if not exist "%UV_EXE%" (
-        echo   %ESC%[1;31m[OSHIBKA] UV ne sozdal uv.exe posle ustanovki%ESC%[0m
+        echo   %ESC%[1;31m[ОШИБКА] UV не установлен ^(InstallOrUpdate-UV.bat ne sozdal uv.exe^)%ESC%[0m
         goto error_exit
     )
 )

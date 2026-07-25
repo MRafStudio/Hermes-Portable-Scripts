@@ -203,7 +203,7 @@ del "%TEMP%\get-pip.py" 2>nul
 :pip_done
 "%PYTHON_EXE%" -m pip --version >nul 2>nul
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] pip ne udalos ustanovit%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] pip не удалось установить%ESC%[0m
     echo   %ESC%[33m       Python установлен, но без pip.%ESC%[0m
     echo   %ESC%[33m       Вручную: %PYTHON_EXE% -m ensurepip --upgrade%ESC%[0m
     goto error_exit
