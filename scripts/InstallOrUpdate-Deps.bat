@@ -515,6 +515,27 @@ if not exist "%HERMES_HOME%\image_cache" mkdir "%HERMES_HOME%\image_cache" 2>nul
 if not exist "%HERMES_HOME%\audio_cache" mkdir "%HERMES_HOME%\audio_cache" 2>nul
 if not exist "%HERMES_HOME%\memories" mkdir "%HERMES_HOME%\memories" 2>nul
 
+REM --- Создаём минимальный config.yaml, если его нет ---
+if not exist "%HERMES_HOME%\config.yaml" (
+    echo   %ESC%[1;33m  .   Создание базового config.yaml...%ESC%[0m
+    (
+        echo.model:
+        echo.  default: deepseek-v4-flash
+        echo.  provider: deepseek
+        echo.agent:
+        echo.  max_turns: 60
+        echo.terminal:
+        echo.  backend: local
+        echo.  timeout: 180
+        echo.display:
+        echo.  interface: tui
+        echo.security:
+        echo.  tirith_enabled: false
+        echo.  redact_secrets: true
+    ) > "%HERMES_HOME%\config.yaml"
+    echo   %ESC%[1;32m  +   config.yaml создан.%ESC%[0m
+)
+
 cd /d "%ROOT_DIR%"
 
 echo.
