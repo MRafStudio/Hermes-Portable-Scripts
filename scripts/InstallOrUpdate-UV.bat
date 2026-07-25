@@ -147,7 +147,7 @@ REM ============================================================================
 echo.
 echo   %ESC%[1;33m[3/3]%ESC%[0m %ESC%[1mУстановка UV через pip...%ESC%[0m
 echo   %ESC%[2m       Целевая папка: %UV_DIR%%ESC%[0m
-echo   %ESC%[2m       ~7 МБ, подождите...%ESC%[0m
+echo   %ESC%[2m       ~27 МБ, подождите...%ESC%[0m
 
 if not exist "%UV_DIR%" mkdir "%UV_DIR%" 2>nul
 
