@@ -262,7 +262,7 @@ if not defined warn_choice goto :warn_continue
 set "warn_choice=%warn_choice: =%"
 
 if "%warn_choice%"=="0" (
-    cls
+    echo.
     echo.
     echo  %ESC%[1;33m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
     echo   %ESC%[1;33mУстановка отменена.%ESC%[0m
