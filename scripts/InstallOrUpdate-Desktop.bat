@@ -252,6 +252,8 @@ if "%SETUP%"=="1" (
 if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] install.ps1 завершился с ошибкой.%ESC%[0m
+    echo.
+    echo   %ESC%[1;33m  Нажмите любую клавишу для продолжения fallback установки...%ESC%[0m
     pause >nul
     set "NEEDS_REPO=1"
     goto :check_repo_done
