@@ -61,64 +61,65 @@ for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do 
 REM ============================================================================
 REM   Проверка компонентов
 REM ============================================================================
+
+REM --- Python ---
+set "PYTHON_ALT_FOUND=0"
 if not exist "%PYTHON_EXE%" (
-    echo   %ESC%[1;33m  →   Управляемый Python не найден. Поиск альтернатив...%ESC%[0m
-    
-    REM --- Поиск глобального Python ---
-    for %%p in (python.exe python3.exe) do (
-        for /f "delims=" %%a in ('where %%p 2^>nul') do (
+    echo   %ESC%[1;33m  .   Управляемый Python не найден. Поиск альтернатив...%ESC%[0m
+
+    for %%p in (python.exe python3.exe) do if !PYTHON_ALT_FOUND! equ 0 (
+        for /f "delims=" %%a in ('where %%p 2^>nul') do if !PYTHON_ALT_FOUND! equ 0 (
             set "PYTHON_EXE=%%a"
-            goto :python_found_alt
+            set "PYTHON_ALT_FOUND=1"
         )
     )
     for %%d in (
         "%ProgramFiles%\Python313" "%ProgramFiles%\Python312"
-        "%ProgramFiles%\Python311" "%ProgramFiles%\Python313"
+        "%ProgramFiles%\Python311"
         "%ProgramFiles(x86)%\Python313" "%ProgramFiles(x86)%\Python312"
         "%ProgramFiles(x86)%\Python311"
-    ) do (
+    ) do if !PYTHON_ALT_FOUND! equ 0 (
         if exist "%%d\python.exe" (
             set "PYTHON_EXE=%%d\python.exe"
-            goto :python_found_alt
+            set "PYTHON_ALT_FOUND=1"
         )
     )
-    if exist "%ROOT_DIR%\python-3.11.9\python.exe" (
+    if !PYTHON_ALT_FOUND! equ 0 if exist "%ROOT_DIR%\python-3.11.9\python.exe" (
         set "PYTHON_EXE=%ROOT_DIR%\python-3.11.9\python.exe"
-        goto :python_found_alt
+        set "PYTHON_DIR=%ROOT_DIR%\python-3.11.9"
+        set "PYTHON_ALT_FOUND=1"
     )
-    
-    :python_found_alt
-    if not defined PYTHON_EXE (
-        echo   %ESC%[1;33m  →   Python не найден. Запускаем InstallOrUpdate-Python.bat...%ESC%[0m
-        call "%SCRIPTS_DIR%\InstallOrUpdate-Python.bat" 1
-        if errorlevel 1 (
-            echo   %ESC%[1;31m[ОШИБКА] Python не установлен!%ESC%[0m
-            goto error_exit
-        )
-        if not exist "%PYTHON_EXE%" (
-            REM Портабельный Python мог установиться в ROOT_DIR\python-3.11.9\
-            if exist "%ROOT_DIR%\python-3.11.9\python.exe" (
-                set "PYTHON_EXE=%ROOT_DIR%\python-3.11.9\python.exe"
-                set "PYTHON_DIR=%ROOT_DIR%\python-3.11.9"
-                echo   %ESC%[1;32m  +   Найден портабельный Python: %PYTHON_EXE%%ESC%[0m
-            ) else (
-                echo   %ESC%[1;31m[ОШИБКА] Python не установлен (InstallOrUpdate-Python.bat не создал python.exe)!%ESC%[0m
-                goto error_exit
-            )
-        )
-    )
-    echo   %ESC%[1;32m  +   Найден альтернативный Python: %PYTHON_EXE%%ESC%[0m
 )
 
+if not defined PYTHON_EXE (
+    echo   %ESC%[1;33m  .   Python не найден. Запускаем InstallOrUpdate-Python.bat...%ESC%[0m
+    call "%SCRIPTS_DIR%\InstallOrUpdate-Python.bat" 1
+    if errorlevel 1 (
+        echo   %ESC%[1;31m[ОШИБКА] Python не установлен%ESC%[0m
+        goto error_exit
+    )
+    if not exist "%PYTHON_EXE%" (
+        if exist "%ROOT_DIR%\python-3.11.9\python.exe" (
+            set "PYTHON_EXE=%ROOT_DIR%\python-3.11.9\python.exe"
+            set "PYTHON_DIR=%ROOT_DIR%\python-3.11.9"
+        ) else (
+            echo   %ESC%[1;31m[ОШИБКА] Python ne ustanovlen (InstallOrUpdate-Python.bat ne sozdal python.exe)%ESC%[0m
+            goto error_exit
+        )
+    )
+    echo   %ESC%[1;32m  +   Python ustanovlen: %PYTHON_EXE%%ESC%[0m
+)
+
+REM --- UV ---
 if not exist "%UV_EXE%" (
-    echo   %ESC%[1;33m  →   UV не найден. Запускаем InstallOrUpdate-UV.bat...%ESC%[0m
+    echo   %ESC%[1;33m  .   UV ne naiden. Zapuskaem InstallOrUpdate-UV.bat...%ESC%[0m
     call "%SCRIPTS_DIR%\InstallOrUpdate-UV.bat" 1
     if errorlevel 1 (
-        echo   %ESC%[1;31m[ОШИБКА] UV не установлен!%ESC%[0m
+        echo   %ESC%[1;31m[OSHIBKA] UV ne ustanovlen%ESC%[0m
         goto error_exit
     )
     if not exist "%UV_EXE%" (
-        echo   %ESC%[1;31m[ОШИБКА] UV не установлен (InstallOrUpdate-UV.bat не создал uv.exe)!%ESC%[0m
+        echo   %ESC%[1;31m[OSHIBKA] UV ne sozdal uv.exe posle ustanovki%ESC%[0m
         goto error_exit
     )
 )
