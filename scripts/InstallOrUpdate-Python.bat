@@ -15,10 +15,10 @@ for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 
 REM ============================================================================
-REM   Путь к портабельному Python (в корне проекта)
-REM   install.ps1 позже обновит до 3.11.15 через uv
+REM   Путь к управляемому Python (куда uv ожидает)
+REM   Именно сюда install.ps1 и uv ставят Python по умолчанию
 REM ============================================================================
-set "PYTHON_DIR=%ROOT_DIR%\python-3.11.9"
+set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
 set "PYTHON_EXE=%PYTHON_DIR%\python.exe"
 
 REM ============================================================================

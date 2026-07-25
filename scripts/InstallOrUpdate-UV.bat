@@ -121,20 +121,18 @@ if exist "%MANAGED_PYTHON%" (
 )
 
 :python_found
-if not defined PYTHON_EXE (
+if not exist "%PYTHON_EXE%" (
     echo   %ESC%[1;33m  .   Python не найден. Запускаем InstallOrUpdate-Python.bat...%ESC%[0m
     call "%SCRIPTS_DIR%\InstallOrUpdate-Python.bat" 1
     if errorlevel 1 (
         echo   %ESC%[1;31m[ОШИБКА] Python не установлен%ESC%[0m
         goto error_exit
     )
-    if exist "%ROOT_DIR%\python-3.11.9\python.exe" (
-        set "PYTHON_EXE=%ROOT_DIR%\python-3.11.9\python.exe"
-        echo   %ESC%[1;32m  +   Python установлен: %PYTHON_EXE%%ESC%[0m
-    ) else (
+    if not exist "%PYTHON_EXE%" (
         echo   %ESC%[1;31m[ОШИБКА] Python ne ustanovlen ^(InstallOrUpdate-Python.bat ne sozdal python.exe^)%ESC%[0m
         goto error_exit
     )
+    echo   %ESC%[1;32m  +   Python установлен: %PYTHON_EXE%%ESC%[0m
 )
 
 echo   %ESC%[1;32m  +   Python найден: %PYTHON_EXE%%ESC%[0m
