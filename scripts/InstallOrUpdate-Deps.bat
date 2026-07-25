@@ -98,10 +98,7 @@ if not exist "%PYTHON_EXE%" (
         echo   %ESC%[1;31m[ОШИБКА] Python не установлен%ESC%[0m
         goto error_exit
     )
-    if exist "%ROOT_DIR%\python-3.11.9\python.exe" (
-        set "PYTHON_EXE=%ROOT_DIR%\python-3.11.9\python.exe"
-        set "PYTHON_DIR=%ROOT_DIR%\python-3.11.9"
-    ) else (
+    if not exist "%PYTHON_EXE%" (
         echo   %ESC%[1;31m[ОШИБКА] Python ne ustanovlen ^(InstallOrUpdate-Python.bat ne sozdal python.exe^)%ESC%[0m
         goto error_exit
     )
