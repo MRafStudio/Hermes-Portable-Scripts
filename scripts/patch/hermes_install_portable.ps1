@@ -62,11 +62,29 @@ Write-Host "  HERMES_HOME: $HermesHome" -ForegroundColor Gray
 Write-Host "  InstallDir:  $InstallDir" -ForegroundColor Gray
 Write-Host "  IncludeDesktop: $IncludeDesktop" -ForegroundColor Gray
 
-# Выполняем скрипт с параметрами
+# Выполняем скрипт с параметрами и пробрасываем exit code
 $scriptBlock = [ScriptBlock]::Create($installScript)
 
-if ($IncludeDesktop) {
-    & $scriptBlock -HermesHome $HermesHome -InstallDir $InstallDir -IncludeDesktop -NonInteractive
-} else {
-    & $scriptBlock -HermesHome $HermesHome -InstallDir $InstallDir -NonInteractive
+$exitCode = 0
+try {
+    if ($IncludeDesktop) {
+        & $scriptBlock -HermesHome $HermesHome -InstallDir $InstallDir -IncludeDesktop -NonInteractive
+    } else {
+        & $scriptBlock -HermesHome $HermesHome -InstallDir $InstallDir -NonInteractive
+    }
+    # Проверяем, что install.ps1 реально выполнил работу (uv должен быть)
+    if (-not (Test-Path "$HermesHome\bin\uv.exe")) {
+        Write-Host "  uv.exe не найден после install.ps1 — считаем ошибкой." -ForegroundColor Yellow
+        $exitCode = 1
+    } else {
+        $exitCode = $LASTEXITCODE
+    }
+} catch {
+    Write-Host "  [ОШИБКА] install.ps1 выбросил исключение: $_" -ForegroundColor Red
+    $exitCode = 1
 }
+
+if ($exitCode -ne 0) {
+    Write-Host "  install.ps1 завершился с кодом: $exitCode" -ForegroundColor Yellow
+}
+exit $exitCode
