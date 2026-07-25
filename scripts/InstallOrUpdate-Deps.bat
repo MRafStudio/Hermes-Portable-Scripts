@@ -424,8 +424,14 @@ echo   %ESC%[2m       Это может занять 3-10 минут...%ESC%[0m
 call "!NPX_CMD!" --yes playwright install chromium
 
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  .   Playwright Chromium install failed ^(не критично^).%ESC%[0m
-    echo   %ESC%[33m       Вручную: npx playwright install chromium%ESC%[0m
+    echo   %ESC%[1;33m  .   npx не сработал. Пробуем через python -m playwright...%ESC%[0m
+    "%REPO_DIR%\venv\Scripts\python.exe" -m playwright install chromium
+    if !errorlevel! neq 0 (
+        echo   %ESC%[1;33m  .   Playwright Chromium install failed ^(не критично^).%ESC%[0m
+        echo   %ESC%[33m       Вручную: npx playwright install chromium%ESC%[0m
+    ) else (
+        echo   %ESC%[1;32m  +   Playwright Chromium установлен ^(через python^).%ESC%[0m
+    )
 ) else (
     echo   %ESC%[1;32m  +   Playwright Chromium установлен.%ESC%[0m
 )
