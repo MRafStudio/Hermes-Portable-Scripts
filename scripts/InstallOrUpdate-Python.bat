@@ -67,10 +67,10 @@ if "%PROCESSOR_ARCHITECTURE%"=="AMD64" set "ARCH_OK=1"
 if "%PROCESSOR_ARCHITEW6432%"=="AMD64" set "ARCH_OK=1"
 
 if !ARCH_OK! equ 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Обнаружена 32-разрядная (x86) Windows.%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Обнаружена 32-разрядная ^(x86^) Windows.%ESC%[0m
     goto error_exit
 )
-echo   %ESC%[1;32m  +   Система 64-разрядная (x64).%ESC%[0m
+echo   %ESC%[1;32m  +   Система 64-разрядная ^(x64^).%ESC%[0m
 
 REM ============================================================================
 REM   Проверка существующего Python
