@@ -187,6 +187,13 @@ if !errorlevel! neq 0 (
     echo   %ESC%[1;33m  .   Остаётся 3.11.9 ^(не критично, uv дотянет при создании venv^).%ESC%[0m
 ) else (
     echo   %ESC%[1;32m  +   Python обновлён до 3.11.15.%ESC%[0m
+    REM Копируем python3.11.exe в python.exe (uv создаёт версированный файл)
+    for %%a in ("%PYTHON_EXE%") do if exist "%%~dpa\python3.11.exe" (
+        copy /Y "%%~dpa\python3.11.exe" "%%~dpa\python.exe" >nul 2>&1
+        if !errorlevel! equ 0 (
+            echo   %ESC%[2m       python3.11.exe скопирован как python.exe%ESC%[0m
+        )
+    )
 )
 
 :uv_done
