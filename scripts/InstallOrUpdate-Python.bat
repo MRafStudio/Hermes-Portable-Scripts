@@ -122,7 +122,7 @@ if !errorlevel! equ 0 (
     curl -L -o "%TEMP%\python-3.11.9-amd64.zip" "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.zip"
     if errorlevel 1 goto :dl_failed_py
 ) else (
-    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.zip' -OutFile '%TEMP%\python-3.11.9-amd64.zip'"
+    powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.zip' -OutFile '%TEMP%\python-3.11.9-amd64.zip'"
     if errorlevel 1 goto :dl_failed_py
 )
 goto :dl_ok_py
@@ -200,7 +200,7 @@ if !errorlevel! equ 0 (
     curl -L -o "%TEMP%\get-pip.py" "https://bootstrap.pypa.io/get-pip.py"
     if errorlevel 1 goto :dl_failed_pip
 ) else (
-    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://bootstrap.pypa.io/get-pip.py' -OutFile '%TEMP%\get-pip.py'"
+    powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; Invoke-WebRequest -Uri 'https://bootstrap.pypa.io/get-pip.py' -OutFile '%TEMP%\get-pip.py'"
     if errorlevel 1 goto :dl_failed_pip
 )
 goto :dl_ok_pip
