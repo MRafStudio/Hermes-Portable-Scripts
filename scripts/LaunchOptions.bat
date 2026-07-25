@@ -46,6 +46,17 @@ if not exist "%REPO_DIR%\venv\Scripts\hermes.exe" (
 )
 
 REM ============================================================================
+REM   Определяем Desktop EXE
+REM ============================================================================
+set "DESKTOP_EXE="
+for %%P in (
+    "%REPO_DIR%\apps\desktop\release\win-unpacked\Hermes.exe"
+    "%REPO_DIR%\apps\desktop\release\win-x64-unpacked\Hermes.exe"
+    "%REPO_DIR%\apps\desktop\release\win-ia32-unpacked\Hermes.exe"
+    "%REPO_DIR%\apps\desktop\release\win-arm64-unpacked\Hermes.exe"
+) do if exist "%%P" set "DESKTOP_EXE=%%P"
+
+REM ============================================================================
 REM   Вывод меню
 REM ============================================================================
 :menu
@@ -57,25 +68,30 @@ echo %ESC%[1;36m##%ESC%[0m %ESC%[1;37m                Hermes AI Agent (Portable)
 echo %ESC%[1;36m##                                                                            ##%ESC%[0m
 echo %ESC%[1;36m################################################################################%ESC%[0m
 echo.
-echo %ESC%[1;37m[1] %ESC%[0m %ESC%[1mhermes — Interactive CLI%ESC%[0m %ESC%[2m— начать диалог в терминале%ESC%[0m
-echo %ESC%[1;37m[2] %ESC%[0m %ESC%[1mhermes model%ESC%[0m %ESC%[2m            — выбрать модель и провайдера%ESC%[0m
-echo %ESC%[1;37m[3] %ESC%[0m %ESC%[1mhermes tools%ESC%[0m %ESC%[2m            — настроить инструменты%ESC%[0m
-echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mhermes config set%ESC%[0m %ESC%[2m       — установить значение конфига%ESC%[0m
-echo %ESC%[1;37m[5] %ESC%[0m %ESC%[1mhermes config get%ESC%[0m %ESC%[2m       — показать значение конфига%ESC%[0m
-echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mhermes gateway%ESC%[0m %ESC%[2m          — запустить шлюз (Telegram, Discord)%ESC%[0m
-echo %ESC%[1;37m[7] %ESC%[0m %ESC%[1mhermes setup%ESC%[0m %ESC%[2m            — запустить мастер настройки%ESC%[0m
-echo %ESC%[1;37m[8] %ESC%[0m %ESC%[1mhermes claw migrate%ESC%[0m %ESC%[2m     — миграция с OpenClaw%ESC%[0m
-echo %ESC%[1;37m[9] %ESC%[0m %ESC%[1mhermes update%ESC%[0m %ESC%[2m           — обновить Hermes Agent%ESC%[0m
-echo %ESC%[1;37m[10]%ESC%[0m %ESC%[1mhermes doctor%ESC%[0m %ESC%[2m           — диагностика проблем%ESC%[0m
+echo %ESC%[1;37m[1] %ESC%[0m %ESC%[1mHermes — Interactive CLI%ESC%[0m        %ESC%[2m— начать диалог в терминале%ESC%[0m
+echo %ESC%[1;37m[2] %ESC%[0m %ESC%[1mHermes model%ESC%[0m                     %ESC%[2m— выбрать модель и провайдера%ESC%[0m
+echo %ESC%[1;37m[3] %ESC%[0m %ESC%[1mHermes tools%ESC%[0m                     %ESC%[2m— настроить инструменты%ESC%[0m
+echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mHermes setup%ESC%[0m                     %ESC%[2m— мастер первичной настройки%ESC%[0m
+echo %ESC%[1;37m[5] %ESC%[0m %ESC%[1mHermes config%ESC%[0m                    %ESC%[2m— просмотр и изменение конфига%ESC%[0m
+echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mHermes gateway%ESC%[0m                   %ESC%[2m— запустить шлюз (Telegram, Discord)%ESC%[0m
+echo %ESC%[1;37m[7] %ESC%[0m %ESC%[1mHermes doctor%ESC%[0m                    %ESC%[2m— диагностика проблем%ESC%[0m
+echo %ESC%[1;37m[8] %ESC%[0m %ESC%[1mHermes update%ESC%[0m                    %ESC%[2m— обновить Hermes Agent%ESC%[0m
+if defined DESKTOP_EXE (
+    echo %ESC%[1;37m[9] %ESC%[0m %ESC%[1mHermes Desktop App%ESC%[0m              %ESC%[2m— запустить графическую версию%ESC%[0m
+)
 echo.
-echo %ESC%[1;37m[0]%ESC%[0m %ESC%[1mВыход в главное меню%ESC%[0m
+echo %ESC%[1;37m[0] %ESC%[0m %ESC%[1mВыход в главное меню%ESC%[0m
 echo.
 
 REM ============================================================================
 REM   Получение выбора пользователя
 REM ============================================================================
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-10): %ESC%[0m"
+if defined DESKTOP_EXE (
+    set /p "choice=%ESC%[33mВыберите действие (0-9): %ESC%[0m"
+) else (
+    set /p "choice=%ESC%[33mВыберите действие (0-8): %ESC%[0m"
+)
 
 set "choice=%choice: =%"
 
@@ -85,73 +101,101 @@ if "%choice%"=="0" goto exit
 REM ============================================================================
 REM   Выполнение выбранного действия
 REM ============================================================================
+
+REM --- [1] Hermes — Interactive CLI ---
 if "%choice%"=="1" (
     cls
-    echo %ESC%[1;33mЗапуск: hermes (Interactive CLI)%ESC%[0m
+    echo %ESC%[1;33mЗапуск: Hermes — Interactive CLI%ESC%[0m
+    echo.
     call "%REPO_DIR%\venv\Scripts\hermes.exe"
     goto menu
 )
 
+REM --- [2] Hermes model ---
 if "%choice%"=="2" (
     cls
-    echo %ESC%[1;33mЗапуск: hermes model%ESC%[0m
-    call "%REPO_DIR%\venv\Scripts\hermes.exe" model
+    echo %ESC%[1;33mЗапуск: Hermes model%ESC%[0m
+    echo.
+    "%REPO_DIR%\venv\Scripts\hermes.exe" model
+    echo.
+    pause
     goto menu
 )
 
+REM --- [3] Hermes tools ---
 if "%choice%"=="3" (
     cls
-    echo %ESC%[1;33mЗапуск: hermes tools%ESC%[0m
-    call "%REPO_DIR%\venv\Scripts\hermes.exe" tools
+    echo %ESC%[1;33mЗапуск: Hermes tools%ESC%[0m
+    echo.
+    "%REPO_DIR%\venv\Scripts\hermes.exe" tools
+    echo.
+    pause
     goto menu
 )
 
+REM --- [4] Hermes setup ---
 if "%choice%"=="4" (
     cls
-    echo %ESC%[1;33mЗапуск: hermes config set%ESC%[0m
-    call "%REPO_DIR%\venv\Scripts\hermes.exe" config set
+    echo %ESC%[1;33mЗапуск: Hermes setup%ESC%[0m
+    echo.
+    "%REPO_DIR%\venv\Scripts\hermes.exe" setup
+    echo.
+    pause
     goto menu
 )
 
+REM --- [5] Hermes config ---
 if "%choice%"=="5" (
     cls
-    echo %ESC%[1;33mЗапуск: hermes config get%ESC%[0m
-    call "%REPO_DIR%\venv\Scripts\hermes.exe" config get
+    echo %ESC%[1;33mЗапуск: Hermes config%ESC%[0m
+    echo.
+    "%REPO_DIR%\venv\Scripts\hermes.exe" config
+    echo.
+    pause
     goto menu
 )
 
+REM --- [6] Hermes gateway ---
 if "%choice%"=="6" (
     cls
-    echo %ESC%[1;33mЗапуск: hermes gateway%ESC%[0m
-    call "%REPO_DIR%\venv\Scripts\hermes.exe" gateway
+    echo %ESC%[1;33mЗапуск: Hermes gateway%ESC%[0m
+    echo.
+    "%REPO_DIR%\venv\Scripts\hermes.exe" gateway
+    echo.
+    pause
     goto menu
 )
 
+REM --- [7] Hermes doctor ---
 if "%choice%"=="7" (
     cls
-    echo %ESC%[1;33mЗапуск: hermes setup%ESC%[0m
-    call "%REPO_DIR%\venv\Scripts\hermes.exe" setup
+    echo %ESC%[1;33mЗапуск: Hermes doctor%ESC%[0m
+    echo.
+    "%REPO_DIR%\venv\Scripts\hermes.exe" doctor
+    echo.
+    pause
     goto menu
 )
 
+REM --- [8] Hermes update ---
 if "%choice%"=="8" (
     cls
-    echo %ESC%[1;33mЗапуск: hermes claw migrate%ESC%[0m
-    call "%REPO_DIR%\venv\Scripts\hermes.exe" claw migrate
+    echo %ESC%[1;33mЗапуск: Hermes update%ESC%[0m
+    echo.
+    "%REPO_DIR%\venv\Scripts\hermes.exe" update
+    echo.
+    pause
     goto menu
 )
 
-if "%choice%"=="9" (
+REM --- [9] Hermes Desktop App ---
+if defined DESKTOP_EXE if "%choice%"=="9" (
     cls
-    echo %ESC%[1;33mЗапуск: hermes update%ESC%[0m
-    call "%REPO_DIR%\venv\Scripts\hermes.exe" update
-    goto menu
-)
-
-if "%choice%"=="10" (
-    cls
-    echo %ESC%[1;33mЗапуск: hermes doctor%ESC%[0m
-    call "%REPO_DIR%\venv\Scripts\hermes.exe" doctor
+    echo %ESC%[1;33mЗапуск: Hermes Desktop App%ESC%[0m
+    echo.
+    start "" "%DESKTOP_EXE%"
+    echo.
+    pause
     goto menu
 )
 
