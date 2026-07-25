@@ -409,7 +409,23 @@ REM ============================================================================
 REM   ШАГ 5: Playwright Chromium
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[5/6]%ESC%[0m %ESC%[1mУстановка Playwright Chromium...%ESC%[0m
+echo   %ESC%[1;33m[5/6]%ESC%[0m %ESC%[1mУстановка Playwright...%ESC%[0m
+
+REM --- Установка пакета playwright, если не установлен ---
+echo   %ESC%[1;33m  -   pip install playwright...%ESC%[0m
+"%REPO_DIR%\venv\Scripts\python.exe" -m pip install playwright >nul 2>&1
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;33m  .   pip не сработал. Пробуем uv pip install...%ESC%[0m
+    "%UV_EXE%" pip install playwright >nul 2>&1
+)
+if !errorlevel! equ 0 (
+    echo   %ESC%[1;32m  +   Пакет playwright установлен.%ESC%[0m
+) else (
+    echo   %ESC%[1;33m  .   Пакет playwright не установлен — browser tools не будут работать.%ESC%[0m
+)
+
+REM --- Установка браузера Chromium ---
+cd /d "%REPO_DIR%"
 
 if "!HAS_NODE!"=="0" (
     echo   %ESC%[1;33m  .   Node.js не найден. Пропускаем.%ESC%[0m
