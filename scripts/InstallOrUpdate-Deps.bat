@@ -89,8 +89,23 @@ if not exist "%PYTHON_EXE%" (
     
     :python_found_alt
     if not defined PYTHON_EXE (
-        echo   %ESC%[1;31m[ОШИБКА] Python не найден! Установите Python 3.11 вручную.%ESC%[0m
-        goto error_exit
+        echo   %ESC%[1;33m  →   Python не найден. Запускаем InstallOrUpdate-Python.bat...%ESC%[0m
+        call "%SCRIPTS_DIR%\InstallOrUpdate-Python.bat" 1
+        if errorlevel 1 (
+            echo   %ESC%[1;31m[ОШИБКА] Python не установлен!%ESC%[0m
+            goto error_exit
+        )
+        if not exist "%PYTHON_EXE%" (
+            REM Портабельный Python мог установиться в ROOT_DIR\python-3.11.9\
+            if exist "%ROOT_DIR%\python-3.11.9\python.exe" (
+                set "PYTHON_EXE=%ROOT_DIR%\python-3.11.9\python.exe"
+                set "PYTHON_DIR=%ROOT_DIR%\python-3.11.9"
+                echo   %ESC%[1;32m  +   Найден портабельный Python: %PYTHON_EXE%%ESC%[0m
+            ) else (
+                echo   %ESC%[1;31m[ОШИБКА] Python не установлен (InstallOrUpdate-Python.bat не создал python.exe)!%ESC%[0m
+                goto error_exit
+            )
+        )
     )
     echo   %ESC%[1;32m  +   Найден альтернативный Python: %PYTHON_EXE%%ESC%[0m
 )
