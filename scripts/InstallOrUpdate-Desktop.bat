@@ -306,10 +306,12 @@ if !NEEDS_REPO! equ 1 (
         pause >nul
         exit /b 1
     )
-    echo   %ESC%[1;32m  +   Репозиторий клонирован. Перезапускаем install.ps1...%ESC%[0m
-    goto :step2_install_ps1
+    echo   %ESC%[1;32m  +   Репозиторий клонирован. Переходим к установке зависимостей...%ESC%[0m
+    set "NEEDS_DEPS=1"
+    goto :step3_deps
 )
 
+:step3_deps
 REM 4. Проверяем Python venv и hermes.exe
 if not exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" (
     echo   %ESC%[1;33m  ⚠    Hermes CLI не найден ^(venv не создан или deps не установлены^).%ESC%[0m
