@@ -173,8 +173,8 @@ if exist "%LANG_FILE%" (
     ) else if !errorlevel! equ 1 (
         echo   %ESC%[1;33m  .   languages.ts уже содержит 'ru'.%ESC%[0m
     ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_languages.ps1 не сработал... Код: !errorlevel!%ESC%[0m
-        goto error_exit
+        echo   %ESC%[1;33m  .   Предупреждение: patch_languages.ps1 не сработал ^(код: !errorlevel!^). Продолжаем.%ESC%[0m
+        echo   %ESC%[2m       ru.ts уже скопирован, это не критично.%ESC%[0m
     )
 )
 
