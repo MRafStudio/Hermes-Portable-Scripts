@@ -184,7 +184,7 @@ echo.
 echo   %ESC%[1;33mОбновление Python до 3.11.15 через uv...%ESC%[0m
 "%UV_EXE%" python install 3.11.15
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  .   Остаётся 3.11.9 (не критично, uv дотянет при создании venv).%ESC%[0m
+    echo   %ESC%[1;33m  .   Остаётся 3.11.9 ^(не критично, uv дотянет при создании venv^).%ESC%[0m
 ) else (
     echo   %ESC%[1;32m  +   Python обновлён до 3.11.15.%ESC%[0m
 )
