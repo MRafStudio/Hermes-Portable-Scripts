@@ -217,7 +217,7 @@ if exist "%HERMES_HOME%\hermes-agent\.git" (
         echo   %ESC%[1;33m  А затем %ESC%[2m[2] Очистить репозиторий%ESC%[0m
         echo.
         cd /d "%ROOT_DIR%"
-        if "%AUTOCLOSE%"=="0" pause
+        call "%SCRIPTS_DIR%\SmartPause.bat" 5
         exit /b 1
     )
 
@@ -237,7 +237,7 @@ set "INSTALL_PS1=%SCRIPTS_DIR%\patch\hermes_install_portable.ps1"
 
 if not exist "%INSTALL_PS1%" (
     echo   %ESC%[1;31m[ОШИБКА] %INSTALL_PS1% не найден!%ESC%[0m
-    if "%AUTOCLOSE%"=="0" pause
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
     exit /b 1
 )
 
@@ -252,7 +252,7 @@ if "%SETUP%"=="1" (
 if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] install.ps1 завершился с ошибкой.%ESC%[0m
-    if "%AUTOCLOSE%"=="0" pause
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
     set "NEEDS_REPO=1"
     goto :check_repo_done
 )
@@ -301,7 +301,7 @@ if !NEEDS_REPO! equ 1 (
     call "%SCRIPTS_DIR%\InstallOrUpdate-Repo.bat" 1
     if errorlevel 1 (
         echo   %ESC%[1;31m  [ОШИБКА] Не удалось клонировать репозиторий.%ESC%[0m
-        if "%AUTOCLOSE%"=="0" pause
+        call "%SCRIPTS_DIR%\SmartPause.bat" 5
         exit /b 1
     )
     echo   %ESC%[1;32m  +   Репозиторий клонирован. Перезапускаем install.ps1...%ESC%[0m
@@ -343,7 +343,7 @@ if !NEEDS_DEPS! equ 1 (
     call "%SCRIPTS_DIR%\InstallOrUpdate-Deps.bat" 1
     if errorlevel 1 (
         echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить зависимости.%ESC%[0m
-        if "%AUTOCLOSE%"=="0" pause
+        call "%SCRIPTS_DIR%\SmartPause.bat" 5
         exit /b 1
     )
     echo   %ESC%[1;32m  +   Зависимости установлены.%ESC%[0m
@@ -371,7 +371,7 @@ call "%SCRIPTS_DIR%\InstallOrUpdate-RU.bat" 1
 if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] Не удалось применить RU локализацию.%ESC%[0m
-    if "%AUTOCLOSE%"=="0" pause
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
     exit /b 1
 )
 
@@ -407,7 +407,7 @@ echo   %ESC%[1;33m  .   Установка npm-зависимостей...%ESC%[
 call "!NPM_CMD!" install 2>&1
 if errorlevel 1 (
     echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить npm-зависимости.%ESC%[0m
-    if "%AUTOCLOSE%"=="0" pause
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
     exit /b 1
 )
 echo   %ESC%[1;32m  +   npm-зависимости установлены.%ESC%[0m
@@ -426,7 +426,7 @@ call "!NPM_CMD!" run pack 2>&1
 if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] Пересборка Desktop не удалась.%ESC%[0m
-    if "%AUTOCLOSE%"=="0" pause
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
     exit /b 1
 )
 
@@ -457,7 +457,7 @@ for %%P in (
 :exe_found
 if !EXE_FOUND! equ 0 (
     echo   %ESC%[1;31m  -   Hermes.exe не найден после сборки!%ESC%[0m
-    if "%AUTOCLOSE%"=="0" pause
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
     exit /b 1
 )
 
