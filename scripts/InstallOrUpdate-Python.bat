@@ -185,7 +185,7 @@ REM ============================================================================
 echo.
 echo   %ESC%[1;33m[3/3]%ESC%[0m %ESC%[1mУстановка pip...%ESC%[0m
 
-"%PYTHON_EXE%" -m ensurepip --upgrade --default-pip >nul 2>&1
+"%PYTHON_EXE%" -m ensurepip --upgrade --default-pip
 if !errorlevel! equ 0 (
     echo   %ESC%[1;32m  +   pip установлен через ensurepip.%ESC%[0m
     goto pip_done
