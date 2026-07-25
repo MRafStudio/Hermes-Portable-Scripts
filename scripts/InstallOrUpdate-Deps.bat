@@ -346,7 +346,7 @@ REM ============================================================================
 echo.
 echo   %ESC%[1;33m[3/6]%ESC%[0m %ESC%[1mПроверка установки...%ESC%[0m
 
-"%REPO_DIR%\venv\Scripts\python.exe" -c "import dotenv, openai, rich, prompt_toolkit" >nul 2>nul
+"%REPO_DIR%\venv\Scripts\python.exe" -c "import dotenv, openai, rich, prompt_toolkit"
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m[ОШИБКА] Baseline imports failed!%ESC%[0m
     echo   %ESC%[33m       Попробуйте: uv sync --extra all --locked%ESC%[0m
@@ -540,7 +540,7 @@ if not exist "%HERMES_HOME%\memories" mkdir "%HERMES_HOME%\memories" 2>nul
 REM --- Копируем config.yaml из шаблона, если нет ---
 if not exist "%HERMES_HOME%\config.yaml" (
     if exist "%SCRIPTS_DIR%\patch\default_config.yaml" (
-        copy /Y "%SCRIPTS_DIR%\patch\default_config.yaml" "%HERMES_HOME%\config.yaml" >nul 2>&1
+        copy /Y "%SCRIPTS_DIR%\patch\default_config.yaml" "%HERMES_HOME%\config.yaml"
         echo   %ESC%[1;32m  +   config.yaml скопирован из default_config.yaml.%ESC%[0m
     ) else (
         echo   %ESC%[1;33m  .   default_config.yaml не найден, создаю минимальный...%ESC%[0m
