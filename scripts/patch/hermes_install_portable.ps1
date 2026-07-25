@@ -1,6 +1,9 @@
 # \scripts\patch\hermes_install_portable.ps1
 # Hermes Portable — Wrapper для install.ps1
 # ============================================================================
+# v2.0 — Сначала проверяет локальный install.ps1 в репозитории,
+#         если есть — использует его. Если нет — качает с сайта.
+# ============================================================================
 param(
     [string]$HermesHome = "D:\Hermes\data\hermes",
     [string]$InstallDir = "D:\Hermes\data\hermes\hermes-agent",
@@ -20,9 +23,39 @@ $env:Path = "$HermesHome\node;$HermesHome\bin;C:\Program Files\Git\cmd;" + $env:
 # КРИТИЧНО: Явно экспортируем PATH для дочерних процессов
 [Environment]::SetEnvironmentVariable("Path", $env:Path, "Process")
 
-# Скачиваем install.ps1
-Write-Host "Downloading install.ps1..." -ForegroundColor Cyan
-$installScript = Invoke-RestMethod -Uri "https://hermes-agent.nousresearch.com/install.ps1" -UseBasicParsing
+# ---------------------------------------------------------------------------
+#   Приоритет: локальный install.ps1 в репозитории > скачивание с сайта
+# ---------------------------------------------------------------------------
+$localInstallScript = Join-Path $InstallDir "scripts\install.ps1"
+$installScript = $null
+
+if (Test-Path $localInstallScript) {
+    Write-Host "Найден локальный install.ps1: $localInstallScript" -ForegroundColor Green
+    $installScript = Get-Content $localInstallScript -Raw
+}
+else {
+    Write-Host "Локальный install.ps1 не найден. Скачиваем с hermes-agent.nousresearch.com..." -ForegroundColor Cyan
+    try {
+        $installScript = Invoke-RestMethod -Uri "https://hermes-agent.nousresearch.com/install.ps1" -UseBasicParsing
+        Write-Host "install.ps1 успешно скачан." -ForegroundColor Green
+    }
+    catch {
+        Write-Host ""
+        Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Red
+        Write-Host "║  [ОШИБКА] Не удалось скачать install.ps1 с сайта!          ║" -ForegroundColor Red
+        Write-Host "║                                                             ║" -ForegroundColor Red
+        Write-Host "║  Возможные причины:                                        ║" -ForegroundColor Yellow
+        Write-Host "║  • Блокировка РКН / файрвол                                ║" -ForegroundColor Yellow
+        Write-Host "║  • TLS/SSL — сервер не поддерживает старый протокол        ║" -ForegroundColor Yellow
+        Write-Host "║  • Репозиторий ещё не клонирован                            ║" -ForegroundColor Yellow
+        Write-Host "║                                                             ║" -ForegroundColor Red
+        Write-Host "║  Решение: клонируйте репозиторий через меню, затем         ║" -ForegroundColor Green
+        Write-Host "║  повторите установку. install.ps1 будет взят локально.      ║" -ForegroundColor Green
+        Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Red
+        Write-Host ""
+        throw "Не удалось получить install.ps1 (ни локально, ни с сайта). $_"
+    }
+}
 
 Write-Host "Running install.ps1 with portable paths..." -ForegroundColor Cyan
 Write-Host "  HERMES_HOME: $HermesHome" -ForegroundColor Gray
