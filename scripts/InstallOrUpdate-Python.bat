@@ -18,7 +18,7 @@ REM ============================================================================
 REM   Путь к управляемому Python (куда uv ожидает)
 REM   Именно сюда install.ps1 и uv ставят Python по умолчанию
 REM ============================================================================
-set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
+set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.9-windows-x86_64-none"
 set "PYTHON_EXE=%PYTHON_DIR%\python.exe"
 
 REM ============================================================================
