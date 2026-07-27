@@ -472,19 +472,7 @@ echo   %ESC%[1;33m[5b/6]%ESC%[0m %ESC%[1mУстановка дополнител
 REM --- ripgrep (быстрый поиск в файлах, критично для Hermes) ---
 echo   %ESC%[1;33m  -   ripgrep ^(rg^)...%ESC%[0m
 if not exist "%HERMES_HOME%\bin\rg.exe" (
-    powershell -NoProfile -Command "
-        [Net.ServicePointManager]::SecurityProtocol = 'Tls12';
-        $url = 'https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-pc-windows-msvc.zip';
-        $zip = \"$env:TEMP\rg.zip\";
-        Write-Host '    Скачиваю ripgrep 14.1.1...';
-        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing;
-        Add-Type -AssemblyName System.IO.Compression.FileSystem;
-        $z = [System.IO.Compression.ZipFile]::OpenRead($zip);
-        $entry = $z.Entries | Where-Object { \$_.Name -eq 'rg.exe' } | Select-Object -First 1;
-        [System.IO.Compression.ZipFileExtensions]::ExtractToFile(\$entry, \"$env:HERMES_HOME\bin\rg.exe\", \$true);
-        $z.Dispose();
-        Remove-Item $zip -Force;
-    "
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install_rg.ps1" -HermesHome "%HERMES_HOME%"
 )
 if exist "%HERMES_HOME%\bin\rg.exe" (
     echo   %ESC%[1;32m  +   ripgrep установлен.%ESC%[0m
@@ -495,19 +483,7 @@ if exist "%HERMES_HOME%\bin\rg.exe" (
 REM --- ffmpeg (необходим для TTS голосовых сообщений) ---
 echo   %ESC%[1;33m  -   ffmpeg...%ESC%[0m
 if not exist "%HERMES_HOME%\bin\ffmpeg.exe" (
-    powershell -NoProfile -Command "
-        [Net.ServicePointManager]::SecurityProtocol = 'Tls12';
-        $url = 'https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-7.1-essentials_build.zip';
-        $zip = \"$env:TEMP\ffmpeg.zip\";
-        Write-Host '    Скачиваю ffmpeg 7.1...';
-        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing;
-        Add-Type -AssemblyName System.IO.Compression.FileSystem;
-        $z = [System.IO.Compression.ZipFile]::OpenRead($zip);
-        $entry = $z.Entries | Where-Object { \$_.Name -eq 'ffmpeg.exe' } | Select-Object -First 1;
-        [System.IO.Compression.ZipFileExtensions]::ExtractToFile(\$entry, \"$env:HERMES_HOME\bin\ffmpeg.exe\", \$true);
-        $z.Dispose();
-        Remove-Item $zip -Force;
-    "
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install_ffmpeg.ps1" -HermesHome "%HERMES_HOME%"
 )
 if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
     echo   %ESC%[1;32m  +   ffmpeg установлен.%ESC%[0m
