@@ -62,6 +62,18 @@ Write-Host "  HERMES_HOME: $HermesHome" -ForegroundColor Gray
 Write-Host "  InstallDir:  $InstallDir" -ForegroundColor Gray
 Write-Host "  IncludeDesktop: $IncludeDesktop" -ForegroundColor Gray
 
+# ---------------------------------------------------------------------------
+#   Локальный uv.exe в репозитории — копируем на место ДО install.ps1
+#   Это решает проблему: install.ps1 не может скачать uv из-за сети/РКН
+# ---------------------------------------------------------------------------
+$localUvExe = Join-Path $InstallDir "scripts\bin\uv.exe"
+if (Test-Path $localUvExe) {
+    $targetDir = "$HermesHome\bin"
+    if (-not (Test-Path $targetDir)) { New-Item -ItemType Directory -Force -Path $targetDir | Out-Null }
+    Copy-Item $localUvExe "$targetDir\uv.exe" -Force
+    Write-Host "  uv.exe скопирован из репозитория ($( (Get-Item $localUvExe).Length / 1MB ) МБ)" -ForegroundColor Green
+}
+
 # Выполняем скрипт с параметрами и пробрасываем exit code
 $scriptBlock = [ScriptBlock]::Create($installScript)
 
