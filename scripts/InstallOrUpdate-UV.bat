@@ -54,7 +54,19 @@ REM ============================================================================
 REM   ШАГ 1: Проверка существующей установки UV
 REM ============================================================================
 echo   %ESC%[1;33m[1/3]%ESC%[0m %ESC%[1mПроверка UV...%ESC%[0m
+REM Если uv.exe нет в стандартном месте, проверяем scripts/bin/
+set "LOCAL_UV_EXE=%SCRIPTS_DIR%\bin\uv.exe"
+if not exist "%UV_EXE%" (
+    if exist "%LOCAL_UV_EXE%" (
+        if not exist "%UV_DIR%" mkdir "%UV_DIR%"
+        copy /Y "%LOCAL_UV_EXE%" "%UV_EXE%" >nul
+        if exist "%UV_EXE%" (
+            echo   %ESC%[1;32m  +   UV найден в scripts/bin/ — скопирован на место.%ESC%[0m
+        )
+    )
+)
 
+REM [1/3] Проверка UV
 if exist "%UV_EXE%" (
     "%UV_EXE%" --version >nul 2>nul
     if !errorlevel! equ 0 (
