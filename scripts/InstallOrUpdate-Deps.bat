@@ -422,20 +422,17 @@ REM ============================================================================
 echo.
 echo   %ESC%[1;33m[5/6]%ESC%[0m %ESC%[1mУстановка Playwright...%ESC%[0m
 
-REM --- Установка пакета playwright, если не установлен ---
-echo   %ESC%[1;33m  -   pip install playwright...%ESC%[0m
-"%REPO_DIR%\venv\Scripts\python.exe" -m pip install playwright
-if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  .   pip не сработал. Пробуем uv pip install в venv...%ESC%[0m
-    "%UV_EXE%" pip install --python "%REPO_DIR%\venv\Scripts\python.exe" playwright
-)
+REM --- Установка пакета playwright через uv в venv ---
+echo   %ESC%[1;33m  -   uv pip install playwright...%ESC%[0m
+"%UV_EXE%" pip install --python "%REPO_DIR%\venv\Scripts\python.exe" playwright
 if !errorlevel! equ 0 (
     echo   %ESC%[1;32m  +   Пакет playwright установлен.%ESC%[0m
 ) else (
     echo   %ESC%[1;33m  .   Пакет playwright не установлен — browser tools не будут работать.%ESC%[0m
+    goto playwright_done
 )
 
-REM --- Установка браузера Chromium ---
+REM --- Установка браузера Chromium через python -m playwright ---
 cd /d "%REPO_DIR%"
 
 if "!HAS_NODE!"=="0" (
@@ -443,22 +440,14 @@ if "!HAS_NODE!"=="0" (
     goto playwright_done
 )
 
-cd /d "%REPO_DIR%"
-
-echo   %ESC%[1;33m  -   npx playwright install chromium...%ESC%[0m
+echo   %ESC%[1;33m  -   python -m playwright install chromium...%ESC%[0m
 echo   %ESC%[2m       Это может занять 3-10 минут...%ESC%[0m
 
-call "!NPX_CMD!" --yes playwright install chromium
+"%REPO_DIR%\venv\Scripts\python.exe" -m playwright install chromium
 
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  .   npx не сработал. Пробуем через python -m playwright...%ESC%[0m
-    "%REPO_DIR%\venv\Scripts\python.exe" -m playwright install chromium
-    if !errorlevel! neq 0 (
-        echo   %ESC%[1;33m  .   Playwright Chromium install failed ^(не критично^).%ESC%[0m
-        echo   %ESC%[33m       Вручную: npx playwright install chromium%ESC%[0m
-    ) else (
-        echo   %ESC%[1;32m  +   Playwright Chromium установлен ^(через python^).%ESC%[0m
-    )
+    echo   %ESC%[1;33m  .   Playwright Chromium install failed ^(не критично^).%ESC%[0m
+    echo   %ESC%[33m       Вручную: "%REPO_DIR%\venv\Scripts\python.exe" -m playwright install chromium%ESC%[0m
 ) else (
     echo   %ESC%[1;32m  +   Playwright Chromium установлен.%ESC%[0m
 )

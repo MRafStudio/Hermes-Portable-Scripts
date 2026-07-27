@@ -10,14 +10,14 @@ $ProgressPreference = "SilentlyContinue"
 
 $target = "$HermesHome\bin\rg.exe"
 if (Test-Path $target) {
-    Write-Host "  +   ripgrep уже установлен: $target" -ForegroundColor Green
+    Write-Host "  +   ripgrep already installed: $target" -ForegroundColor Green
     exit 0
 }
 
 $url = "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-pc-windows-msvc.zip"
 $zip = "$env:TEMP\rg.zip"
 
-Write-Host "    Скачиваю ripgrep 14.1.1..." -ForegroundColor Gray
+Write-Host "    Downloading ripgrep 14.1.1..." -ForegroundColor Gray
 try {
     Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -27,10 +27,10 @@ try {
     [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
     $z.Dispose()
     Remove-Item $zip -Force
-    Write-Host "  +   ripgrep установлен: $target" -ForegroundColor Green
+    Write-Host "  +   ripgrep installed: $target" -ForegroundColor Green
     exit 0
 } catch {
-    Write-Host "  .   ripgrep не установлен: $_" -ForegroundColor Yellow
+    Write-Host "  .   ripgrep install failed: $_" -ForegroundColor Yellow
     if (Test-Path $zip) { Remove-Item $zip -Force }
     exit 1
 }

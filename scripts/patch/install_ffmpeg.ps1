@@ -10,14 +10,14 @@ $ProgressPreference = "SilentlyContinue"
 
 $target = "$HermesHome\bin\ffmpeg.exe"
 if (Test-Path $target) {
-    Write-Host "  +   ffmpeg уже установлен: $target" -ForegroundColor Green
+    Write-Host "  +   ffmpeg already installed: $target" -ForegroundColor Green
     exit 0
 }
 
 $url = "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-7.1-essentials_build.zip"
 $zip = "$env:TEMP\ffmpeg.zip"
 
-Write-Host "    Скачиваю ffmpeg 7.1..." -ForegroundColor Gray
+Write-Host "    Downloading ffmpeg 7.1..." -ForegroundColor Gray
 try {
     Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -27,10 +27,10 @@ try {
     [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
     $z.Dispose()
     Remove-Item $zip -Force
-    Write-Host "  +   ffmpeg установлен: $target" -ForegroundColor Green
+    Write-Host "  +   ffmpeg installed: $target" -ForegroundColor Green
     exit 0
 } catch {
-    Write-Host "  .   ffmpeg не установлен: $_" -ForegroundColor Yellow
+    Write-Host "  .   ffmpeg install failed: $_" -ForegroundColor Yellow
     if (Test-Path $zip) { Remove-Item $zip -Force }
     exit 1
 }
