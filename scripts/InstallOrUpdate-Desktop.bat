@@ -227,6 +227,14 @@ if exist "%HERMES_HOME%\hermes-agent\.git" (
 )
 
 :run_install_ps1
+REM   Копируем uv.exe из портабельного репозитория, если есть
+if exist "%SCRIPTS_DIR%\bin\uv.exe" (
+    if not exist "%HERMES_HOME%\bin" mkdir "%HERMES_HOME%\bin" 2>nul
+    copy /Y "%SCRIPTS_DIR%\bin\uv.exe" "%HERMES_HOME%\bin\uv.exe" >nul
+    if exist "%HERMES_HOME%\bin\uv.exe" (
+        echo   %ESC%[1;32m  +   uv.exe скопирован из портабельного репозитория!%ESC%[0m
+    )
+)
 REM ============================================================================
 REM   ШАГ 2: Запуск install.ps1
 REM ============================================================================
