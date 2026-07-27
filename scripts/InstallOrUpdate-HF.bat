@@ -130,7 +130,7 @@ if exist "%VENV_PYTHON%" (
     echo   %ESC%[2m       Цель 2: venv Hermes%ESC%[0m
     "%UV_EXE%" pip install --python "%VENV_PYTHON%" huggingface-hub
     if !errorlevel! neq 0 (
-        echo   %ESC%[1;33m  ⚠  В venv Hermes установить не удалось — не критично.%ESC%[0m
+        echo   %ESC%[1;33m  [!]  В venv Hermes установить не удалось — не критично.%ESC%[0m
     )
 )
 

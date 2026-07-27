@@ -288,7 +288,7 @@ REM 3. Проверяем коммиты (HEAD)
 cd /d "%HERMES_HOME%\hermes-agent"
 git rev-parse --verify HEAD >nul 2>&1
 if errorlevel 1 (
-    echo   %ESC%[1;33m  ⚠    Репозиторий без коммитов ^(ZIP-загрузка^).%ESC%[0m
+    echo   %ESC%[1;33m  [!]  Репозиторий без коммитов ^(ZIP-загрузка^).%ESC%[0m
     echo   %ESC%[1;33m  →   Используем GITHUB_SHA для сборки...%ESC%[0m
     set "GITHUB_SHA=0000000000000000000000000000000000000000"
     cd /d "%ROOT_DIR%"

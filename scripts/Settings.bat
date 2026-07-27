@@ -132,14 +132,14 @@ if exist "%CONFIG_YAML%" (
         echo   %ESC%[1;33m  -   Обновление порта в config.yaml...%ESC%[0m
         powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%PATCH_PORT_PS1%" -ConfigPath "%CONFIG_YAML%" -NewPort !NEW_PORT!
     ) else (
-        echo   %ESC%[1;33m  ⚠  Скрипт patch_config_port.ps1 не найден. Порт в config.yaml не обновлён.%ESC%[0m
+        echo   %ESC%[1;33m  [!]  Скрипт patch_config_port.ps1 не найден. Порт в config.yaml не обновлён.%ESC%[0m
     )
 )
 
 REM Предупреждение о перезапуске
 if "!CUR_KOBOLD_ENABLED!"=="1" (
     echo.
-    echo   %ESC%[1;33m  ⚠   ВНИМАНИЕ: KoboldCpp включен!%ESC%[0m
+    echo   %ESC%[1;33m  [!]   ВНИМАНИЕ: KoboldCpp включен!%ESC%[0m
     echo   %ESC%[1;33m       Для применения нового порта перезапустите:%ESC%[0m
     echo   %ESC%[1;37m       1. Остановите KoboldCpp (если запущен)%ESC%[0m
     echo   %ESC%[1;37m       2. Перезапустите Hermes%ESC%[0m
