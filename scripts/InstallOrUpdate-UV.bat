@@ -129,7 +129,7 @@ if not exist "%PYTHON_EXE%" (
         goto error_exit
     )
     if not exist "%PYTHON_EXE%" (
-        echo   %ESC%[1;31m[ОШИБКА] Python ne ustanovlen ^(InstallOrUpdate-Python.bat ne sozdal python.exe^)%ESC%[0m
+        echo   %ESC%[1;31m[ОШИБКА] Python не установлен ^(InstallOrUpdate-Python.bat не создал python.exe^)%ESC%[0m
         goto error_exit
     )
     echo   %ESC%[1;32m  +   Python установлен: %PYTHON_EXE%%ESC%[0m
