@@ -292,15 +292,17 @@ if exist "venv" (
     rmdir /s /q "venv" 2>nul
 )
 
-REM Копируем python3.11.exe (3.11.15) поверх python.exe, если есть
-if exist "%PYTHON_EXE%\..\python3.11.exe" (
-    copy /Y "%PYTHON_EXE%\..\python3.11.exe" "%PYTHON_EXE%" >nul
-    if !errorlevel! equ 0 (
-        echo   %ESC%[2m       python.exe обновлён до 3.11.15 (из python3.11.exe)%ESC%[0m
-    )
+REM Ищем чистую папку 3.11.15, созданную uv python install
+set "PYTHON3115_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
+set "PYTHON3115_EXE=%PYTHON3115_DIR%\python.exe"
+if not exist "%PYTHON3115_EXE%" set "PYTHON3115_EXE=%PYTHON3115_DIR%\python3.11.exe"
+if exist "%PYTHON3115_EXE%" (
+    set "PYTHON_EXE=%PYTHON3115_EXE%"
+    echo   %ESC%[2m       Используем Python 3.11.15 из cpython-3.11.15 папки%ESC%[0m
+) else (
+    echo   %ESC%[2m       Python 3.11.15 не найден, используем 3.11.9%ESC%[0m
 )
 
-REM Способ VENV_PYTHON больше не используем — копирование надёжнее
 REM Создаём с --clear (не спрашивает подтверждение)
 "%UV_EXE%" venv --clear --python "%PYTHON_EXE%"
 
