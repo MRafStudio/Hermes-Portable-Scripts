@@ -292,12 +292,17 @@ if exist "venv" (
     rmdir /s /q "venv" 2>nul
 )
 
-REM Используем python3.11.exe (3.11.15), если есть
-set "VENV_PYTHON=%PYTHON_EXE%"
-for %%a in ("%PYTHON_EXE%") do if exist "%%~dpa\python3.11.exe" set "VENV_PYTHON=%%~dpa\python3.11.exe"
+REM Копируем python3.11.exe (3.11.15) поверх python.exe, если есть
+if exist "%PYTHON_EXE%\..\python3.11.exe" (
+    copy /Y "%PYTHON_EXE%\..\python3.11.exe" "%PYTHON_EXE%" >nul
+    if !errorlevel! equ 0 (
+        echo   %ESC%[2m       python.exe обновлён до 3.11.15 (из python3.11.exe)%ESC%[0m
+    )
+)
 
+REM Способ VENV_PYTHON больше не используем — копирование надёжнее
 REM Создаём с --clear (не спрашивает подтверждение)
-"%UV_EXE%" venv --clear --python "%VENV_PYTHON%"
+"%UV_EXE%" venv --clear --python "%PYTHON_EXE%"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось создать venv...%ESC%[0m
