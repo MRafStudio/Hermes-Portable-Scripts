@@ -14,15 +14,20 @@ if (Test-Path $target) {
     exit 0
 }
 
-$url = "https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-7.1-essentials_build.zip"
+# Используем BtbN сборки (GitHub) — gyan.dev часто недоступен
+$url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
 $zip = "$env:TEMP\ffmpeg.zip"
 
-Write-Host "    Downloading ffmpeg 7.1..." -ForegroundColor Gray
+Write-Host "    Downloading ffmpeg (BtbN build)..." -ForegroundColor Gray
 try {
     Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $z = [System.IO.Compression.ZipFile]::OpenRead($zip)
+    # Ищем ffmpeg.exe в любой подпапке архива
     $entry = $z.Entries | Where-Object { $_.Name -eq "ffmpeg.exe" } | Select-Object -First 1
+    if ($entry -eq $null) {
+        throw "ffmpeg.exe not found in archive"
+    }
     if (-not (Test-Path "$HermesHome\bin")) { New-Item -ItemType Directory -Force -Path "$HermesHome\bin" | Out-Null }
     [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
     $z.Dispose()
