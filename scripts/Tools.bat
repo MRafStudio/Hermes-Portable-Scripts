@@ -314,7 +314,7 @@ if exist "%ProgramFiles%\Notepad++\notepad++.exe" (
 )
 
 if not defined EDITOR_EXE (
-    echo   %ESC%[1;33m  ⚠  Notepad++ не найден. Используем стандартный Notepad.%ESC%[0m
+    echo   %ESC%[1;33m  [!]  Notepad++ не найден. Используем стандартный Notepad.%ESC%[0m
     set "EDITOR_EXE=notepad"
 ) else (
     echo   %ESC%[1;32m  +   Notepad++ найден: %EDITOR_EXE%%ESC%[0m

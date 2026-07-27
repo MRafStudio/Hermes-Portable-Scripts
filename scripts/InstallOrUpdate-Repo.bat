@@ -102,7 +102,7 @@ REM --- ШАГ 1: Получаем обновления (только дельт
 echo   %ESC%[1;33m[1/3]%ESC%[0m %ESC%[1mПолучение обновлений из origin...%ESC%[0m
 git fetch origin main
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  ⚠    fetch не удался. Переходим к полному клонированию...%ESC%[0m
+    echo   %ESC%[1;33m  [!]    fetch не удался. Переходим к полному клонированию...%ESC%[0m
     cd /d "%ROOT_DIR%"
     goto clone_repo
 )
@@ -113,7 +113,7 @@ echo.
 echo   %ESC%[1;33m[2/3]%ESC%[0m %ESC%[1mСброс к чистому origin/main...%ESC%[0m
 git reset --hard origin/main
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  ⚠    reset не удался. Переходим к полному клонированию...%ESC%[0m
+    echo   %ESC%[1;33m  [!]    reset не удался. Переходим к полному клонированию...%ESC%[0m
     cd /d "%ROOT_DIR%"
     goto clone_repo
 )

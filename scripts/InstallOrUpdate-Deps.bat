@@ -188,7 +188,7 @@ echo   %ESC%[1;33m  →   Node.js не найден. Запускаем InstallO
 call "%SCRIPTS_DIR%\InstallOrUpdate-NodeJS.bat" 1
 
 if errorlevel 1 (
-    echo   %ESC%[1;33m  ⚠    Установка Node.js не удалась. Node-шаги будут пропущены.%ESC%[0m
+    echo   %ESC%[1;33m  [!]    Установка Node.js не удалась. Node-шаги будут пропущены.%ESC%[0m
     goto :node_ready
 )
 
@@ -199,7 +199,7 @@ if exist "%NODE_EXE%" (
     set "NPX_CMD=%NODE_DIR%\npx.cmd"
     set "HAS_NODE=1"
 ) else (
-    echo   %ESC%[1;33m  ⚠    Node.js не появился после установки. Node-шаги будут пропущены.%ESC%[0m
+    echo   %ESC%[1;33m  [!]    Node.js не появился после установки. Node-шаги будут пропущены.%ESC%[0m
 )
 
 :node_ready
@@ -240,7 +240,7 @@ REM   ПРЕДУПРЕЖДЕНИЕ
 REM ============================================================================
 echo.
 echo  %ESC%[1;33m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
-echo   %ESC%[1;33m⚠  ВНИМАНИЕ: Fallback-установка Hermes%ESC%[0m
+echo   %ESC%[1;33m[!]  ВНИМАНИЕ: Fallback-установка Hermes%ESC%[0m
 echo.
 echo   %ESC%[1;37mВы находитесь в ветке fallback-установки.%ESC%[0m
 echo   %ESC%[2m   Это связано с ограничениями Роскомнадзора или%ESC%[0m
@@ -395,7 +395,7 @@ if !errorlevel! equ 0 (
 REM ============================================================================
 REM   ПРОВАЛ: npm install упал — пробуем fallback через Download-Electron.bat
 REM ============================================================================
-echo   %ESC%[1;33m  ⚠    npm install failed. Пробуем скачать Electron вручную...%ESC%[0m
+echo   %ESC%[1;33m  [!]    npm install failed. Пробуем скачать Electron вручную...%ESC%[0m
 
 if exist "%SCRIPTS_DIR%\Download-Electron.bat" (
     call "%SCRIPTS_DIR%\Download-Electron.bat"
@@ -492,7 +492,7 @@ call "!NPM_CMD!" install
 if errorlevel 1 (
     set /a "NPM_RETRY+=1"
     if !NPM_RETRY! lss 3 (
-        echo   %ESC%[1;33m  ⚠    Повторная попытка npm install ^(!NPM_RETRY!/3^)...%ESC%[0m
+        echo   %ESC%[1;33m  [!]    Повторная попытка npm install ^(!NPM_RETRY!/3^)...%ESC%[0m
         timeout /t 10 /nobreak >nul
         goto desktop_npm_retry
     )

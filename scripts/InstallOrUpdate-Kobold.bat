@@ -247,7 +247,7 @@ REM Пробуем curl
 curl -fSL -o "%KCPP_DIR%\koboldcpp_new.exe" --connect-timeout 30 --max-time 300 "!DOWNLOAD_URL!"
 if !errorlevel! equ 0 goto :download_kobold_ok
 
-echo   %ESC%[1;33m  ⚠  curl не справился, пробуем PowerShell...%ESC%[0m
+echo   %ESC%[1;33m  [!]  curl не справился, пробуем PowerShell...%ESC%[0m
 
 REM Fallback: PowerShell
 powershell -NoProfile -Command "try { $ProgressPreference = 'Continue'; Invoke-WebRequest -Uri '!DOWNLOAD_URL!' -OutFile '%KCPP_DIR%\koboldcpp_new.exe' -TimeoutSec 300 -UseBasicParsing } catch { exit 1 }"
@@ -316,7 +316,7 @@ set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%"
 
 where hf >nul 2>nul
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  ⚠  hf.exe не найден. Установка HuggingFace Hub...%ESC%[0m
+    echo   %ESC%[1;33m  [!]  hf.exe не найден. Установка HuggingFace Hub...%ESC%[0m
     call "%SCRIPTS_DIR%\InstallOrUpdate-HF.bat" 1
     if !errorlevel! neq 0 (
         echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить HuggingFace Hub.%ESC%[0m
@@ -332,7 +332,7 @@ echo   %ESC%[1;33m  -   Загрузка через hf.exe...%ESC%[0m
 hf download ggerganov/whisper.cpp ggml-medium.bin --local-dir "%WHISPER_DIR%"
 if !errorlevel! equ 0 goto :download_whisper_ok
 
-echo   %ESC%[1;33m  ⚠  hf.exe не справился, пробуем PowerShell...%ESC%[0m
+echo   %ESC%[1;33m  [!]  hf.exe не справился, пробуем PowerShell...%ESC%[0m
 powershell -NoProfile -Command "try { $ProgressPreference = 'Continue'; Invoke-WebRequest -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin' -OutFile '%WHISPER_FILE%' -TimeoutSec 300 -UseBasicParsing } catch { exit 1 }"
 if !errorlevel! equ 0 goto :download_whisper_ok
 
@@ -341,7 +341,7 @@ del "%WHISPER_FILE%" 2>nul
 
 REM Whisper не критичен: в автоматическом режиме просто пропускаем
 if "!AUTOCLOSE!"=="1" (
-    echo   %ESC%[1;33m  ⚠  Whisper модель не загружена. Пропускаем...%ESC%[0m
+    echo   %ESC%[1;33m  [!]  Whisper модель не загружена. Пропускаем...%ESC%[0m
     goto :whisper_done
 )
 
@@ -353,7 +353,7 @@ if /I "!RETRY_WHISPER!"=="Y" (
     goto :download_whisper
 )
 
-echo   %ESC%[1;33m  ⚠  Whisper модель не загружена. Пропускаем...%ESC%[0m
+echo   %ESC%[1;33m  [!]  Whisper модель не загружена. Пропускаем...%ESC%[0m
 goto :whisper_done
 
 :download_whisper_ok
@@ -396,7 +396,7 @@ set "PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%"
 
 where hf >nul 2>nul
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;33m  ⚠  hf.exe не найден. Установка HuggingFace Hub...%ESC%[0m
+    echo   %ESC%[1;33m  [!]  hf.exe не найден. Установка HuggingFace Hub...%ESC%[0m
     call "%SCRIPTS_DIR%\InstallOrUpdate-HF.bat" 1
     if !errorlevel! neq 0 (
         echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить HuggingFace Hub.%ESC%[0m
@@ -421,7 +421,7 @@ echo.
 hf download %MODEL_REPO% %DEFAULT_MODEL% --local-dir "%MODELS_DIR%"
 if !errorlevel! equ 0 goto download_model_ok
 
-echo   %ESC%[1;33m  ⚠  hf.exe не справился, пробуем PowerShell...%ESC%[0m
+echo   %ESC%[1;33m  [!]  hf.exe не справился, пробуем PowerShell...%ESC%[0m
 powershell -NoProfile -Command "try { $ProgressPreference = 'Continue'; Invoke-WebRequest -Uri 'https://huggingface.co/%MODEL_REPO%/resolve/main/%DEFAULT_MODEL%' -OutFile '%MODEL_FILE%' -TimeoutSec 600 -UseBasicParsing } catch { exit 1 }"
 if !errorlevel! equ 0 goto download_model_ok
 
@@ -465,7 +465,7 @@ echo.
 hf download %MODEL_REPO% %DEFAULT_MMPROJ% --local-dir "%MODELS_DIR%"
 if !errorlevel! equ 0 goto download_mmproj_ok
 
-echo   %ESC%[1;33m  ⚠  hf.exe не справился, пробуем PowerShell...%ESC%[0m
+echo   %ESC%[1;33m  [!]  hf.exe не справился, пробуем PowerShell...%ESC%[0m
 powershell -NoProfile -Command "try { $ProgressPreference = 'Continue'; Invoke-WebRequest -Uri 'https://huggingface.co/%MODEL_REPO%/resolve/main/%DEFAULT_MMPROJ%' -OutFile '%MMPROJ_FILE%' -TimeoutSec 600 -UseBasicParsing } catch { exit 1 }"
 if !errorlevel! equ 0 goto download_mmproj_ok
 

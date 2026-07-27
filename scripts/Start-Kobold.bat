@@ -102,7 +102,7 @@ if "%GPU_TYPE%"=="NVIDIA" (
 ) else if "%GPU_TYPE%"=="AMD" (
     echo   %ESC%[1;32m  +   AMD: %GPU_NAME% ^(%GPU_VRAM_MB% MB VRAM^)%ESC%[0m
 ) else if "%GPU_TYPE%"=="INTEL" (
-    echo   %ESC%[1;33m  ⚠  Intel GPU: %GPU_NAME% — производительность будет низкой%ESC%[0m
+    echo   %ESC%[1;33m  [!]  Intel GPU: %GPU_NAME% — производительность будет низкой%ESC%[0m
 ) else (
     echo   %ESC%[1;31m  -   GPU: %GPU_NAME% ^(%GPU_VRAM_MB% MB VRAM, вендор не определён^)%ESC%[0m
 )
