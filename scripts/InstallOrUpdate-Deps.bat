@@ -292,8 +292,12 @@ if exist "venv" (
     rmdir /s /q "venv" 2>nul
 )
 
+REM Используем python3.11.exe (3.11.15), если есть
+set "VENV_PYTHON=%PYTHON_EXE%"
+for %%a in ("%PYTHON_EXE%") do if exist "%%~dpa\python3.11.exe" set "VENV_PYTHON=%%~dpa\python3.11.exe"
+
 REM Создаём с --clear (не спрашивает подтверждение)
-"%UV_EXE%" venv --clear --python "%PYTHON_EXE%"
+"%UV_EXE%" venv --clear --python "%VENV_PYTHON%"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось создать venv...%ESC%[0m
