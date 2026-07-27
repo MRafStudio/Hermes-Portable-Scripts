@@ -314,7 +314,7 @@ if !NEEDS_REPO! equ 1 (
 :step3_deps
 REM 4. Проверяем Python venv и hermes.exe
 if not exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" (
-    echo   %ESC%[1;33m  ⚠    Hermes CLI не найден ^(venv не создан или deps не установлены^).%ESC%[0m
+    echo   %ESC%[1;33m  [!]  Hermes CLI не найден ^(venv не создан или deps не установлены^).%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 
@@ -325,7 +325,7 @@ if exist "%LOCALAPPDATA%\ms-playwright\chromium-*" set "PLAYWRIGHT_OK=1"
 if exist "%LOCALAPPDATA%\ms-playwright\chromium" set "PLAYWRIGHT_OK=1"
 if exist "%HERMES_HOME%\hermes-agent\node_modules\playwright\package.json" set "PLAYWRIGHT_OK=1"
 if !PLAYWRIGHT_OK! equ 0 (
-    echo   %ESC%[1;33m  ⚠    Browser tools ^(Playwright^) не установлены.%ESC%[0m
+    echo   %ESC%[1;33m  [!]  Browser tools ^(Playwright^) не установлены.%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 
@@ -336,7 +336,7 @@ if exist "%HERMES_HOME%\hermes-agent\apps\desktop\node_modules\electron\package.
 if exist "%LOCALAPPDATA%\electron\Cache" set "ELECTRON_OK=1"
 if exist "%HERMES_HOME%\hermes-agent\apps\desktop\node_modules\electron\dist\electron.exe" set "ELECTRON_OK=1"
 if !ELECTRON_OK! equ 0 (
-    echo   %ESC%[1;33m  ⚠    Desktop-зависимости ^(Electron^) не установлены.%ESC%[0m
+    echo   %ESC%[1;33m  [!]  Desktop-зависимости ^(Electron^) не установлены.%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 
