@@ -463,6 +463,58 @@ if !errorlevel! neq 0 (
     echo   %ESC%[1;32m  +   Playwright Chromium установлен.%ESC%[0m
 )
 
+REM ============================================================================
+REM   ШАГ 5b: Установка дополнительных инструментов (ripgrep, ffmpeg)
+REM ============================================================================
+echo.
+echo   %ESC%[1;33m[5b/6]%ESC%[0m %ESC%[1mУстановка дополнительных инструментов...%ESC%[0m
+
+REM --- ripgrep (быстрый поиск в файлах, критично для Hermes) ---
+echo   %ESC%[1;33m  -   ripgrep ^(rg^)...%ESC%[0m
+if not exist "%HERMES_HOME%\bin\rg.exe" (
+    powershell -NoProfile -Command "
+        [Net.ServicePointManager]::SecurityProtocol = 'Tls12';
+        $url = 'https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-pc-windows-msvc.zip';
+        $zip = \"$env:TEMP\rg.zip\";
+        Write-Host '    Скачиваю ripgrep 14.1.1...';
+        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing;
+        Add-Type -AssemblyName System.IO.Compression.FileSystem;
+        $z = [System.IO.Compression.ZipFile]::OpenRead($zip);
+        $entry = $z.Entries | Where-Object { \$_.Name -eq 'rg.exe' } | Select-Object -First 1;
+        [System.IO.Compression.ZipFileExtensions]::ExtractToFile(\$entry, \"$env:HERMES_HOME\bin\rg.exe\", \$true);
+        $z.Dispose();
+        Remove-Item $zip -Force;
+    "
+)
+if exist "%HERMES_HOME%\bin\rg.exe" (
+    echo   %ESC%[1;32m  +   ripgrep установлен.%ESC%[0m
+) else (
+    echo   %ESC%[1;33m  .   ripgrep не установлен ^(будет использован findstr^).%ESC%[0m
+)
+
+REM --- ffmpeg (необходим для TTS голосовых сообщений) ---
+echo   %ESC%[1;33m  -   ffmpeg...%ESC%[0m
+if not exist "%HERMES_HOME%\bin\ffmpeg.exe" (
+    powershell -NoProfile -Command "
+        [Net.ServicePointManager]::SecurityProtocol = 'Tls12';
+        $url = 'https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-7.1-essentials_build.zip';
+        $zip = \"$env:TEMP\ffmpeg.zip\";
+        Write-Host '    Скачиваю ffmpeg 7.1...';
+        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing;
+        Add-Type -AssemblyName System.IO.Compression.FileSystem;
+        $z = [System.IO.Compression.ZipFile]::OpenRead($zip);
+        $entry = $z.Entries | Where-Object { \$_.Name -eq 'ffmpeg.exe' } | Select-Object -First 1;
+        [System.IO.Compression.ZipFileExtensions]::ExtractToFile(\$entry, \"$env:HERMES_HOME\bin\ffmpeg.exe\", \$true);
+        $z.Dispose();
+        Remove-Item $zip -Force;
+    "
+)
+if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
+    echo   %ESC%[1;32m  +   ffmpeg установлен.%ESC%[0m
+) else (
+    echo   %ESC%[1;33m  .   ffmpeg не установлен ^(TTS будет ограничен^).%ESC%[0m
+)
+
 :playwright_done
 REM ============================================================================
 REM   ШАГ 6: Desktop-зависимости (Electron)
