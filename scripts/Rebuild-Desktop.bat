@@ -21,6 +21,9 @@ set "REPO_DIR=%HERMES_HOME%\hermes-agent"
 set "DESKTOP_DIR=%REPO_DIR%\apps\desktop"
 set "NODE_DIR=%HERMES_HOME%\node"
 set "NODE_EXE=%NODE_DIR%\node.exe"
+set "UV_DIR=%HERMES_HOME%\bin"
+set "UV_EXE=%UV_DIR%\uv.exe"
+set "VENV_PYTHON=%REPO_DIR%\venv\Scripts\python.exe"
 
 REM Пути к файлам локализации
 set "RU_LOCALE_DIR=%SCRIPTS_DIR%\ru-locale"
@@ -121,6 +124,20 @@ if defined GLOBAL_NODE (
     set "IS_GLOBAL_NODE=1"
     REM --- СРАЗУ пересобираем PATH под глобальный Node.js ---
     set "PATH=!GLOBAL_NODE!;%HERMES_HOME%\bin;%ProgramFiles%\Git\cmd;%windir%\system32;%windir%;%windir%\System32\Wbem;%windir%\System32\WindowsPowerShell\v1.0"
+    REM npm 12 из реального профиля имеет приоритет (свежий hermes-agent требует npm >=12; глобальный npm 11.16 несовместим)
+    set "REAL_NPM_DIR="
+    if exist "%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm"
+    if not defined REAL_NPM_DIR (
+        for /d %%d in ("%SystemDrive%\Users\%USERNAME%.*") do (
+            if not defined REAL_NPM_DIR (
+                if exist "%%d\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%%d\AppData\Roaming\npm"
+            )
+        )
+    )
+    if defined REAL_NPM_DIR (
+        set "NPM_CMD=!REAL_NPM_DIR!\npm.cmd"
+        set "PATH=!REAL_NPM_DIR!;!PATH!"
+    )
     goto :node_ready
 )
 
@@ -194,6 +211,56 @@ if not exist "%RU_LOCALE_DIR%\ru-constants.ts" (
 )
 
 echo   %ESC%[1;32m  +   Компоненты на месте.%ESC%[0m
+
+REM ============================================================================
+REM   Проверка инструментов: rg, ffmpeg, playwright (доустановка при отсутствии)
+REM ============================================================================
+echo   %ESC%[1;33m  -   Проверка инструментов ^(rg, ffmpeg, playwright^)...%ESC%[0m
+
+REM --- ripgrep (быстрый поиск, критичен для Hermes) ---
+if not exist "%HERMES_HOME%\bin\rg.exe" (
+    echo   %ESC%[1;33m  .   ripgrep отсутствует — устанавливаем...%ESC%[0m
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install_rg.ps1" -HermesHome "%HERMES_HOME%"
+)
+if exist "%HERMES_HOME%\bin\rg.exe" (
+    echo   %ESC%[1;32m  +   ripgrep: OK%ESC%[0m
+) else (
+    echo   %ESC%[1;33m  .   ripgrep не установлен ^(будет findstr^).%ESC%[0m
+)
+
+REM --- ffmpeg (TTS голосовые) ---
+if not exist "%HERMES_HOME%\bin\ffmpeg.exe" (
+    echo   %ESC%[1;33m  .   ffmpeg отсутствует — устанавливаем...%ESC%[0m
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install_ffmpeg.ps1" -HermesHome "%HERMES_HOME%"
+)
+if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
+    echo   %ESC%[1;32m  +   ffmpeg: OK%ESC%[0m
+) else (
+    echo   %ESC%[1;33m  .   ffmpeg не установлен ^(TTS ограничен^).%ESC%[0m
+)
+
+REM --- Playwright (browser tools) ---
+if not exist "%VENV_PYTHON%" (
+    echo   %ESC%[1;33m  .   venv не найден — playwright пропущен.%ESC%[0m
+) else (
+    "%VENV_PYTHON%" -c "import playwright" >nul 2>nul
+    if !errorlevel! neq 0 (
+        echo   %ESC%[1;33m  .   playwright отсутствует — устанавливаем пакет...%ESC%[0m
+        if exist "%UV_EXE%" (
+            "%UV_EXE%" pip install --python "%VENV_PYTHON%" playwright
+        ) else (
+            echo   %ESC%[1;33m  .   uv не найден — пакет playwright не установлен.%ESC%[0m
+        )
+    )
+    "%VENV_PYTHON%" -c "import playwright" >nul 2>nul
+    if !errorlevel! equ 0 (
+        echo   %ESC%[1;33m  .   Установка браузера Chromium ^(если ещё не установлен^)...%ESC%[0m
+        "%VENV_PYTHON%" -m playwright install chromium
+        echo   %ESC%[1;32m  +   Playwright: OK%ESC%[0m
+    ) else (
+        echo   %ESC%[1;33m  .   playwright пакет не установлен — browser tools ограничены.%ESC%[0m
+    )
+)
 
 REM ============================================================================
 REM   ШАГ 2: Копирование файлов RU локализации в репозиторий

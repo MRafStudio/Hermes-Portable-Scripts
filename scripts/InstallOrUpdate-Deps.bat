@@ -35,8 +35,18 @@ set "TEMP=%DATA_DIR%\temp"
 set "TMP=%DATA_DIR%\temp"
 set "APPDATA=%DATA_DIR%\appdata"
 
-set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
-set "PYTHON_EXE=%PYTHON_DIR%\python.exe"
+set "PYTHON_DIR="
+set "PYTHON_EXE="
+REM Ищем ЛЮБОЙ управляемый Python 3.11 в изолированном каталоге
+REM (версия минора может быть 3.11.9 или 3.11.15 — не хардкодим!)
+for /d %%d in ("%APPDATA%\uv\python\cpython-3.11*") do (
+    if not defined PYTHON_EXE (
+        if exist "%%d\python.exe" (
+            set "PYTHON_DIR=%%d"
+            set "PYTHON_EXE=%%d\python.exe"
+        )
+    )
+)
 
 set "LOCALAPPDATA=%DATA_DIR%\localappdata"
 set "HOME=%DATA_DIR%\home"
@@ -170,6 +180,21 @@ if defined GLOBAL_NODE (
     set "NPX_CMD=!GLOBAL_NODE!\npx.cmd"
     set "IS_GLOBAL_NODE=1"
     set "HAS_NODE=1"
+    REM npm 12 из реального профиля имеет приоритет (свежий hermes-agent требует npm >=12; глобальный npm 11.16 несовместим)
+    set "REAL_NPM_DIR="
+    if exist "%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm"
+    if not defined REAL_NPM_DIR (
+        for /d %%d in ("%SystemDrive%\Users\%USERNAME%.*") do (
+            if not defined REAL_NPM_DIR (
+                if exist "%%d\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%%d\AppData\Roaming\npm"
+            )
+        )
+    )
+    if defined REAL_NPM_DIR (
+        set "NPM_CMD=!REAL_NPM_DIR!\npm.cmd"
+        set "NPX_CMD=!REAL_NPM_DIR!\npx.cmd"
+        set "PATH=!REAL_NPM_DIR!;!PATH!"
+    )
     goto :node_ready
 )
 
@@ -292,19 +317,10 @@ if exist "venv" (
     rmdir /s /q "venv" 2>nul
 )
 
-REM Ищем чистую папку 3.11.15, созданную uv python install
-set "PYTHON3115_DIR=%APPDATA%\uv\python\cpython-3.11.15-windows-x86_64-none"
-set "PYTHON3115_EXE=%PYTHON3115_DIR%\python.exe"
-if not exist "%PYTHON3115_EXE%" set "PYTHON3115_EXE=%PYTHON3115_DIR%\python3.11.exe"
-if exist "%PYTHON3115_EXE%" (
-    set "PYTHON_EXE=%PYTHON3115_EXE%"
-    echo   %ESC%[2m       Используем Python 3.11.15 из cpython-3.11.15 папки%ESC%[0m
-) else (
-    echo   %ESC%[2m       Python 3.11.15 не найден, используем 3.11.9%ESC%[0m
-)
+REM PYTHON_EXE уже выбран выше (маска cpython-3.11* или альтернативы) — используем его
 
-REM Создаём с --clear (не спрашивает подтверждение)
-"%UV_EXE%" venv --clear --python "%PYTHON_EXE%"
+REM Создаём venv с ЯВНЫМ путём (uv по умолчанию создаёт .venv — нам это НЕ нужно!)
+"%UV_EXE%" venv --clear --python "%PYTHON_EXE%" "%REPO_DIR%\venv"
 
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось создать venv...%ESC%[0m

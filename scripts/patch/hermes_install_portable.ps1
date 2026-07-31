@@ -16,6 +16,11 @@ $ProgressPreference = "SilentlyContinue"
 # Устанавливаем переменные окружения для портативного режима
 $env:HERMES_HOME = $HermesHome
 $env:UV_INSTALL_DIR = "$HermesHome\bin"
+# Управляемые uv Python-интерпретаторы — в ИЗОЛИРОВАННЫЙ каталог data\appdata\uv\python
+# (uv на Windows берёт AppData через WinAPI и игнорирует переменную APPDATA —
+#  без этой переменной питон уезжает в реальный профиль пользователя,
+#  а наши скрипты ищут его в изолированном каталоге)
+$env:UV_PYTHON_INSTALL_DIR = "$(Split-Path $HermesHome -Parent)\appdata\uv\python"
 
 # Обновляем PATH для текущего процесса
 $env:Path = "$HermesHome\node;$HermesHome\bin;C:\Program Files\Git\cmd;" + $env:Path
@@ -24,36 +29,64 @@ $env:Path = "$HermesHome\node;$HermesHome\bin;C:\Program Files\Git\cmd;" + $env:
 [Environment]::SetEnvironmentVariable("Path", $env:Path, "Process")
 
 # ---------------------------------------------------------------------------
-#   Приоритет: локальный install.ps1 в репозитории > скачивание с сайта
+#   Получение install.ps1: локальный репозиторий > кэш > сайт > GitHub raw
+#   Сайт может блокировать (Cloudflare/РКН) — GitHub raw как fallback.
 # ---------------------------------------------------------------------------
 $localInstallScript = Join-Path $InstallDir "scripts\install.ps1"
+$cacheFile = Join-Path $HermesHome "install.ps1.cache"
 $installScript = $null
 
+# Источник 1: локальный install.ps1 в уже клонированном репозитории
 if (Test-Path $localInstallScript) {
-    Write-Host "Найден локальный install.ps1: $localInstallScript" -ForegroundColor Green
+    Write-Host "  Local install.ps1 found: $localInstallScript" -ForegroundColor Green
     $installScript = Get-Content $localInstallScript -Raw
 }
+# Источник 2: кэш от предыдущего успешного скачивания
+elseif (Test-Path $cacheFile) {
+    Write-Host "  Using cached install.ps1: $cacheFile" -ForegroundColor Green
+    $installScript = Get-Content $cacheFile -Raw
+}
+# Источники 3-5: сайт и GitHub raw (main, затем master)
 else {
-    Write-Host "Локальный install.ps1 не найден. Скачиваем с hermes-agent.nousresearch.com..." -ForegroundColor Cyan
-    try {
-        [Net.ServicePointManager]::SecurityProtocol = 'Tls12'; $installScript = Invoke-RestMethod -Uri "https://hermes-agent.nousresearch.com/install.ps1" -UseBasicParsing
-        Write-Host "install.ps1 успешно скачан." -ForegroundColor Green
+    $browserUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    $sources = @(
+        @{ Name = "hermes-agent.nousresearch.com";       Uri = "https://hermes-agent.nousresearch.com/install.ps1";                                                     UseUA = $true  },
+        @{ Name = "GitHub raw (main branch)";            Uri = "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/scripts/install.ps1";                  UseUA = $false },
+        @{ Name = "GitHub raw (master branch)";          Uri = "https://raw.githubusercontent.com/nousresearch/hermes-agent/master/scripts/install.ps1";                 UseUA = $false }
+    )
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    foreach ($src in $sources) {
+        try {
+            Write-Host "  Downloading install.ps1 from $($src.Name)..." -ForegroundColor Cyan
+            if ($src.UseUA) {
+                $installScript = Invoke-RestMethod -Uri $src.Uri -UseBasicParsing -UserAgent $browserUA -TimeoutSec 60
+            } else {
+                $installScript = Invoke-RestMethod -Uri $src.Uri -UseBasicParsing -TimeoutSec 60
+            }
+            # Кэшируем на будущее (UTF-8 без BOM — безопасно для ScriptBlock::Create)
+            try {
+                $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+                [System.IO.File]::WriteAllText($cacheFile, $installScript, $utf8NoBom)
+                Write-Host "  install.ps1 cached to $cacheFile" -ForegroundColor DarkGray
+            } catch { }
+            Write-Host "  install.ps1 downloaded successfully." -ForegroundColor Green
+            break
+        }
+        catch {
+            Write-Host "  [!] Source failed: $($src.Name)" -ForegroundColor Yellow
+        }
     }
-    catch {
+    if (-not $installScript) {
         Write-Host ""
-        Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Red
-        Write-Host "║  [ОШИБКА] Не удалось скачать install.ps1 с сайта!          ║" -ForegroundColor Red
-        Write-Host "║                                                             ║" -ForegroundColor Red
-        Write-Host "║  Возможные причины:                                        ║" -ForegroundColor Yellow
-        Write-Host "║  • Блокировка РКН / файрвол                                ║" -ForegroundColor Yellow
-        Write-Host "║  • TLS/SSL — сервер не поддерживает старый протокол        ║" -ForegroundColor Yellow
-        Write-Host "║  • Репозиторий ещё не клонирован                            ║" -ForegroundColor Yellow
-        Write-Host "║                                                             ║" -ForegroundColor Red
-        Write-Host "║  Решение: клонируйте репозиторий через меню, затем         ║" -ForegroundColor Green
-        Write-Host "║  повторите установку. install.ps1 будет взят локально.      ║" -ForegroundColor Green
-        Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Red
-        Write-Host ""
-        throw "Не удалось получить install.ps1 (ни локально, ни с сайта). $_"
+        Write-Host "================================================================" -ForegroundColor Red
+        Write-Host "  [ERROR] Could not obtain install.ps1 from any source." -ForegroundColor Red
+        Write-Host "  Tried: local repo, cache, hermes-agent.nousresearch.com," -ForegroundColor Yellow
+        Write-Host "         raw.githubusercontent.com (main/master branches)." -ForegroundColor Yellow
+        Write-Host "  Check internet connection / firewall / DNS blocking." -ForegroundColor Yellow
+        Write-Host "  Workaround: copy scripts\install.ps1 from the working 'home'" -ForegroundColor Yellow
+        Write-Host "  installation into the target repo, or clone hermes-agent first." -ForegroundColor Yellow
+        Write-Host "================================================================" -ForegroundColor Red
+        throw "Could not obtain install.ps1 (local repo, cache, site and GitHub all failed)."
     }
 }
 

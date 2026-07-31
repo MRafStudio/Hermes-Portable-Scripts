@@ -152,6 +152,20 @@ if defined GLOBAL_NODE (
     set "IS_GLOBAL_NODE=1"
     REM --- СРАЗУ пересобираем PATH под глобальный Node.js ---
     set "PATH=!GLOBAL_NODE!;%HERMES_HOME%\bin;%ProgramFiles%\Git\cmd;%windir%\system32;%windir%;%windir%\System32\Wbem;%windir%\System32\WindowsPowerShell\v1.0"
+    REM npm 12 из реального профиля имеет приоритет (свежий hermes-agent требует npm >=12; глобальный npm 11.16 несовместим)
+    set "REAL_NPM_DIR="
+    if exist "%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm"
+    if not defined REAL_NPM_DIR (
+        for /d %%d in ("%SystemDrive%\Users\%USERNAME%.*") do (
+            if not defined REAL_NPM_DIR (
+                if exist "%%d\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%%d\AppData\Roaming\npm"
+            )
+        )
+    )
+    if defined REAL_NPM_DIR (
+        set "NPM_CMD=!REAL_NPM_DIR!\npm.cmd"
+        set "PATH=!REAL_NPM_DIR!;!PATH!"
+    )
     goto :node_ready
 )
 
