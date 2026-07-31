@@ -2,8 +2,11 @@
 # Устанавливает terminal.cwd в config.yaml (рабочая директория сессий Hermes Desktop).
 # Зачем: без явного cwd Electron берёт системный профиль через WinAPI (app.getPath('home')),
 # игнорируя изолированный USERPROFILE — сессии падают в C:\Users\<user> (системный профиль).
-# Логика: заменяем ТОЛЬКО неявные значения (".", "auto", "cwd", пусто). Если пользователь
-# явно настроил свой путь — не трогаем.
+# Вызывается при КАЖДОМ запуске Start.bat (самолечение, как Fix-UserEnv.ps1 для реестра).
+# Логика замены (только эти случаи):
+#   1) неявные значения: ".", "auto", "cwd", пусто
+#   2) переносимый профиль ДРУГОГО корня: оканчивается на "\data\home"
+# Явный пользовательский путь (проект) — НЕ трогаем.
 
 param(
     [Parameter(Mandatory=$true)]
@@ -60,17 +63,19 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
             $result += $line
             continue
         }
-        # Строка cwd: заменяем только неявные значения
+        # Строка cwd: заменяем неявные значения ИЛИ переносимый профиль другого корня
         if (-not $cwdDone -and $trimmed -match '^cwd:\s*(.*)$') {
             $curVal = $Matches[1].Trim().Trim('"').Trim("'")
-            if ($curVal -in @('', '.', 'auto', 'cwd')) {
+            $isImplicit = $curVal -in @('', '.', 'auto', 'cwd')
+            $isOtherPortableHome = $curVal -match '[\\/]data[\\/]home$' -and $curVal -ne $Cwd
+            if ($isImplicit -or $isOtherPortableHome) {
                 $result += (' ' * $indent) + "cwd: '$Cwd'"
                 $cwdDone = $true
                 $cwdFound = $true
                 $modified = $true
                 continue
             }
-            # Явный пользовательский путь — оставляем как есть
+            # Явный пользовательский путь (проект) — оставляем как есть
             $cwdDone = $true
             $cwdFound = $true
             $result += $line
