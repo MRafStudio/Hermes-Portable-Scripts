@@ -135,7 +135,6 @@ goto menu
 cls
 echo.
 echo   %ESC%[1;33m-%ESC%[0m %ESC%[1mЗапуск установки Hermes Desktop...%ESC%[0m
-echo.
 call "%SCRIPTS_DIR%\InstallOrUpdate-Desktop.bat" 0
 goto menu
 
