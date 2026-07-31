@@ -27,6 +27,15 @@ if exist "%SCRIPTS_DIR%\patch\Fix-UserEnv.ps1" (
 )
 
 REM ============================================================================
+REM   Рабочая директория сессий: terminal.cwd в config.yaml всегда = %ROOT_DIR%\data\home
+REM   (Electron иначе берёт системный профиль через WinAPI — сессии падают в C:\Users\<user>)
+REM ============================================================================
+set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
+if exist "%SCRIPTS_DIR%\patch\patch_terminal_cwd.ps1" if exist "%CONFIG_YAML%" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch_terminal_cwd.ps1" -ConfigPath "%CONFIG_YAML%" -Cwd "%ROOT_DIR%\data\home"
+)
+
+REM ============================================================================
 REM   Изоляция данных (ничего в систему!)
 REM ============================================================================
 set "TEMP=%DATA_DIR%\temp"
