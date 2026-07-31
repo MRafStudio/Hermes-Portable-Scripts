@@ -87,9 +87,10 @@ if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
 if not exist "%APPDATA%" mkdir "%APPDATA%" 2>nul
 if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%" 2>nul
 if not exist "%HOME%" mkdir "%HOME%" 2>nul
+if not exist "%USERPROFILE%" mkdir "%USERPROFILE%" 2>nul
 
 REM ============================================================================
-REM   Получение ESC (стандартный трюк, без PowerShell)
+REM   Получение ESC
 REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 

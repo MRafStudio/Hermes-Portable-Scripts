@@ -6,9 +6,15 @@ setlocal enabledelayedexpansion
 REM ============================================================================
 REM   Определение путей
 REM ============================================================================
-for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
+set "SCRIPTS_DIR=%~dp0"
+if "%SCRIPTS_DIR:~-1%"=="\" set "SCRIPTS_DIR=%SCRIPTS_DIR:~0,-1%"
+
+for %%F in ("%SCRIPTS_DIR%\..") do set "ROOT_DIR=%%~fF"
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
-set "HERMES_EXE=%HERMES_HOME%\hermes-agent\apps\desktop\release\win-unpacked\Hermes.exe"
+set "REPO_DIR=%HERMES_HOME%\hermes-agent"
+set "NODE_DIR=%HERMES_HOME%\node"
+set "DESKTOP_DIR=%REPO_DIR%\apps\desktop"
+set "HERMES_EXE=%DESKTOP_DIR%\release\win-unpacked\Hermes.exe"
 
 REM ============================================================================
 REM   Изоляция данных — обязательна и здесь!
@@ -28,6 +34,7 @@ if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
 if not exist "%APPDATA%" mkdir "%APPDATA%" 2>nul
 if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%" 2>nul
 if not exist "%HOME%" mkdir "%HOME%" 2>nul
+if not exist "%USERPROFILE%" mkdir "%USERPROFILE%" 2>nul
 
 REM ============================================================================
 REM   Заголовок консоли
