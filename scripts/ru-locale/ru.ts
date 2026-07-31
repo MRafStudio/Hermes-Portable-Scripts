@@ -693,7 +693,7 @@ export const ru = defineLocale({
       sshTitle: 'Подключение через SSH',
       sshDesc:
         'Hermes запускается на удаленном сервере по SSH и туннелируется к этому приложению — ничего не нужно запускать или раскрывать. Требуется рабочий доступ к хосту по SSH с использованием ключей.',
-      sshTrustHint: 'Первый предоставленный ключ хоста является доверенным и закрепленным; «Последние изменения не завершится».
+      sshTrustHint: 'Первый предоставленный ключ хоста является доверенным и закрепленным; Последние изменения не завершится.',
       sshHostTitle: 'Хост',
       sshHostDesc: 'user@host или псевдоним хоста из ~/.ssh/config',
       sshHostPick: 'Выберите хост…',
@@ -712,14 +712,14 @@ export const ru = defineLocale({
       sshHermesPathPlaceholder: 'автоматическое определение',
       sshTestConnection: 'Проверить SSH',
       sshConnect: 'Подключиться',
-      sshButtonsHint: 'Сохранить будет применено при следующем запуске.' "Подключение переподключается сейчас.",
+      sshButtonsHint: 'Сохранить будет применено при следующем запуске.Подключение переподключается сейчас.',
       sshReachable: (host, platform) => `Доступно: ${host} (${platform}) — Hermes найден`,
       sshIncompleteHost: 'Введите хост SSH перед подключением.',
       sshErrUnreachable: 'Не удалось подключиться к этому хосту по SSH. Проверьте хост, порт и вашу сеть.',
       sshErrAuth:
         'Аутентификация SSH не удалась. Загрузите свой ключ в ssh-agent (ssh-add) или установите IdentityFile в ~/.ssh/config — Hermes запускает ssh в неинтерактивном режиме.',
       sshErrHostKey:
-        'Ключ хоста ИЗМЕНИЛСЯ с момента вашего последнего подключения.' Убедитесь, что это ожидаемо, затем выполните команду ssh-keygen -R <host> и переподключитесь.',
+        'Ключ хоста ИЗМЕНИЛСЯ с момента вашего последнего подключения. Убедитесь, что это ожидаемо, затем выполните команду ssh-keygen -R <host> и переподключитесь.',
       sshErrNotInstalled:
         'Hermes не установлен на удаленном хосте. Установите его там (curl -fsSL https://hermes-agent.nousresearch.com/install.sh | sh) или укажите путь к Hermes.',
       sshErrPlatform:
@@ -2361,8 +2361,8 @@ export const ru = defineLocale({
     proNeedsSubscription: 'Про-модели требуют платную подписку Nous.',
     free: 'Бесплатно',
     freeTier: 'Бесплатный уровень',
-    priceTitle: 'Цена ввода / вывода за миллион токенов'
-    wasPrice: 'было',
+    priceTitle: 'Цена ввода / вывода за миллион токенов',
+    wasPrice: 'было'
   },
 
   modelVisibility: {
