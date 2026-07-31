@@ -19,8 +19,6 @@ set "DESKTOP_DIR=%REPO_DIR%\apps\desktop"
 set "HERMES_EXE=%DESKTOP_DIR%\release\win-unpacked\Hermes.exe"
 set "DATA_DIR=%ROOT_DIR%\data"
 
-set "CONFIG_FILE=%SCRIPTS_DIR%\Config.ini"
-
 REM ============================================================================
 REM   Изоляция данных
 REM ============================================================================
@@ -36,15 +34,6 @@ if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
 if not exist "%APPDATA%" mkdir "%APPDATA%" 2>nul
 if not exist "%LOCALAPPDATA%" mkdir "%LOCALAPPDATA%" 2>nul
 if not exist "%HOME%" mkdir "%HOME%" 2>nul
-
-REM ============================================================================
-REM   Чтение Config.ini — KOBOLD_ENABLED
-REM ============================================================================
-set "KOBOLD_ENABLED=0"
-if exist "%CONFIG_FILE%" (
-    for /f "tokens=1,2 delims==" %%a in ('findstr /B /C:"KOBOLD_ENABLED=" "%CONFIG_FILE%"') do set "KOBOLD_ENABLED=%%b"
-)
-set "KOBOLD_ENABLED=%KOBOLD_ENABLED: =%"
 
 REM ============================================================================
 REM   Получение ESC (стандартный трюк, без PowerShell)
@@ -65,9 +54,6 @@ echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mСравнить/изменить файл
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mОткрыть файл .env%ESC%[0m %ESC%[2m— %HERMES_HOME%\.env%ESC%[0m
 echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть файл config.yaml%ESC%[0m %ESC%[2m— %HERMES_HOME%\config.yaml%ESC%[0m
 echo.
-if "%KOBOLD_ENABLED%"=="1" (
-    echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mЗапустить KoboldCpp ^(ОТЛАДКА^)%ESC%[0m %ESC%[2m— окно остаётся открытым ^(cmd /k^)%ESC%[0m
-)
 echo   %ESC%[1;37m[5]%ESC%[0m %ESC%[1mПересобрать Hermes Desktop и запустить%ESC%[0m %ESC%[2m— Пересборка с RU локализацией%ESC%[0m
 echo.
 echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1;31mОчистить репозиторий%ESC%[0m %ESC%[2m— Удалить hermes-agent (данные сохраняются)%ESC%[0m
@@ -76,18 +62,13 @@ echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%
 echo.
 
 set "choice="
-if "%KOBOLD_ENABLED%"=="1" (
-    set /p "choice=%ESC%[33mВыберите действие (0-5, 8): %ESC%[0m"
-) else (
-    set /p "choice=%ESC%[33mВыберите действие (0-3, 5, 8): %ESC%[0m"
-)
+set /p "choice=%ESC%[33mВыберите действие (0-3, 5, 8): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
 if "%choice%"=="1" goto compare_locale_en
 if "%choice%"=="2" goto open_env
 if "%choice%"=="3" goto open_config_yaml
-if "%KOBOLD_ENABLED%"=="1" if "%choice%"=="4" goto debug_kobold
 if "%choice%"=="5" goto build_desktop
 if "%choice%"=="8" goto clean_hermes_repo
 goto menu
@@ -204,27 +185,6 @@ echo.
 
 start "" "%EDITOR_EXE%" "%CONFIG_YAML%"
 
-goto menu
-
-REM ============================================================================
-REM   [4] Запустить KoboldCpp (ОТЛАДКА — cmd /k, окно остаётся открытым)
-REM ============================================================================
-:debug_kobold
-cls
-echo.
-echo   %ESC%[1;33mОтладочный запуск KoboldCpp...%ESC%[0m
-echo.
-echo   %ESC%[1;33m  i   Окно консоли НЕ закроется после завершения KoboldCpp (cmd /k).%ESC%[0m
-echo   %ESC%[1;33m  i   Режим для чтения логов и поиска ошибок. Продакшн-запуск — из главного меню.%ESC%[0m
-echo.
-
-call "%SCRIPTS_DIR%\Start-Kobold.bat" start 0 1
-if %errorlevel% lss 0 (
-    echo.
-    echo   %ESC%[1;31m  [ОШИБКА] KoboldCpp не был запущен.%ESC%[0m
-    echo.
-    pause
-)
 goto menu
 
 REM ============================================================================

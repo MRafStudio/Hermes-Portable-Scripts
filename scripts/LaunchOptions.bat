@@ -10,7 +10,6 @@ REM   Пути и изоляция
 REM ============================================================================
 for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
-set "CONFIG_FILE=%SCRIPTS_DIR%\Config.ini"
 
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"

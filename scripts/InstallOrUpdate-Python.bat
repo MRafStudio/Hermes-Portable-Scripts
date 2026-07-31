@@ -6,20 +6,40 @@ setlocal enabledelayedexpansion
 set "AUTOCLOSE=0"
 if "%1"=="1" set "AUTOCLOSE=1"
 
-title Hermes Portable — Установка Python 3.11.9
+title Hermes Portable — Установка Python 3.11.15
 
 REM ============================================================================
 REM   Определение путей
 REM ============================================================================
 for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
+set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 
 REM ============================================================================
 REM   Путь к управляемому Python (куда uv ожидает)
 REM   Именно сюда install.ps1 и uv ставят Python по умолчанию
+REM   Приоритет: свежая 3.11.15, затем любая 3.11
 REM ============================================================================
-set "PYTHON_DIR=%APPDATA%\uv\python\cpython-3.11.9-windows-x86_64-none"
-set "PYTHON_EXE=%PYTHON_DIR%\python.exe"
+set "PYTHON_DIR="
+set "PYTHON_EXE="
+for /d %%d in ("%APPDATA%\uv\python\cpython-3.11.15*") do (
+    if not defined PYTHON_EXE (
+        if exist "%%d\python.exe" (
+            set "PYTHON_DIR=%%d"
+            set "PYTHON_EXE=%%d\python.exe"
+        )
+    )
+)
+if not defined PYTHON_EXE (
+    for /d %%d in ("%APPDATA%\uv\python\cpython-3.11*") do (
+        if not defined PYTHON_EXE (
+            if exist "%%d\python.exe" (
+                set "PYTHON_DIR=%%d"
+                set "PYTHON_EXE=%%d\python.exe"
+            )
+        )
+    )
+)
 
 REM ============================================================================
 REM   Изоляция данных (ничего в систему!)
@@ -52,7 +72,7 @@ echo.
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
-echo  %ESC%[1;36m##%ESC%[0m             %ESC%[1;37mPython 3.11.9 Portable%ESC%[0m   —   %ESC%[1;33mУстановка / Обновление%ESC%[0m            %ESC%[1;36m##%ESC%[0m
+echo  %ESC%[1;36m##%ESC%[0m             %ESC%[1;37mPython 3.11.15 Portable%ESC%[0m   —   %ESC%[1;33mУстановка / Обновление%ESC%[0m            %ESC%[1;36m##%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
@@ -108,74 +128,61 @@ if exist "%PYTHON_DIR%" (
 )
 
 REM ============================================================================
-REM   [2/3] Загрузка Python 3.11.9
+REM   [2/3] Установка Python через uv
+REM   (uv-сборки! python.org НЕ имеет 3.11.15 — только до 3.11.9)
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[2/3]%ESC%[0m %ESC%[1mЗагрузка Python 3.11.9...%ESC%[0m
-echo   %ESC%[2m       ~32 МБ, подождите...%ESC%[0m
+echo   %ESC%[1;33m[2/3]%ESC%[0m %ESC%[1mУстановка Python 3.11.15 через uv...%ESC%[0m
+echo   %ESC%[2m       ~30 МБ, подождите...%ESC%[0m
 
-if exist "%TEMP%\python-3.11.9-amd64.zip" del "%TEMP%\python-3.11.9-amd64.zip" 2>nul
-
-REM --- Загрузка (curl / PowerShell fallback) ---
-where curl >nul 2>nul
-if !errorlevel! equ 0 (
-    curl -L -o "%TEMP%\python-3.11.9-amd64.zip" "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.zip"
-    if errorlevel 1 goto :dl_failed_py
-) else (
-    powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; Invoke-WebRequest -Uri 'https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.zip' -OutFile '%TEMP%\python-3.11.9-amd64.zip'"
-    if errorlevel 1 goto :dl_failed_py
-)
-goto :dl_ok_py
-:dl_failed_py
-echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить Python.%ESC%[0m
-goto error_exit
-:dl_ok_py
-echo   %ESC%[1;32m  +   Загрузка завершена.%ESC%[0m
-
-REM ============================================================================
-REM   [2/3] Распаковка
-REM ============================================================================
-echo.
-echo   %ESC%[1;33m[2/3]%ESC%[0m %ESC%[1mРаспаковка...%ESC%[0m
-
-if exist "%PYTHON_DIR%" rmdir /s /q "%PYTHON_DIR%"
-mkdir "%PYTHON_DIR%"
-
-REM --- Приоритет: 7-Zip → PowerShell ---
-echo   %ESC%[2m       Попытка распаковки через 7-Zip...%ESC%[0m
-
-set "SEVENZIP="
-where 7z >nul 2>nul
-if !errorlevel! equ 0 (
-    for /f "tokens=*" %%a in ('where 7z 2^>nul') do set "SEVENZIP=%%a"
-)
-if not defined SEVENZIP if exist "C:\Program Files\7-Zip\7z.exe" set "SEVENZIP=C:\Program Files\7-Zip\7z.exe"
-if not defined SEVENZIP if exist "C:\Program Files (x86)\7-Zip\7z.exe" set "SEVENZIP=C:\Program Files (x86)\7-Zip\7z.exe"
-
-if defined SEVENZIP (
-    echo   %ESC%[2m       Найден 7-Zip: %SEVENZIP%%ESC%[0m
-    "%SEVENZIP%" x "%TEMP%\python-3.11.9-amd64.zip" -o"%PYTHON_DIR%" -y >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   Распаковка через 7-Zip завершена.%ESC%[0m
-        goto unpack_done
-    )
-    echo   %ESC%[1;33m  .   7-Zip не справился. PowerShell fallback...%ESC%[0m
-)
-
-echo   %ESC%[2m       Распаковка через PowerShell...%ESC%[0m
-powershell -NoProfile -Command "Expand-Archive -Path '%TEMP%\python-3.11.9-amd64.zip' -DestinationPath '%PYTHON_DIR%' -Force"
-if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось распаковать архив%ESC%[0m
-    rmdir /s /q "%PYTHON_DIR%" 2>nul
-    del "%TEMP%\python-3.11.9-amd64.zip" 2>nul
+REM Определяем uv: HERMES_HOME\bin → scripts\bin
+set "UV_EXE=%HERMES_HOME%\bin\uv.exe"
+if not exist "%UV_EXE%" set "UV_EXE=%SCRIPTS_DIR%\bin\uv.exe"
+if not exist "%UV_EXE%" (
+    echo   %ESC%[1;31m[ОШИБКА] uv.exe не найден%ESC%[0m
     goto error_exit
 )
-echo   %ESC%[1;32m  +   Распаковка через PowerShell завершена.%ESC%[0m
 
-:unpack_done
-del "%TEMP%\python-3.11.9-amd64.zip" 2>nul
+REM Ставим в ИЗОЛИРОВАННЫЙ каталог (uv на Windows берёт AppData через WinAPI!)
+set "UV_PYTHON_INSTALL_DIR=%APPDATA%\uv\python"
 
-echo   %ESC%[1;32m  +   Python распакован.%ESC%[0m
+"%UV_EXE%" python install 3.11.15
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;33m  .   3.11.15 недоступна, пробуем 3.11...%ESC%[0m
+    "%UV_EXE%" python install 3.11
+)
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось установить Python через uv%ESC%[0m
+    goto error_exit
+)
+
+REM Обновляем PYTHON_DIR/PYTHON_EXE после установки (приоритет 3.11.15)
+set "PYTHON_DIR="
+set "PYTHON_EXE="
+for /d %%d in ("%APPDATA%\uv\python\cpython-3.11.15*") do (
+    if not defined PYTHON_EXE (
+        if exist "%%d\python.exe" (
+            set "PYTHON_DIR=%%d"
+            set "PYTHON_EXE=%%d\python.exe"
+        )
+    )
+)
+if not defined PYTHON_EXE (
+    for /d %%d in ("%APPDATA%\uv\python\cpython-3.11*") do (
+        if not defined PYTHON_EXE (
+            if exist "%%d\python.exe" (
+                set "PYTHON_DIR=%%d"
+                set "PYTHON_EXE=%%d\python.exe"
+            )
+        )
+    )
+)
+if not defined PYTHON_EXE (
+    echo   %ESC%[1;31m[ОШИБКА] Python не найден после установки.%ESC%[0m
+    goto error_exit
+)
+
+echo   %ESC%[1;32m  +   Python установлен: %PYTHON_EXE%%ESC%[0m
 set /p "=%ESC%[2m       Версия: %ESC%[0m" <nul
 "%PYTHON_EXE%" --version 2>nul
 
@@ -244,7 +251,7 @@ exit /b 1
 :success_exit
 echo.
 echo  %ESC%[36m--------------------------------------------------------------------------------%ESC%[0m
-echo   %ESC%[1;32mPython 3.11.9 успешно установлен!%ESC%[0m
+echo   %ESC%[1;32mPython 3.11.15 успешно установлен!%ESC%[0m
 echo   %ESC%[2m  Путь: %PYTHON_DIR%%ESC%[0m
 echo   %ESC%[2m  Изоляция: %DATA_DIR%%ESC%[0m
 echo  %ESC%[36m--------------------------------------------------------------------------------%ESC%[0m
