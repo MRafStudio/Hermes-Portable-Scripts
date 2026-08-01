@@ -19,12 +19,11 @@ set "DATA_DIR=%ROOT_DIR%\data"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"
 
 REM ============================================================================
-REM   Синхронизация переменных окружения пользователя с корнем запуска
-REM   (реестр всегда указывает на тот корень, из которого запущен Start.bat)
+REM   Реестр НЕ трогаем (портативный режим):
+REM   HERMES_HOME/HOME/APPDATA/PATH задаются в окружении процесса ниже.
+REM   Fix-UserEnv.ps1 остался в scripts\patch\ как утилита для ручного
+REM   выравнивания реестра (если когда-нибудь понадобится).
 REM ============================================================================
-if exist "%SCRIPTS_DIR%\patch\Fix-UserEnv.ps1" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\Fix-UserEnv.ps1" -RootDir "%ROOT_DIR%"
-)
 
 REM ============================================================================
 REM   Рабочая директория сессий: terminal.cwd в config.yaml всегда = %ROOT_DIR%\data\home
