@@ -31,8 +31,8 @@ REM   Рабочая директория сессий: terminal.cwd в config.y
 REM   (Electron иначе берёт системный профиль через WinAPI — сессии падают в C:\Users\<user>)
 REM ============================================================================
 set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
-if exist "%SCRIPTS_DIR%\patch\patch_terminal_cwd.ps1" if exist "%CONFIG_YAML%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch_terminal_cwd.ps1" -ConfigPath "%CONFIG_YAML%" -Cwd "%ROOT_DIR%\data\home"
+if exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" if exist "%CONFIG_YAML%" (
+    "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set terminal.cwd "%ROOT_DIR%\data\home"
 )
 
 REM ============================================================================

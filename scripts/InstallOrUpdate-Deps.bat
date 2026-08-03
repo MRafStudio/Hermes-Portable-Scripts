@@ -581,13 +581,15 @@ if not exist "%HERMES_HOME%\image_cache" mkdir "%HERMES_HOME%\image_cache" 2>nul
 if not exist "%HERMES_HOME%\audio_cache" mkdir "%HERMES_HOME%\audio_cache" 2>nul
 if not exist "%HERMES_HOME%\memories" mkdir "%HERMES_HOME%\memories" 2>nul
 
-REM --- Копируем config.yaml из шаблона, если нет ---
+REM --- Создаём config.yaml штатной командой hermes config set, если нет ---
 if not exist "%HERMES_HOME%\config.yaml" (
-    if exist "%SCRIPTS_DIR%\patch\default_config.yaml" (
-        copy /Y "%SCRIPTS_DIR%\patch\default_config.yaml" "%HERMES_HOME%\config.yaml"
-        echo   %ESC%[1;32m  +   config.yaml скопирован из default_config.yaml.%ESC%[0m
+    if exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" (
+        echo   %ESC%[1;33m  .   config.yaml нет — создаём через hermes config set...%ESC%[0m
+        "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set display.skin mono
+        "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set display.language ru
+        echo   %ESC%[1;32m  +   config.yaml создан штатной командой.%ESC%[0m
     ) else (
-        echo   %ESC%[1;33m  .   default_config.yaml не найден, создаю минимальный...%ESC%[0m
+        echo   %ESC%[1;33m  .   hermes.exe не найден, создаю минимальный...%ESC%[0m
         echo display:> "%HERMES_HOME%\config.yaml"
         echo.  language: ru>> "%HERMES_HOME%\config.yaml"
         echo   %ESC%[1;32m  +   config.yaml создан.%ESC%[0m
