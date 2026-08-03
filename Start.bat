@@ -186,11 +186,18 @@ if !WEB_INSTALLED! equ 1 (
     echo.
     echo %ESC%[1;33m-%ESC%[0m %ESC%[1mЗапуск Hermes Web %ESC%[2m^(dashboard^)%ESC%[0m...%ESC%[0m
     echo.
-    if !SERVICE_INSTALLED! equ 1 (
-        echo %ESC%[1;32m+ %ESC%[0m Служба работает — открываем web UI в браузере.
+    REM Порт dashboard уже слушается (служба ИЛИ ручной запуск) — просто открываем браузер!
+    netstat -ano | findstr /c:":9119" | findstr /c:"LISTENING" >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo %ESC%[1;32m+ %ESC%[0m Сервер dashboard уже работает — открываем web UI в браузере.
+        start "" "http://localhost:9119"
+    ) else if !SERVICE_INSTALLED! equ 1 (
+        echo %ESC%[1;33m. %ESC%[0m Служба установлена, но не запущена — запускаем...
+        net start !SERVICE_NAME! >nul 2>&1
+        echo %ESC%[1;32m+ %ESC%[0m Служба запущена — открываем web UI в браузере.
         start "" "http://localhost:9119"
     ) else (
-        echo %ESC%[2m       Служба не установлена — запускаем dashboard в отдельном окне.%ESC%[0m
+        echo %ESC%[2m       Dashboard не запущен — запускаем в отдельном окне.%ESC%[0m
         echo %ESC%[2m       Для постоянной работы установите службу: [1] → [4]%ESC%[0m
         start "Hermes Web" cmd /k ""%REPO_DIR%\venv\Scripts\hermes.exe" dashboard --host 0.0.0.0 --port 9119 --skip-build"
     )
