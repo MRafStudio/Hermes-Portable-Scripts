@@ -312,9 +312,17 @@ echo   %ESC%[1;33m[1/6]%ESC%[0m %ESC%[1mСоздание виртуальног�
 
 cd /d "%REPO_DIR%"
 
-if exist "venv" (
-    echo   %ESC%[1;33m  .   venv существует. Пересоздание...%ESC%[0m
-    rmdir /s /q "venv" 2>nul
+if exist "venv\Scripts\python.exe" (
+    REM Проверяем валидность: Python 3.11 + hermes_cli импортируется
+    "venv\Scripts\python.exe" -c "import sys; assert sys.version_info[:2]==(3,11); import hermes_cli" >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo   %ESC%[1;32m  +   venv валиден ^(Python 3.11 + hermes_cli^) — пересоздание не нужно.%ESC%[0m
+    ) else (
+        echo   %ESC%[1;33m  .   venv невалиден ^(версия/пакеты^). Пересоздание...%ESC%[0m
+        rmdir /s /q "venv" 2>nul
+    )
+) else (
+    echo   %ESC%[1;33m  .   venv не найден. Создание...%ESC%[0m
 )
 
 REM PYTHON_EXE уже выбран выше (маска cpython-3.11* или альтернативы) — используем его
@@ -538,36 +546,10 @@ echo   %ESC%[1;32m  +   Desktop-зависимости установлены.%E
 
 :desktop_deps_done
 REM ============================================================================
-REM   Патч MIME types для Windows (JS modules fail with text/plain)
+REM   Патч MIME types ОТКЛЮЧЁН: свежий web_server.py уже содержит MIME-типы
+REM   (".mjs": "application/javascript" и др. — добавлено upstream).
+REM   Файл patch_hermes_mime.ps1 оставлен на случай отката.
 REM ============================================================================
-echo.
-echo   %ESC%[1;33mПатч MIME types...%ESC%[0m
-
-set "PATCH_SCRIPT=%SCRIPTS_DIR%\patch\patch_hermes_mime.ps1"
-
-if not exist "%PATCH_SCRIPT%" (
-    echo   %ESC%[1;33m  .   Скрипт патча не найден: %PATCH_SCRIPT%%ESC%[0m
-    goto patch_done
-)
-
-if not exist "%REPO_DIR%\hermes_cli\web_server.py" (
-    echo   %ESC%[1;33m  .   web_server.py не найден. Пропускаем.%ESC%[0m
-    goto patch_done
-)
-
-REM --- Не глушим вывод
-powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%PATCH_SCRIPT%" -RepoDir "%REPO_DIR%"
-set "PATCH_RESULT=!errorlevel!"
-
-if !PATCH_RESULT! equ 0 (
-    echo   %ESC%[1;32m  +   Патч MIME types применён.%ESC%[0m
-) else if !PATCH_RESULT! equ 1 (
-    echo   %ESC%[1;33m  .   Патч уже был применён ранее.%ESC%[0m
-) else (
-    echo   %ESC%[1;31m  [ОШИБКА] Патч не применён ^(код: !PATCH_RESULT!^)%ESC%[0m
-    echo   %ESC%[33m       Проверьте вывод PowerShell выше.%ESC%[0m
-)
-
 :patch_done
 
 REM Создаём подкаталоги HERMES_HOME
