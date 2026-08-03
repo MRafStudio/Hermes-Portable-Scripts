@@ -111,13 +111,15 @@ if !SERVICE_INSTALLED! equ 1 (
 echo.
 echo   %ESC%[1;33mВыберите действие:%ESC%[0m
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановить / Обновить Hermes Desktop%ESC%[0m
-if !DESKTOP_INSTALLED! equ 1 (
-    echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mУстановить службу Hermes %ESC%[2m^(удалённый доступ^)%ESC%[0m
+echo.
+if !SERVICE_INSTALLED! equ 0 (
+    echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mУстановить службу Hermes %ESC%[2m^(удалённый доступ^)%ESC%[0m
 )
 if !SERVICE_INSTALLED! equ 1 (
-    echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mУдалить службу Hermes%ESC%[0m
-    echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mПерезапустить службу Hermes%ESC%[0m
+    echo   %ESC%[1;37m[5]%ESC%[0m %ESC%[1mПерезапустить службу Hermes%ESC%[0m
+    echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mУдалить службу Hermes%ESC%[0m
 )
+echo.
 if !DESKTOP_INSTALLED! equ 1 (
     echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mГайд: подключение с другого компьютера%ESC%[0m
 )
@@ -130,9 +132,9 @@ set /p "choice=%ESC%[33mВыберите действие: %ESC%[0m"
 set "choice=!choice: =!"
 if "!choice!"=="" goto menu
 if "!choice!"=="1" goto install_desktop
-if "!choice!"=="2" goto install_service
-if "!choice!"=="3" goto remove_service
-if "!choice!"=="4" goto restart_service
+if "!choice!"=="4" goto install_service
+if "!choice!"=="5" goto restart_service
+if "!choice!"=="6" goto remove_service
 if "!choice!"=="8" goto connect_guide
 if "!choice!"=="0" goto exit
 goto menu
