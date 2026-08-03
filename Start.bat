@@ -79,7 +79,7 @@ set "PS_WRAPPER=%TEMP%\ps_wrapper.bat"
     echo powershell -NoProfile -NonInteractive %%*
 ) > "%PS_WRAPPER%"
 
-for /f "usebackq" %%a in (`%PS_WRAPPER% -Command "Write-Host ([char]27) -NoNewline"`) do set "ESC=%%a"
+for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 :menu
 
