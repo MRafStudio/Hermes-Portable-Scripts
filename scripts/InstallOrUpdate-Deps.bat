@@ -5,6 +5,9 @@ setlocal enabledelayedexpansion
 
 set "AUTOCLOSE=0"
 if "%1"=="1" set "AUTOCLOSE=1"
+REM %2 = MODE: 0 = полный (Desktop), 1 = web-сервер (без Electron)
+set "MODE=0"
+if "%2"=="1" set "MODE=1"
 
 title Установка зависимостей
 
@@ -506,9 +509,13 @@ if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
 
 :playwright_done
 REM ============================================================================
-REM   ШАГ 6: Desktop-зависимости (Electron)
+REM   ШАГ 6: Desktop-зависимости (Electron) — пропускаем в web-режиме
 REM ============================================================================
 echo.
+if "!MODE!"=="1" (
+    echo   %ESC%[1;33m[6/6]%ESC%[0m %ESC%[1mDesktop-зависимости (Electron)%ESC%[0m — пропущено ^(web-режим сервера^)
+    goto desktop_deps_done
+)
 echo   %ESC%[1;33m[6/6]%ESC%[0m %ESC%[1mУстановка Desktop-зависимостей (Electron)...%ESC%[0m
 
 if "!HAS_NODE!"=="0" (

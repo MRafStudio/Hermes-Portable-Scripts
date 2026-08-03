@@ -100,6 +100,14 @@ if !DESKTOP_INSTALLED! equ 1 (
 ) else (
     echo %ESC%[1;33m. %ESC%[0m Desktop App %ESC%[2m^(не собран^)%ESC%[0m
 )
+REM --- Web UI (dashboard): собран ли web_dist ---
+set "WEB_INSTALLED=0"
+if exist "%REPO_DIR%\hermes_cli\web_dist\index.html" set "WEB_INSTALLED=1"
+if !WEB_INSTALLED! equ 1 (
+    echo %ESC%[1;32m+ %ESC%[0m Web UI %ESC%[2m^(dashboard^)%ESC%[0m
+) else (
+    echo %ESC%[1;33m. %ESC%[0m Web UI %ESC%[2m^(не собран — [1] п.1^)%ESC%[0m
+)
 
 REM --- Статус службы ЭТОГО инстанса (по описанию с ROOT_DIR) ---
 set "SERVICE_NAME="
@@ -116,11 +124,19 @@ echo.
 echo %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановка / Обновление компонентов%ESC%[0m
 echo %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИнструменты%ESC%[0m
 echo.
-echo %ESC%[1;37m[5]%ESC%[0m %ESC%[36mHermes — Варианты запуска%ESC%[0m
-
-REM Быстрый запуск Desktop — только если собран
+REM [5] Варианты запуска — только если что-то установлено
+set "ANY_INSTALLED=0"
+if !DESKTOP_INSTALLED! equ 1 set "ANY_INSTALLED=1"
+if !WEB_INSTALLED! equ 1 set "ANY_INSTALLED=1"
+if !ANY_INSTALLED! equ 1 (
+    echo %ESC%[1;37m[5]%ESC%[0m %ESC%[36mHermes — Варианты запуска%ESC%[0m
+)
+REM Быстрый запуск: Desktop приоритет, иначе Web
 if !DESKTOP_INSTALLED! equ 1 (
     echo %ESC%[1;6m[*]%ESC%[0m %ESC%[32mБыстрый запуск Hermes Desktop%ESC%[0m
+    echo.
+) else if !WEB_INSTALLED! equ 1 (
+    echo %ESC%[1;6m[*]%ESC%[0m %ESC%[32mБыстрый запуск Hermes Web %ESC%[2m^(dashboard^)%ESC%[0m
     echo.
 )
 
@@ -166,15 +182,29 @@ if !DESKTOP_INSTALLED! equ 1 (
     echo.
     call "%SCRIPTS_DIR%\Start-Hermes-Desktop.bat" 1
     goto menu
-) else (
+)
+if !WEB_INSTALLED! equ 1 (
     cls
     echo.
-    echo %ESC%[1;31m[ОШИБКА] Desktop App не собран.%ESC%[0m
-    echo %ESC%[33m Запустите установку через пункт меню [1]%ESC%[0m
+    echo %ESC%[1;33m-%ESC%[0m %ESC%[1mЗапуск Hermes Web %ESC%[2m^(dashboard^)%ESC%[0m...%ESC%[0m
     echo.
-    pause
+    if !SERVICE_INSTALLED! equ 1 (
+        echo %ESC%[1;32m+ %ESC%[0m Служба работает — открываем web UI в браузере.
+        start "" "http://localhost:9119"
+    ) else (
+        echo %ESC%[2m       Служба не установлена — запускаем dashboard в отдельном окне.%ESC%[0m
+        echo %ESC%[2m       Для постоянной работы установите службу: [1] → [4]%ESC%[0m
+        start "Hermes Web" cmd /k ""%REPO_DIR%\venv\Scripts\hermes.exe" dashboard --host 0.0.0.0 --port 9119 --skip-build"
+    )
     goto menu
 )
+cls
+echo.
+echo %ESC%[1;31m[ОШИБКА] Ничего не установлено.%ESC%[0m
+echo %ESC%[33m Начните с установки: [1] Установка / Обновление компонентов%ESC%[0m
+echo.
+pause
+goto menu
 
 :exit
 popd

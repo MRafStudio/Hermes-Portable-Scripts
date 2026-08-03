@@ -92,7 +92,8 @@ if !DESKTOP_INSTALLED! equ 0 (
 
     set "choice=!choice: =!"
     if "!choice!"=="" goto menu
-    if "!choice!"=="1" goto install_desktop
+    if "!choice!"=="1" goto install_web
+if "!choice!"=="2" goto install_desktop
     if "!choice!"=="0" goto exit
     goto menu
 )
@@ -110,7 +111,8 @@ if !SERVICE_INSTALLED! equ 1 (
 )
 echo.
 echo   %ESC%[1;33mВыберите действие:%ESC%[0m
-echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановить / Обновить Hermes Desktop%ESC%[0m
+echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановить / Обновить Hermes Web %ESC%[2m^(сервер, без Desktop^)%ESC%[0m
+echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mУстановить / Обновить Hermes Desktop%ESC%[0m
 echo.
 if !SERVICE_INSTALLED! equ 0 (
     echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mУстановить службу Hermes %ESC%[2m^(удалённый доступ^)%ESC%[0m
@@ -133,12 +135,20 @@ set /p "choice=%ESC%[33mВыберите действие: %ESC%[0m"
 
 set "choice=!choice: =!"
 if "!choice!"=="" goto menu
-if "!choice!"=="1" goto install_desktop
+if "!choice!"=="1" goto install_web
+if "!choice!"=="2" goto install_desktop
 if "!choice!"=="4" goto install_service
 if "!choice!"=="5" goto restart_service
 if "!choice!"=="6" goto remove_service
 if "!choice!"=="8" goto connect_guide
 if "!choice!"=="0" goto exit
+goto menu
+
+:install_web
+cls
+echo.
+echo   %ESC%[1;33m-%ESC%[0m %ESC%[1mЗапуск установки Hermes Web ^(сервер^)...%ESC%[0m
+call "%SCRIPTS_DIR%\InstallOrUpdate-Web.bat" 0
 goto menu
 
 :install_desktop
