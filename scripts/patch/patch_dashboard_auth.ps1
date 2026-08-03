@@ -3,6 +3,8 @@
 # Зачем: dashboard ОТКАЗЫВАЕТСЯ слушать 0.0.0.0 (удалённый доступ) без настроенного
 # auth-провайдера (June 2026 hardening; --insecure больше не работает).
 # Логика: секция dashboard: — обновляем/добавляем basic_auth; нет секции — добавляем.
+# ВАЖНО: при повторном запуске СТАРЫЕ username/password_hash пропускаются
+# (иначе дубликаты ключей в YAML — мусор в config.yaml).
 
 param(
     [Parameter(Mandatory=$true)]
@@ -71,6 +73,17 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
             $basicAuthDone = $true
             $basicAuthFound = $true
             $modified = $true
+            # Пропускаем СТАРЫЕ username/password_hash (защита от дубликатов)
+            while ($i + 1 -lt $lines.Count) {
+                $nxtLine = $lines[$i + 1]
+                $nxtTrim = $nxtLine.TrimStart()
+                $nxtIndent = $nxtLine.Length - $nxtTrim.Length
+                if ($nxtTrim -match '^(username|password_hash):' -and $nxtIndent -gt $indent) {
+                    $i++
+                } else {
+                    break
+                }
+            }
             continue
         }
         $result += $line
