@@ -2,6 +2,7 @@
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
+cls
 
 title Открытие порта в брандмауэре
 
