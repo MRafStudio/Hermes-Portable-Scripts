@@ -121,13 +121,15 @@ if !SERVICE_INSTALLED! equ 1 (
 )
 
 echo.
-echo %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановка / Обновление компонентов%ESC%[0m
-echo %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИнструменты%ESC%[0m
-echo.
-REM [5] Варианты запуска — только если что-то установлено
+REM [2] Инструменты и [5] Варианты запуска — только если что-то установлено
 set "ANY_INSTALLED=0"
 if !DESKTOP_INSTALLED! equ 1 set "ANY_INSTALLED=1"
 if !WEB_INSTALLED! equ 1 set "ANY_INSTALLED=1"
+echo %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановка / Обновление компонентов%ESC%[0m
+if !ANY_INSTALLED! equ 1 (
+    echo %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИнструменты%ESC%[0m
+)
+echo.
 if !ANY_INSTALLED! equ 1 (
     echo %ESC%[1;37m[5]%ESC%[0m %ESC%[36mHermes — Варианты запуска%ESC%[0m
 )
@@ -144,11 +146,7 @@ echo %ESC%[1;37m[0]%ESC%[0m %ESC%[1mВыход%ESC%[0m
 echo.
 
 set "choice=INVALID"
-if !DESKTOP_INSTALLED! equ 1 (
-    set /p "choice=%ESC%[33mВыберите действие (0-2, 5, Enter для быстрого запуска): %ESC%[0m"
-) else (
-    set /p "choice=%ESC%[33mВыберите действие (0-2, 5): %ESC%[0m"
-)
+set /p "choice=%ESC%[33mВыберите действие (Enter — быстрый запуск): %ESC%[0m"
 
 set "choice=%choice: =%"
 if "%choice%"=="INVALID" goto launch
