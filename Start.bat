@@ -64,21 +64,6 @@ if not exist "%PYTHONUSERBASE%" mkdir "%PYTHONUSERBASE%" 2>nul
 if not exist "%HF_HOME%" mkdir "%HF_HOME%" 2>nul
 if not exist "%HERMES_HOME%" mkdir "%HERMES_HOME%" 2>nul
 
-REM ============================================================================
-REM   PowerShell wrapper (изоляция) — ТОЛЬКО В START.BAT!
-REM ============================================================================
-set "PS_WRAPPER=%TEMP%\ps_wrapper.bat"
-(
-    echo @echo off
-    echo set "LOCALAPPDATA=%DATA_DIR%\localappdata"
-    echo set "APPDATA=%DATA_DIR%\appdata"
-    echo set "TEMP=%TEMP%"
-    echo set "TMP=%TMP%"
-    echo set "HOME=%HOME%"
-    echo set "USERPROFILE=%USERPROFILE%"
-    echo powershell -NoProfile -NonInteractive %%*
-) > "%PS_WRAPPER%"
-
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 :menu
