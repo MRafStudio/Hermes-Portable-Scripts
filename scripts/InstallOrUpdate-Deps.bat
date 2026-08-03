@@ -137,6 +137,29 @@ if not exist "%REPO_DIR%\.git" (
     goto error_exit
 )
 
+REM --- Python 3.11: если не найден — uv сам установит (uv python install) ---
+if not defined PYTHON_EXE (
+    echo   %ESC%[1;33m  .   Python 3.11 не найден — устанавливаем через uv...%ESC%[0m
+    "%UV_EXE%" python install 3.11
+    if errorlevel 1 (
+        echo   %ESC%[1;31m  [ОШИБКА] uv python install 3.11 не удалось.%ESC%[0m
+        goto error_exit
+    )
+    for /d %%d in ("%APPDATA%\uv\python\cpython-3.11*") do (
+        if not defined PYTHON_EXE (
+            if exist "%%d\python.exe" (
+                set "PYTHON_DIR=%%d"
+                set "PYTHON_EXE=%%d\python.exe"
+            )
+        )
+    )
+    if not defined PYTHON_EXE (
+        echo   %ESC%[1;31m  [ОШИБКА] Python 3.11 не найден после установки uv.%ESC%[0m
+        goto error_exit
+    )
+    echo   %ESC%[1;32m  +   Python установлен: !PYTHON_EXE!%ESC%[0m
+)
+
 REM ============================================================================
 REM   Определение Node.js (глобальный -> локальный) — ДО любых npm-операций!
 REM   Глобальный в приоритете (как в InstallOrUpdate-Desktop.bat).
@@ -554,6 +577,44 @@ if not exist "%HERMES_HOME%\config.yaml" (
         echo.  language: ru>> "%HERMES_HOME%\config.yaml"
         echo   %ESC%[1;32m  +   config.yaml создан.%ESC%[0m
     )
+)
+
+REM ============================================================================
+REM   ШАГ 7: Окружение (вместо install.ps1): .env, SOUL.md, skills, bootstrap
+REM ============================================================================
+echo.
+echo   %ESC%[1;33m[7/6]%ESC%[0m %ESC%[1mНастройка окружения...%ESC%[0m
+
+REM --- .env из шаблона (если нет) ---
+if not exist "%HERMES_HOME%\.env" (
+    if exist "%REPO_DIR%\.env.example" (
+        copy /Y "%REPO_DIR%\.env.example" "%HERMES_HOME%\.env" >nul
+        echo   %ESC%[1;32m  +   .env создан из шаблона.%ESC%[0m
+    )
+)
+
+REM --- SOUL.md (если нет) ---
+if not exist "%HERMES_HOME%\SOUL.md" (
+    if exist "%SCRIPTS_DIR%\patch\default_soul.md" (
+        copy /Y "%SCRIPTS_DIR%\patch\default_soul.md" "%HERMES_HOME%\SOUL.md" >nul
+        echo   %ESC%[1;32m  +   SOUL.md создан.%ESC%[0m
+    )
+)
+
+REM --- Skills sync (как install.ps1: python tools\skills_sync.py) ---
+if exist "%REPO_DIR%\venv\Scripts\python.exe" (
+    if exist "%REPO_DIR%\tools\skills_sync.py" (
+        echo   %ESC%[1;33m  .   Синхронизация встроенных skills...%ESC%[0m
+        set "PYTHONIOENCODING=utf-8"
+        "%REPO_DIR%\venv\Scripts\python.exe" "%REPO_DIR%\tools\skills_sync.py" 2>nul
+        echo   %ESC%[1;32m  +   Skills синхронизированы.%ESC%[0m
+    )
+)
+
+REM --- Bootstrap marker (как install.ps1: .hermes-bootstrap-complete) ---
+if not exist "%REPO_DIR%\.hermes-bootstrap-complete" (
+    type nul > "%REPO_DIR%\.hermes-bootstrap-complete" 2>nul
+    echo   %ESC%[1;32m  +   Bootstrap marker создан.%ESC%[0m
 )
 
 cd /d "%ROOT_DIR%"
