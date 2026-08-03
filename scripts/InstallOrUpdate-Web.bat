@@ -351,14 +351,11 @@ if !PLAYWRIGHT_OK! equ 0 (
     set "NEEDS_DEPS=1"
 )
 
-REM 6. Проверяем Desktop-зависимости (Electron)
-REM Electron может быть в node_modules или в кэше
-set "ELECTRON_OK=0"
-if exist "%HERMES_HOME%\hermes-agent\apps\desktop\node_modules\electron\package.json" set "ELECTRON_OK=1"
-if exist "%LOCALAPPDATA%\electron\Cache" set "ELECTRON_OK=1"
-if exist "%HERMES_HOME%\hermes-agent\apps\desktop\node_modules\electron\dist\electron.exe" set "ELECTRON_OK=1"
-if !ELECTRON_OK! equ 0 (
-    echo   %ESC%[1;33m  [!]  Desktop-зависимости ^(Electron^) не установлены.%ESC%[0m
+REM 6. Проверяем web-инструменты (rg, ffmpeg, TUI) — Electron не нужен!
+set "WEBTOOLS_OK=0"
+if exist "%HERMES_HOME%\bin\rg.exe" if exist "%HERMES_HOME%\bin\ffmpeg.exe" if exist "%HERMES_HOME%\hermes-agent\ui-tui\node_modules" set "WEBTOOLS_OK=1"
+if !WEBTOOLS_OK! equ 0 (
+    echo   %ESC%[1;33m  [!]  Web-инструменты ^(rg/ffmpeg/TUI^) не установлены.%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 
