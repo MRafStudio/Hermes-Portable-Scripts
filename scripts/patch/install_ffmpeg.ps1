@@ -6,20 +6,20 @@ param(
     [string]$HermesHome = $env:HERMES_HOME
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $ProgressPreference = "SilentlyContinue"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $binDir = "$HermesHome\bin"
 $target = "$binDir\ffmpeg.exe"
 if (Test-Path $target) {
-    # Проверка размера: битый/частичный файл (< 10 МБ) переустанавливаем
-    $size = (Get-Item $target).Length
-    if ($size -ge 10000000) {
+    # Проверка работоспособности: ffmpeg -version (exit 0 = файл целый)
+    & $target -version 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
         Write-Host "  +   ffmpeg already installed: $target" -ForegroundColor Green
         exit 0
     }
-    Write-Host "  .   ffmpeg.exe corrupted (small size), reinstalling..." -ForegroundColor Yellow
+    Write-Host "  .   ffmpeg.exe broken (version check failed), reinstalling..." -ForegroundColor Yellow
     Remove-Item $target -Force
 }
 
@@ -45,7 +45,7 @@ $gitCurl = $curlCandidates | Where-Object { Test-Path $_ } | Select-Object -Firs
 function Download-With($url, $out) {
     # 1) git-curl (самый надёжный: TLS + редиректы)
     if ($gitCurl) {
-        & $gitCurl -L --fail --connect-timeout 30 --max-time 900 -o $out $url 2>$null
+        & $gitCurl -sS -L --fail --connect-timeout 30 --max-time 900 -o $out $url 2>$null
         if ($LASTEXITCODE -eq 0 -and (Test-Path $out) -and ((Get-Item $out).Length -gt 10000000)) { return $true }
         if (Test-Path $out) { Remove-Item $out -Force }
     }
@@ -83,13 +83,16 @@ foreach ($url in $mirrors) {
             if ($entry) {
                 [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
                 $z.Dispose()
-                $size = (Get-Item $target).Length
-                if ($size -ge 10000000) {
+                # Проверка работоспособности: ffmpeg -version
+                & $target -version 2>$null | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    $size = (Get-Item $target).Length
                     Write-Host "  +   ffmpeg installed: $target ($([math]::Round($size/1MB,1)) MB)" -ForegroundColor Green
                     Remove-Item $zip -Force
                     $ok = $true
                     break
                 }
+                Write-Host "  .   extracted ffmpeg.exe broken, trying next mirror..." -ForegroundColor Yellow
                 Remove-Item $target -Force
             }
         } catch {
