@@ -70,6 +70,12 @@ for %%P in (
 )
 :desktop_found
 
+REM --- Статус службы ЭТОГО инстанса (по описанию с ROOT_DIR) ---
+set "SERVICE_NAME="
+set "SERVICE_INSTALLED=0"
+call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_DIR%" <nul
+if defined SERVICE_NAME set "SERVICE_INSTALLED=1"
+
 REM ============================================================================
 REM   Вывод меню
 REM ============================================================================
@@ -97,10 +103,24 @@ if !DESKTOP_INSTALLED! equ 1 (
 ) else (
     echo     %ESC%[1;33m.%ESC%[0m Desktop App %ESC%[2m^(не собран^)%ESC%[0m
 )
+if !SERVICE_INSTALLED! equ 1 (
+    echo     %ESC%[1;32m+%ESC%[0m Служба: %ESC%[1m!SERVICE_NAME!%ESC%[0m
+) else (
+    echo     %ESC%[1;33m.%ESC%[0m Служба Hermes %ESC%[2m^(не установлена^)%ESC%[0m
+)
 echo.
 echo   %ESC%[1;33mВыберите действие:%ESC%[0m
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановить / Обновить Hermes Desktop%ESC%[0m
-
+if !DESKTOP_INSTALLED! equ 1 (
+    echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mУстановить службу Hermes %ESC%[2m^(удалённый доступ^)%ESC%[0m
+)
+if !SERVICE_INSTALLED! equ 1 (
+    echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mУдалить службу Hermes%ESC%[0m
+    echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mПерезапустить службу Hermes%ESC%[0m
+)
+if !DESKTOP_INSTALLED! equ 1 (
+    echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mГайд: подключение с другого компьютера%ESC%[0m
+)
 echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
@@ -110,6 +130,10 @@ set /p "choice=%ESC%[33mВыберите действие: %ESC%[0m"
 set "choice=!choice: =!"
 if "!choice!"=="" goto menu
 if "!choice!"=="1" goto install_desktop
+if "!choice!"=="2" goto install_service
+if "!choice!"=="3" goto remove_service
+if "!choice!"=="4" goto restart_service
+if "!choice!"=="8" goto connect_guide
 if "!choice!"=="0" goto exit
 goto menu
 
@@ -118,6 +142,32 @@ cls
 echo.
 echo   %ESC%[1;33m-%ESC%[0m %ESC%[1mЗапуск установки Hermes Desktop...%ESC%[0m
 call "%SCRIPTS_DIR%\InstallOrUpdate-Desktop.bat" 0
+goto menu
+
+:install_service
+if !DESKTOP_INSTALLED! equ 0 (
+    echo   %ESC%[1;31m[ОШИБКА] Hermes не установлен. Сначала выполните [1] Установить Hermes Desktop.%ESC%[0m
+    pause
+    goto menu
+)
+call "%SCRIPTS_DIR%\Install-Hermes-Service.bat"
+goto menu
+
+:remove_service
+call "%SCRIPTS_DIR%\Remove-Hermes-Service.bat"
+goto menu
+
+:restart_service
+call "%SCRIPTS_DIR%\Restart-Hermes-Service.bat"
+goto menu
+
+:connect_guide
+if !DESKTOP_INSTALLED! equ 0 (
+    echo   %ESC%[1;31m[ОШИБКА] Hermes не установлен. Сначала выполните [1] Установить Hermes Desktop.%ESC%[0m
+    pause
+    goto menu
+)
+call "%SCRIPTS_DIR%\Connect-Guide.bat"
 goto menu
 
 :exit
