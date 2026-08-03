@@ -26,7 +26,7 @@ if not defined SERVICE_NAME call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_
 
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
-echo  %ESC%[1;36m##%ESC%[0m                  %ESC%[1;37mПерезапуск службы Hermes%ESC%[0m                  %ESC%[1;36m##%ESC%[0m
+echo  %ESC%[1;36m##%ESC%[0m                          %ESC%[1;37mПерезапуск службы Hermes%ESC%[0m                          %ESC%[1;36m##%ESC%[0m
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
 
