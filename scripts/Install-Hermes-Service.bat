@@ -150,8 +150,33 @@ if not exist "%NSSM_EXE%" (
     set "NSSM_ZIP=%TEMP%\nssm-2.24.zip"
     if exist "%NSSM_ZIP%" del "%NSSM_ZIP%" 2>nul
 
-    REM --- Загрузка: nssm.cc → GitHub зеркало (curl / PowerShell fallback) ---
-    powershell -NoProfile -NonInteractive -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; try { Invoke-WebRequest -Uri 'https://nssm.cc/release/nssm-2.24.zip' -OutFile '%NSSM_ZIP%' -TimeoutSec 60 } catch { Invoke-WebRequest -Uri 'https://github.com/rosengaard/nssm-2.24/releases/download/2.24/nssm-2.24.zip' -OutFile '%NSSM_ZIP%' -TimeoutSec 60 }"
+    REM --- Поиск curl (git for windows; в System32 на Win10 1607 curl НЕТ) ---
+    set "CURL="
+    if exist "%ProgramFiles%\Git\mingw64\bin\curl.exe" set "CURL=%ProgramFiles%\Git\mingw64\bin\curl.exe"
+    if not defined CURL if exist "%ProgramFiles(x86)%\Git\mingw64\bin\curl.exe" set "CURL=%ProgramFiles(x86)%\Git\mingw64\bin\curl.exe"
+    if not defined CURL if exist "%LocalAppData%\Programs\Git\mingw64\bin\curl.exe" set "CURL=%LocalAppData%\Programs\Git\mingw64\bin\curl.exe"
+
+    REM --- Загрузка: цепочка curl → bitsadmin → certutil → PowerShell ---
+    REM (PowerShell 5.1 на Win10 1607 капризен с TLS — поэтому он ПОСЛЕДНИЙ)
+    if defined CURL (
+        "%CURL%" -L --fail --silent --show-error -o "%NSSM_ZIP%" "https://nssm.cc/release/nssm-2.24.zip"
+        if not exist "%NSSM_ZIP%" "%CURL%" -L --fail --silent --show-error -o "%NSSM_ZIP%" "https://github.com/rosengaard/nssm-2.24/releases/download/2.24/nssm-2.24.zip"
+    )
+    if not exist "%NSSM_ZIP%" (
+        bitsadmin /transfer nssm_download /download /priority normal "https://nssm.cc/release/nssm-2.24.zip" "%NSSM_ZIP%" >nul 2>&1
+    )
+    if not exist "%NSSM_ZIP%" (
+        bitsadmin /transfer nssm_download /download /priority normal "https://github.com/rosengaard/nssm-2.24/releases/download/2.24/nssm-2.24.zip" "%NSSM_ZIP%" >nul 2>&1
+    )
+    if not exist "%NSSM_ZIP%" (
+        certutil -urlcache -f -split "https://nssm.cc/release/nssm-2.24.zip" "%NSSM_ZIP%" >nul 2>&1
+    )
+    if not exist "%NSSM_ZIP%" (
+        powershell -NoProfile -NonInteractive -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; try { Invoke-WebRequest -Uri 'https://nssm.cc/release/nssm-2.24.zip' -OutFile '%NSSM_ZIP%' -TimeoutSec 60 } catch { Invoke-WebRequest -Uri 'https://github.com/rosengaard/nssm-2.24/releases/download/2.24/nssm-2.24.zip' -OutFile '%NSSM_ZIP%' -TimeoutSec 60 }"
+    )
+
+    REM --- Проверка: файл реально zip (~350 КБ; HTML-ошибки — килобайты) ---
+    if exist "%NSSM_ZIP%" for %%z in ("%NSSM_ZIP%") do if %%~zz LSS 200000 del "%NSSM_ZIP%" 2>nul
     if not exist "%NSSM_ZIP%" (
         echo   %ESC%[1;31m[ОШИБКА] Не удалось скачать NSSM ^(nssm.cc и GitHub недоступны^).%ESC%[0m
         echo   %ESC%[33mСкачайте nssm-2.24.zip вручную и положите nssm.exe в %HERMES_HOME%\bin\%ESC%[0m
