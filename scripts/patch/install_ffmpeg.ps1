@@ -1,41 +1,107 @@
 # scripts\patch\install_ffmpeg.ps1
-# Установка ffmpeg.exe в портабельный каталог HERMES_HOME\bin
+# Установка ffmpeg.exe в портабельный каталог HERMES_HOME\bin.
+# Надёжная цепочка скачивания (как NSSM): git-curl -> bitsadmin -> certutil -> PS TLS12.
+# Зеркала: BtbN gpl -> BtbN lgpl -> gyan.dev essentials.
 param(
     [string]$HermesHome = $env:HERMES_HOME
 )
 
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
-[Net.ServicePointManager]::SecurityProtocol = "Tls12"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-$target = "$HermesHome\bin\ffmpeg.exe"
+$binDir = "$HermesHome\bin"
+$target = "$binDir\ffmpeg.exe"
 if (Test-Path $target) {
-    Write-Host "  +   ffmpeg already installed: $target" -ForegroundColor Green
-    exit 0
+    # Проверка размера: битый/частичный файл (< 10 МБ) переустанавливаем
+    $size = (Get-Item $target).Length
+    if ($size -ge 10000000) {
+        Write-Host "  +   ffmpeg already installed: $target" -ForegroundColor Green
+        exit 0
+    }
+    Write-Host "  .   ffmpeg.exe corrupted (small size), reinstalling..." -ForegroundColor Yellow
+    Remove-Item $target -Force
 }
 
-# Используем BtbN сборки (GitHub) — gyan.dev часто недоступен
-$url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+if (-not (Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir | Out-Null }
+
+# Зеркала: 1) BtbN gpl (большой, полный) 2) BtbN lgpl 3) gyan.dev essentials (меньше)
+$mirrors = @(
+    "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
+    "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip",
+    "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+)
+
 $zip = "$env:TEMP\ffmpeg.zip"
 
-Write-Host "    Downloading ffmpeg (BtbN build)..." -ForegroundColor Gray
-try {
-    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $z = [System.IO.Compression.ZipFile]::OpenRead($zip)
-    # Ищем ffmpeg.exe в любой подпапке архива
-    $entry = $z.Entries | Where-Object { $_.Name -eq "ffmpeg.exe" } | Select-Object -First 1
-    if ($entry -eq $null) {
-        throw "ffmpeg.exe not found in archive"
+# Ищем git-curl (mingw64) — на Win10 1607 системного curl нет
+$curlCandidates = @(
+    "$env:ProgramFiles\Git\mingw64\bin\curl.exe",
+    "${env:ProgramFiles(x86)}\Git\mingw64\bin\curl.exe",
+    "$env:LOCALAPPDATA\Programs\Git\mingw64\bin\curl.exe"
+)
+$gitCurl = $curlCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+function Download-With($url, $out) {
+    # 1) git-curl (самый надёжный: TLS + редиректы)
+    if ($gitCurl) {
+        & $gitCurl -L --fail --connect-timeout 30 --max-time 900 -o $out $url 2>$null
+        if ($LASTEXITCODE -eq 0 -and (Test-Path $out) -and ((Get-Item $out).Length -gt 10000000)) { return $true }
+        if (Test-Path $out) { Remove-Item $out -Force }
     }
-    if (-not (Test-Path "$HermesHome\bin")) { New-Item -ItemType Directory -Force -Path "$HermesHome\bin" | Out-Null }
-    [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
-    $z.Dispose()
-    Remove-Item $zip -Force
-    Write-Host "  +   ffmpeg installed: $target" -ForegroundColor Green
-    exit 0
-} catch {
-    Write-Host "  .   ffmpeg install failed: $_" -ForegroundColor Yellow
-    if (Test-Path $zip) { Remove-Item $zip -Force }
+    # 2) bitsadmin (системный, не требует прав)
+    $bits = "$env:windir\System32\bitsadmin.exe"
+    if (Test-Path $bits) {
+        & $bits /transfer /download /priority normal $url $out 2>$null | Out-Null
+        if ((Test-Path $out) -and ((Get-Item $out).Length -gt 10000000)) { return $true }
+        if (Test-Path $out) { Remove-Item $out -Force }
+    }
+    # 3) certutil (системный)
+    $certutil = "$env:windir\System32\certutil.exe"
+    if (Test-Path $certutil) {
+        & $certutil -urlcache -split -f $url $out 2>$null | Out-Null
+        if ((Test-Path $out) -and ((Get-Item $out).Length -gt 10000000)) { return $true }
+        if (Test-Path $out) { Remove-Item $out -Force }
+    }
+    # 4) PowerShell Invoke-WebRequest (TLS12 уже включён)
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $out -UseBasicParsing -TimeoutSec 900
+        if ((Test-Path $out) -and ((Get-Item $out).Length -gt 10000000)) { return $true }
+        if (Test-Path $out) { Remove-Item $out -Force }
+    } catch { }
+    return $false
+}
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$ok = $false
+foreach ($url in $mirrors) {
+    Write-Host "    Downloading ffmpeg: $url" -ForegroundColor Gray
+    if (Download-With $url $zip) {
+        try {
+            $z = [System.IO.Compression.ZipFile]::OpenRead($zip)
+            $entry = $z.Entries | Where-Object { $_.Name -eq "ffmpeg.exe" } | Select-Object -First 1
+            if ($entry) {
+                [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
+                $z.Dispose()
+                $size = (Get-Item $target).Length
+                if ($size -ge 10000000) {
+                    Write-Host "  +   ffmpeg installed: $target ($([math]::Round($size/1MB,1)) MB)" -ForegroundColor Green
+                    Remove-Item $zip -Force
+                    $ok = $true
+                    break
+                }
+                Remove-Item $target -Force
+            }
+        } catch {
+            Write-Host "  .   extract failed: $_" -ForegroundColor Yellow
+        } finally {
+            if (Test-Path $zip) { Remove-Item $zip -Force }
+        }
+    }
+}
+
+if (-not $ok) {
+    Write-Host "  .   ffmpeg install failed after all mirrors" -ForegroundColor Yellow
     exit 1
 }
+exit 0

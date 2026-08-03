@@ -353,7 +353,11 @@ if !PLAYWRIGHT_OK! equ 0 (
 
 REM 6. Проверяем web-инструменты (rg, ffmpeg, TUI) — Electron не нужен!
 set "WEBTOOLS_OK=0"
-if exist "%HERMES_HOME%\bin\rg.exe" if exist "%HERMES_HOME%\bin\ffmpeg.exe" if exist "%HERMES_HOME%\hermes-agent\ui-tui\node_modules" set "WEBTOOLS_OK=1"
+if exist "%HERMES_HOME%\bin\rg.exe" if exist "%HERMES_HOME%\hermes-agent\ui-tui\node_modules" (
+    if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
+        for %%A in ("%HERMES_HOME%\bin\ffmpeg.exe") do if %%~zA GEQ 10000000 set "WEBTOOLS_OK=1"
+    )
+)
 if !WEBTOOLS_OK! equ 0 (
     echo   %ESC%[1;33m  [!]  Web-инструменты ^(rg/ffmpeg/TUI^) не установлены.%ESC%[0m
     set "NEEDS_DEPS=1"
@@ -464,7 +468,7 @@ if not exist "%WEB_DIST_DIR%\index.html" (
 )
 
 echo   %ESC%[1;32m  +   web UI найден:%ESC%[0m
-echo   %ESC%[2m       %WEB_DIST_DIR\%ESC%[0m
+echo   %ESC%[2m       %WEB_DIST_DIR%\%ESC%[0m
 
 REM ============================================================================
 REM   Завершение
@@ -473,7 +477,7 @@ echo.
 echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
 echo   %ESC%[1;32mУстановка завершена ^(Web + RU^)!%ESC%[0m
 echo   %ESC%[2m  Репозиторий: %HERMES_HOME%\hermes-agent\%ESC%[0m
-echo   %ESC%[2m  Web UI:      %WEB_DIST_DIR\%ESC%[0m
+echo   %ESC%[2m  Web UI:      %WEB_DIST_DIR%\%ESC%[0m
 echo   %ESC%[2m  Язык:        Русский доступен в Settings → Appearance%ESC%[0m
 echo   %ESC%[2m  Служба:      см. подменю установки [4]%ESC%[0m
 echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
