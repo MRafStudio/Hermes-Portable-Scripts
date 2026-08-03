@@ -98,6 +98,8 @@ set "REQUESTED_NAME=!SERVICE_NAME!"
 call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_DIR%" <nul
 set "EXIST_SERVICE=%SERVICE_NAME%"
 set "SERVICE_NAME=%REQUESTED_NAME%"
+REM LOG_NAME — имя лог-файла без двоеточия (Windows запрещает ":" в именах файлов!)
+set "LOG_NAME=!SERVICE_NAME::=_!"
 if defined EXIST_SERVICE (
     echo   %ESC%[1;31m[ОШИБКА] Для этого инстанса ^(%ROOT_DIR%^) уже установлена служба "!EXIST_SERVICE!".%ESC%[0m
     echo   %ESC%[33mУдалите её через [3] или используйте её для перезапуска [4].%ESC%[0m
@@ -208,7 +210,10 @@ if "!AUTH_PASS!"=="" (
     if not defined AUTH_HASH (
         echo   %ESC%[1;33m  !   Не удалось сгенерировать хэш пароля.%ESC%[0m
     ) else (
-        powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch_dashboard_auth.ps1" -ConfigPath "%HERMES_HOME%\config.yaml" -Username "!AUTH_USER!" -PasswordHash "!AUTH_HASH!"
+        REM Штатный механизм Hermes: set_config_value (config.py) — точечная запись,
+        REM merge не затирает чужие секции; замена ручного patch_dashboard_auth.ps1
+        "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\config_set.py" "%REPO_DIR%" dashboard.basic_auth.username "!AUTH_USER!"
+        "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\config_set.py" "%REPO_DIR%" dashboard.basic_auth.password_hash "!AUTH_HASH!"
     )
 )
 
@@ -241,8 +246,8 @@ if !errorlevel! neq 0 (
 REM HERMES_WEB_DIST — готовый web dist из Desktop-сборки (иначе dashboard
 REM пытается собрать web UI при каждом старте и падает: "Web UI npm install failed")
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra HERMES_HOME=%HERMES_HOME% HOME=%DATA_DIR%\home USERPROFILE=%DATA_DIR%\home APPDATA=%DATA_DIR%\appdata LOCALAPPDATA=%DATA_DIR%\localappdata TEMP=%DATA_DIR%\temp PYTHONIOENCODING=utf-8 HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist
-"%NSSM_EXE%" set "!SERVICE_NAME!" AppStdout "%DATA_DIR%\temp\service-!SERVICE_NAME!.log"
-"%NSSM_EXE%" set "!SERVICE_NAME!" AppStderr "%DATA_DIR%\temp\service-!SERVICE_NAME!.log"
+"%NSSM_EXE%" set "!SERVICE_NAME!" AppStdout "%DATA_DIR%\temp\service-!LOG_NAME!.log"
+"%NSSM_EXE%" set "!SERVICE_NAME!" AppStderr "%DATA_DIR%\temp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppRotateFiles 1
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppRotateBytes 10485760
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppExit Default Restart
@@ -300,6 +305,17 @@ if !SERVICE_RUNNING! equ 1 (
     echo   %ESC%[33m  Лог: %DATA_DIR%\temp\service-!SERVICE_NAME!.log%ESC%[0m
 )
 
+REM Ожидаем подъём dashboard (первый старт медленный — до 60 сек) — иначе ложное "НЕ слушается"
+set /a WAIT=0
+:wait_port
+netstat -ano | findstr "0.0.0.0:!SERVICE_PORT! " >nul 2>&1
+if !errorlevel! equ 0 goto port_checked
+set /a WAIT+=1
+if !WAIT! lss 60 (
+    timeout /t 1 /nobreak >nul 2>&1
+    goto wait_port
+)
+:port_checked
 REM Проверка: слушает ли 0.0.0.0 (не 127.0.0.1!)
 netstat -ano | findstr "0.0.0.0:!SERVICE_PORT! " >nul 2>&1
 if !errorlevel! equ 0 (
