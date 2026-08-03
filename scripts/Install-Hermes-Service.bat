@@ -130,7 +130,7 @@ set "SERVICE_PORT=!SERVICE_PORT: =!"
 
 netstat -ano | findstr ":%SERVICE_PORT% " >nul 2>&1
 if !errorlevel! equ 0 (
-    echo   %ESC%[1;33m  !   Порт !SERVICE_PORT! уже занят!%ESC%[0m
+    echo   %ESC%[1;33m  ВНИМАНИЕ: Порт !SERVICE_PORT! уже занят.%ESC%[0m
     set /p "CONT=%ESC%[33mПродолжить с этим портом? ^(y/N^): %ESC%[0m"
     if /i not "!CONT!"=="y" (
         echo.
@@ -196,12 +196,16 @@ set "AUTH_USER=!AUTH_USER: =!"
 set "AUTH_PASS=%~4"
 if not defined AUTH_PASS set /p "AUTH_PASS=%ESC%[1mПароль веб-доступа%ESC%[0m: "
 if "!AUTH_PASS!"=="" (
-    echo   %ESC%[1;31m[!] Пароль не задан — dashboard НЕ сможет слушать 0.0.0.0!%ESC%[0m
+    echo   %ESC%[1;31m  ВНИМАНИЕ: Пароль не задан — dashboard НЕ сможет слушать 0.0.0.0.%ESC%[0m
     echo   %ESC%[33mУстановка службы продолжится, но удалённый доступ будет недоступен.%ESC%[0m
 ) else (
     REM Генерируем scrypt-хэш пароля (venv python)
+    REM Пароль через STDIN (echo | python), хэш — в файл: вложенные кавычки
+    REM в for /f / cmd /C ломаются (cmd не различает " и ') — файловый обмен надёжнее
     set "AUTH_HASH="
-    for /f "delims=" %%h in ('"%PYTHON_EXE%" -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('!AUTH_PASS!'))" 2^>nul') do set "AUTH_HASH=%%h"
+    echo !AUTH_PASS! | "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\hash_pass.py" "%REPO_DIR%" > "%TEMP%\auth_hash.txt" 2>nul
+    if exist "%TEMP%\auth_hash.txt" set /p AUTH_HASH=<"%TEMP%\auth_hash.txt"
+    del "%TEMP%\auth_hash.txt" 2>nul
     if not defined AUTH_HASH (
         echo   %ESC%[1;33m  !   Не удалось сгенерировать хэш пароля.%ESC%[0m
     ) else (
@@ -302,7 +306,7 @@ netstat -ano | findstr "0.0.0.0:!SERVICE_PORT! " >nul 2>&1
 if !errorlevel! equ 0 (
     echo   %ESC%[1;32m+ Порт !SERVICE_PORT! слушается на 0.0.0.0 ^(все адаптеры^) — удалённый доступ возможен.%ESC%[0m
 ) else (
-    echo   %ESC%[1;31m  ! Порт !SERVICE_PORT! НЕ слушается на 0.0.0.0!%ESC%[0m
+    echo   %ESC%[1;31m  ВНИМАНИЕ: Порт !SERVICE_PORT! НЕ слушается на 0.0.0.0.%ESC%[0m
     echo   %ESC%[33m  Проверьте лог службы и запустите её снова: [4] Перезапустить службу.%ESC%[0m
 )
 echo  --------------------------------------------------------------------------------

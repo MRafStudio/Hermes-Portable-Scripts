@@ -61,7 +61,7 @@ sc query "!SERVICE_NAME!" 2>nul | findstr /i "RUNNING" >nul 2>&1
 if !errorlevel! equ 0 (
     echo   %ESC%[1;32m+ Служба "!SERVICE_NAME!" перезапущена и работает.%ESC%[0m
 ) else (
-    echo   %ESC%[1;33m  ! Служба "!SERVICE_NAME!" не запустилась. Лог: %HERMES_HOME%\..\temp\service-!SERVICE_NAME!.log%ESC%[0m
+    echo   %ESC%[1;33m  ВНИМАНИЕ: Служба "!SERVICE_NAME!" не запустилась. Лог: %HERMES_HOME%\..\temp\service-!SERVICE_NAME!.log%ESC%[0m
 )
 echo.
 pause
