@@ -181,7 +181,7 @@ echo.
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
-echo  %ESC%[1;36m##%ESC%[0m            %ESC%[1;37mHermes Portable%ESC%[0m   —   %ESC%[1;33mУстановка Hermes Web ^(сервер^)%ESC%[0m            %ESC%[1;36m##%ESC%[0m
+echo  %ESC%[1;36m##%ESC%[0m             %ESC%[1;37mHermes Portable%ESC%[0m   —   %ESC%[1;33mУстановка Hermes Web ^(сервер^)%ESC%[0m            %ESC%[1;36m##%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
