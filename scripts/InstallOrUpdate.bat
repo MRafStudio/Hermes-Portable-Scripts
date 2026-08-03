@@ -120,10 +120,12 @@ if !SERVICE_INSTALLED! equ 1 (
     echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mУдалить службу Hermes%ESC%[0m
 )
 echo.
-if !DESKTOP_INSTALLED! equ 1 (
-    echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mГайд: подключение с другого компьютера%ESC%[0m
+
+if !SERVICE_INSTALLED! equ 1 (
+    echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[36mПодключение с другого компьютера%ESC%[0m
+    echo.
 )
-echo.
+
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 set "choice="
