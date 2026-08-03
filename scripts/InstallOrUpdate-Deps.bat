@@ -507,7 +507,7 @@ REM   ШАГ 6: Desktop-зависимости (Electron) — пропускае
 REM ============================================================================
 echo.
 if "!MODE!"=="1" (
-    echo   %ESC%[1;33m[6/6]%ESC%[0m %ESC%[1mDesktop-зависимости (Electron)%ESC%[0m — пропущено ^(web-режим сервера^)
+    echo   %ESC%[1;33m[6/6]%ESC%[0m %ESC%[1mDesktop-зависимости ^(Electron^)%ESC%[0m — пропущено ^(web-режим сервера^)
     goto desktop_deps_done
 )
 echo   %ESC%[1;33m[6/6]%ESC%[0m %ESC%[1mУстановка Desktop-зависимостей (Electron)...%ESC%[0m
