@@ -355,7 +355,8 @@ REM 6. Проверяем web-инструменты (rg, ffmpeg, TUI) — Elect
 set "WEBTOOLS_OK=0"
 if exist "%HERMES_HOME%\bin\rg.exe" if exist "%HERMES_HOME%\hermes-agent\ui-tui\node_modules" (
     if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
-        for %%A in ("%HERMES_HOME%\bin\ffmpeg.exe") do if %%~zA GEQ 10000000 set "WEBTOOLS_OK=1"
+        "%HERMES_HOME%\bin\ffmpeg.exe" -version >nul 2>&1
+        if !errorlevel! equ 0 set "WEBTOOLS_OK=1"
     )
 )
 if !WEBTOOLS_OK! equ 0 (
