@@ -70,7 +70,7 @@ sc query "!SERVICE_NAME!" >nul 2>&1
 if !errorlevel! neq 0 (
     echo   %ESC%[1;32m+ Служба "!SERVICE_NAME!" удалена.%ESC%[0m
 ) else (
-    echo   %ESC%[1;33m  ! Служба всё ещё существует — удалите вручную: sc delete "!SERVICE_NAME!"%ESC%[0m
+    echo   %ESC%[1;33m  ВНИМАНИЕ: Служба всё ещё существует — удалите вручную: sc delete "!SERVICE_NAME!"%ESC%[0m
 )
 
 echo   %ESC%[2mПримечание: правило брандмауэра осталось. Удалить: netsh advfirewall firewall delete rule name="Hermes ..."%ESC%[0m
