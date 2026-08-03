@@ -310,7 +310,7 @@ REM 3. Проверяем коммиты (HEAD)
 cd /d "%HERMES_HOME%\hermes-agent"
 git rev-parse --verify HEAD >nul 2>&1
 if errorlevel 1 (
-    echo   %ESC%[1;33m  [!]  Репозиторий без коммитов ^(ZIP-загрузка^).%ESC%[0m
+    echo   %ESC%[1;33m  [i]  Репозиторий без коммитов ^(ZIP-загрузка^).%ESC%[0m
     echo   %ESC%[1;33m  →   Используем GITHUB_SHA для сборки...%ESC%[0m
     set "GITHUB_SHA=0000000000000000000000000000000000000000"
     cd /d "%ROOT_DIR%"
@@ -336,7 +336,7 @@ if !NEEDS_REPO! equ 1 (
 :step3_deps
 REM 4. Проверяем Python venv и hermes.exe
 if not exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" (
-    echo   %ESC%[1;33m  [!]  Hermes CLI не найден ^(venv не создан или deps не установлены^).%ESC%[0m
+    echo   %ESC%[1;33m  [i]  Hermes CLI не найден ^(venv не создан или deps не установлены^).%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 
@@ -347,7 +347,7 @@ if exist "%LOCALAPPDATA%\ms-playwright\chromium-*" set "PLAYWRIGHT_OK=1"
 if exist "%LOCALAPPDATA%\ms-playwright\chromium" set "PLAYWRIGHT_OK=1"
 if exist "%HERMES_HOME%\hermes-agent\node_modules\playwright\package.json" set "PLAYWRIGHT_OK=1"
 if !PLAYWRIGHT_OK! equ 0 (
-    echo   %ESC%[1;33m  [!]  Browser tools ^(Playwright^) не установлены.%ESC%[0m
+    echo   %ESC%[1;33m  [i]  Browser tools ^(Playwright^) не установлены.%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 
@@ -359,7 +359,7 @@ if exist "%HERMES_HOME%\bin\rg.exe" if exist "%HERMES_HOME%\hermes-agent\ui-tui\
     )
 )
 if !WEBTOOLS_OK! equ 0 (
-    echo   %ESC%[1;33m  [!]  Web-инструменты ^(rg/ffmpeg/TUI^) не установлены.%ESC%[0m
+    echo   %ESC%[1;33m  [i]  Web-инструменты ^(rg/ffmpeg/TUI^) не установлены.%ESC%[0m
     set "NEEDS_DEPS=1"
 )
 

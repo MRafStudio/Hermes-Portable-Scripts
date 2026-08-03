@@ -92,7 +92,7 @@ if exist "%I18N_DIR%\en.ts" (
     for %%F in ("%EN_LOCALE_DIR%\en.ts") do set "EN_SIZE=%%~zF"
     echo   %ESC%[1;32m  +   en.ts скопирован из репозитория ^(!EN_SIZE! байт^).%ESC%[0m
 ) else (
-    echo   %ESC%[1;33m  [!]  en.ts не найден в репозитории. Пробуем скачать...%ESC%[0m
+    echo   %ESC%[1;33m  [i]  en.ts не найден в репозитории. Пробуем скачать...%ESC%[0m
     set "EN_TS_URL=https://raw.githubusercontent.com/NousResearch/hermes-agent/main/apps/desktop/src/i18n/en.ts"
     curl -fsSL -o "%EN_LOCALE_DIR%\en.ts" "%EN_TS_URL%"
     if !errorlevel! neq 0 (
@@ -137,7 +137,7 @@ if exist "%SOUL_SRC%" (
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   SOUL.md обновлён из default_soul.md.%ESC%[0m
     ) else (
-        echo   %ESC%[1;33m  [!]  Не удалось скопировать SOUL.md.%ESC%[0m
+        echo   %ESC%[1;33m  [i]  Не удалось скопировать SOUL.md.%ESC%[0m
     )
 ) else (
     echo   %ESC%[1;33m  .   default_soul.md не найден, пропускаем.%ESC%[0m
