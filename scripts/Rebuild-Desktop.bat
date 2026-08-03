@@ -337,7 +337,7 @@ echo.
 set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
 if exist "%CONFIG_YAML%" (
     echo   %ESC%[1;33m  -   Обновление локализации в config.yaml...%ESC%[0m
-    powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch_locale_yaml.ps1" -ConfigPath "%CONFIG_YAML%" -Locale ru
+    "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set display.language ru
 )
 
 REM ============================================================================

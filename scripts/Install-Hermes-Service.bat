@@ -210,10 +210,10 @@ if "!AUTH_PASS!"=="" (
     if not defined AUTH_HASH (
         echo   %ESC%[1;33m  !   Не удалось сгенерировать хэш пароля.%ESC%[0m
     ) else (
-        REM Штатный механизм Hermes: set_config_value (config.py) — точечная запись,
+        REM Штатный механизм: hermes config set (config.py) — точечная запись,
         REM merge не затирает чужие секции; замена ручного patch_dashboard_auth.ps1
-        "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\config_set.py" "%REPO_DIR%" dashboard.basic_auth.username "!AUTH_USER!"
-        "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\config_set.py" "%REPO_DIR%" dashboard.basic_auth.password_hash "!AUTH_HASH!"
+        "%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.username "!AUTH_USER!"
+        "%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.password_hash "!AUTH_HASH!"
     )
 )
 

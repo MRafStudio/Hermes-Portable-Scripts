@@ -197,7 +197,7 @@ echo.
 set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
 if exist "%CONFIG_YAML%" (
     echo   %ESC%[1;33m  -   Обновление локализации в config.yaml...%ESC%[0m
-    powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch_locale_yaml.ps1" -ConfigPath "%CONFIG_YAML%" -Locale ru
+    "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set display.language ru
 )
 
 REM Рабочая директория сессий: явный terminal.cwd в config.yaml
@@ -205,7 +205,7 @@ REM (иначе Electron берёт системный профиль через
 set "TERM_CWD=%ROOT_DIR%\data\home"
 if exist "%CONFIG_YAML%" (
     echo   %ESC%[1;33m  -   Установка рабочей директории сессий ^(terminal.cwd^)...%ESC%[0m
-    powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\patch_terminal_cwd.ps1" -ConfigPath "%CONFIG_YAML%" -Cwd "%TERM_CWD%"
+    "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set terminal.cwd "%TERM_CWD%"
 )
 
 REM ============================================================================
