@@ -116,6 +116,17 @@ if !DESKTOP_INSTALLED! equ 1 (
     echo %ESC%[1;33m. %ESC%[0m Desktop App %ESC%[2m^(не собран^)%ESC%[0m
 )
 
+REM --- Статус службы ЭТОГО инстанса (по описанию с ROOT_DIR) ---
+set "SERVICE_NAME="
+set "SERVICE_INSTALLED=0"
+call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_DIR%" <nul
+if defined SERVICE_NAME set "SERVICE_INSTALLED=1"
+if !SERVICE_INSTALLED! equ 1 (
+    echo %ESC%[1;32m+ %ESC%[0m Служба: %ESC%[1m!SERVICE_NAME!%ESC%[0m %ESC%[2m^(установлена^)%ESC%[0m
+) else (
+    echo %ESC%[1;33m. %ESC%[0m Служба Hermes %ESC%[2m^(не установлена — см. [1] п.2^)%ESC%[0m
+)
+
 echo.
 echo %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановка / Обновление компонентов%ESC%[0m
 echo %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИнструменты%ESC%[0m
