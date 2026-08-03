@@ -70,6 +70,14 @@ for %%P in (
 )
 :desktop_found
 
+REM --- Web UI (dashboard): собран ли web_dist ---
+set "WEB_INSTALLED=0"
+if exist "%REPO_DIR%\hermes_cli\web_dist\index.html" set "WEB_INSTALLED=1"
+REM --- Что-то установлено (web или desktop)? ---
+set "ANY_INSTALLED=0"
+if !DESKTOP_INSTALLED! equ 1 set "ANY_INSTALLED=1"
+if !WEB_INSTALLED! equ 1 set "ANY_INSTALLED=1"
+
 REM --- Статус службы ЭТОГО инстанса (по описанию с ROOT_DIR) ---
 set "SERVICE_NAME="
 set "SERVICE_INSTALLED=0"
@@ -80,10 +88,11 @@ REM ============================================================================
 REM   Вывод меню
 REM ============================================================================
 
-if !DESKTOP_INSTALLED! equ 0 (
+if !ANY_INSTALLED! equ 0 (
     echo   %ESC%[1;33mНичего не установлено. Выберите действие:%ESC%[0m
     echo.
-    echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1;33mУстановить Hermes Desktop%ESC%[0m
+    echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1;33mУстановить Hermes Web %ESC%[2m^(сервер, без Desktop^)%ESC%[0m
+    echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1;33mУстановить Hermes Desktop%ESC%[0m
     echo.
     echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
     echo.
@@ -159,8 +168,8 @@ call "%SCRIPTS_DIR%\InstallOrUpdate-Desktop.bat" 0
 goto menu
 
 :install_service
-if !DESKTOP_INSTALLED! equ 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Hermes не установлен. Сначала выполните [1] Установить Hermes Desktop.%ESC%[0m
+if !ANY_INSTALLED! equ 0 (
+    echo   %ESC%[1;31m[ОШИБКА] Hermes не установлен. Сначала установите: [1] Hermes Web или [2] Desktop.%ESC%[0m
     pause
     goto menu
 )
@@ -176,8 +185,8 @@ call "%SCRIPTS_DIR%\Restart-Hermes-Service.bat"
 goto menu
 
 :connect_guide
-if !DESKTOP_INSTALLED! equ 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Hermes не установлен. Сначала выполните [1] Установить Hermes Desktop.%ESC%[0m
+if !ANY_INSTALLED! equ 0 (
+    echo   %ESC%[1;31m[ОШИБКА] Hermes не установлен. Сначала установите: [1] Hermes Web или [2] Desktop.%ESC%[0m
     pause
     goto menu
 )
