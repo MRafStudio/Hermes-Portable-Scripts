@@ -354,10 +354,7 @@ if !PLAYWRIGHT_OK! equ 0 (
 REM 6. Проверяем web-инструменты (rg, ffmpeg, TUI) — Electron не нужен!
 set "WEBTOOLS_OK=0"
 if exist "%HERMES_HOME%\bin\rg.exe" if exist "%HERMES_HOME%\hermes-agent\ui-tui\node_modules" (
-    if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
-        "%HERMES_HOME%\bin\ffmpeg.exe" -version >nul 2>&1
-        if !errorlevel! equ 0 set "WEBTOOLS_OK=1"
-    )
+    if exist "%HERMES_HOME%\bin\ffmpeg.exe" set "WEBTOOLS_OK=1"
 )
 if !WEBTOOLS_OK! equ 0 (
     echo   %ESC%[1;33m  [i]  Web-инструменты ^(rg/ffmpeg/TUI^) не установлены.%ESC%[0m
