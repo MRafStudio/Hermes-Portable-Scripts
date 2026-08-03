@@ -366,7 +366,7 @@ if !WEBTOOLS_OK! equ 0 (
 REM 7. Если чего-то не хватает — запускаем InstallOrUpdate-Deps.bat
 if !NEEDS_DEPS! equ 1 (
     echo.
-    echo   %ESC%[1;33m  →   Запускаем InstallOrUpdate-Deps.bat ^(довершение установки, web-режим без Electron^)...%ESC%[0m
+    echo   %ESC%[1;33m  →   Запускаем InstallOrUpdate-Deps.bat ^(довершение установки, web-режим^)...%ESC%[0m
     call "%SCRIPTS_DIR%\InstallOrUpdate-Deps.bat" 1 1
     if errorlevel 1 (
         echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить зависимости.%ESC%[0m
