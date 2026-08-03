@@ -57,10 +57,10 @@ for /f "tokens=2 delims=:" %%p in ('sc qc "!SERVICE_NAME!" 2^>nul ^| findstr /i 
 )
 REM Достаём --port N из командной строки службы
 if defined BIN (
-    for /f "tokens=2" %%n in ('echo !BIN! ^| findstr /i /r "--port [0-9]*"') do set "SERVICE_PORT=%%n"
+    for /f "tokens=2" %%n in ('echo !BIN! ^| findstr /c:"--port"') do set "SERVICE_PORT=%%n"
 )
 set "SERVICE_PORT=!SERVICE_PORT: =!"
-if "!SERVICE_PORT!"=="" set "SERVICE_PORT=8642"
+if "!SERVICE_PORT!"=="" set "SERVICE_PORT=9119"
 
 netstat -ano | findstr "0.0.0.0:!SERVICE_PORT! " >nul 2>&1
 if !errorlevel! equ 0 (
@@ -84,7 +84,9 @@ REM --- 0.4: IP-адреса сервера ---
 echo.
 echo   %ESC%[1;33m  IP-адреса этого компьютера ^(для подключения^):%ESC%[0m
 for /f "tokens=2 delims=:" %%i in ('ipconfig ^| findstr /i "IPv4"') do (
-    echo   %ESC%[1;32m    http://%%i:!SERVICE_PORT!%ESC%[0m
+    set "CURIP=%%i"
+    if defined CURIP set "CURIP=!CURIP: =!"
+    echo   %ESC%[1;32m    http://!CURIP!:!SERVICE_PORT!%ESC%[0m
 )
 
 echo.
@@ -96,7 +98,7 @@ echo   %ESC%[1;33m[2/4] Откройте приложение и перейди�
 echo       Settings -^> Connection -^> Remote
 echo.
 echo   %ESC%[1;33m[3/4] Укажите URL сервера:%ESC%[0m
-echo       http://<IP-сервера>:!SERVICE_PORT!
+echo       http://^<IP-сервера^>:!SERVICE_PORT!
 echo       ^(IP из списка выше; для внешнего доступа — публичный IP/DNS + проброс порта на роутере^)
 echo.
 echo   %ESC%[1;33m[4/4] Авторизация:%ESC%[0m
