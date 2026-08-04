@@ -211,15 +211,12 @@ if !NPM_NEEDS_UPDATE! equ 1 (
         call "!NPM_CMD!" install -g npm@12
         if !errorlevel! equ 0 (
             echo %ESC%[1;32m+ %ESC%[0m npm обновлён до 12.
-            set "REAL_NPM_DIR=!REAL_APPDATA!
-pm"
-            if exist "!REAL_NPM_DIR!
-pm.cmd" set "NPM_CMD=!REAL_NPM_DIR!
-pm.cmd"
+            set "REAL_NPM_DIR=!REAL_APPDATA!\npm"
+            if exist "!REAL_NPM_DIR!\npm.cmd" set "NPM_CMD=!REAL_NPM_DIR!\npm.cmd"
         ) else (
             echo %ESC%[1;31m  [ОШИБКА] Не удалось обновить npm.%ESC%[0m
         )
-        set "APPDATA=%DATA_DIR%ppdata"
+        set "APPDATA=%DATA_DIR%\appdata"
     )
 )
 
