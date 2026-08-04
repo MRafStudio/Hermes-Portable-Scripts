@@ -67,7 +67,7 @@ echo %ESC%[1;36m##%ESC%[0m %ESC%[1;37m                Hermes AI Agent (Portable)
 echo %ESC%[1;36m##                                                                            ##%ESC%[0m
 echo %ESC%[1;36m################################################################################%ESC%[0m
 echo.
-echo %ESC%[1;37m[1] %ESC%[0m %ESC%[1mHermes — Interactive CLI%ESC%[0m        %ESC%[2m— начать диалог в терминале%ESC%[0m
+echo %ESC%[1;37m[1] %ESC%[0m %ESC%[1mHermes — Interactive CLI%ESC%[0m         %ESC%[2m— начать диалог в терминале%ESC%[0m
 echo %ESC%[1;37m[2] %ESC%[0m %ESC%[1mHermes model%ESC%[0m                     %ESC%[2m— выбрать модель и провайдера%ESC%[0m
 echo %ESC%[1;37m[3] %ESC%[0m %ESC%[1mHermes tools%ESC%[0m                     %ESC%[2m— настроить инструменты%ESC%[0m
 echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mHermes setup%ESC%[0m                     %ESC%[2m— мастер первичной настройки%ESC%[0m
