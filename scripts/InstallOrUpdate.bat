@@ -108,6 +108,11 @@ if "!choice!"=="2" goto install_desktop
 )
 
 echo   %ESC%[1;33mУстановленные компоненты:%ESC%[0m
+if !WEB_INSTALLED! equ 1 (
+    echo     %ESC%[1;32m+%ESC%[0m Web UI %ESC%[2m^(dashboard^)%ESC%[0m
+) else (
+    echo     %ESC%[1;33m.%ESC%[0m Web UI %ESC%[2m^(не собран^)%ESC%[0m
+)
 if !DESKTOP_INSTALLED! equ 1 (
     echo     %ESC%[1;32m+%ESC%[0m Desktop App %ESC%[2m^(Hermes.exe^)%ESC%[0m
 ) else (
@@ -120,8 +125,16 @@ if !SERVICE_INSTALLED! equ 1 (
 )
 echo.
 echo   %ESC%[1;33mВыберите действие:%ESC%[0m
-echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановить / Обновить Hermes Web %ESC%[2m^(сервер, без Desktop^)%ESC%[0m
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mУстановить / Обновить Hermes Desktop%ESC%[0m
+if !WEB_INSTALLED! equ 1 (
+    echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mОбновить Hermes Web %ESC%[2m^(сервер, без Desktop^)%ESC%[0m
+) else (
+    echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановить Hermes Web %ESC%[2m^(сервер, без Desktop^)%ESC%[0m
+)
+if !DESKTOP_INSTALLED! equ 1 (
+    echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mОбновить Hermes Desktop%ESC%[0m
+) else (
+    echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mУстановить Hermes Desktop%ESC%[0m
+)
 echo.
 if !SERVICE_INSTALLED! equ 0 (
     echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mУстановить службу Hermes %ESC%[2m^(удалённый доступ^)%ESC%[0m
