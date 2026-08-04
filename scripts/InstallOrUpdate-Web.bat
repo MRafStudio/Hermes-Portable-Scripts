@@ -29,6 +29,7 @@ REM   Сохраняем РЕАЛЬНЫЕ пути ДО изоляции
 REM   (нужны для поиска глобального Node.js)
 REM ============================================================================
 set "REAL_LOCALAPPDATA=%LOCALAPPDATA%"
+set "REAL_APPDATA=%APPDATA%"
 
 REM ============================================================================
 REM   Изоляция данных (ничего в систему!)
@@ -176,6 +177,53 @@ set "NPM_CMD=%NODE_DIR%\npm.cmd"
 REM PATH уже содержит NODE_DIR первым (блок изоляции) — пересобирать нечего
 
 :node_ready
+REM ============================================================================
+REM   Проверка версии npm — hermes-agent требует npm <11.10 или >=11.17
+REM   Несовместимая версия (11.10-11.16 или <11.10) — авто-обновление до npm@12
+REM ============================================================================
+set "NPM_VER="
+for /f "delims=" %%v in ('"!NPM_CMD!" --version 2^>nul') do set "NPM_VER=%%v"
+set "NPM_MAJOR=0"
+set "NPM_MINOR=0"
+for /f "tokens=1,2 delims=." %%a in ("!NPM_VER!") do (
+    set "NPM_MAJOR=%%a"
+    set "NPM_MINOR=%%b"
+)
+set "NPM_NEEDS_UPDATE=0"
+if !NPM_MAJOR! lss 11 set "NPM_NEEDS_UPDATE=1"
+if !NPM_MAJOR! equ 11 (
+    if !NPM_MINOR! geq 10 if !NPM_MINOR! lss 17 set "NPM_NEEDS_UPDATE=1"
+)
+if !NPM_NEEDS_UPDATE! equ 1 (
+    echo.
+    echo %ESC%[1;33m[i]%ESC%[0m npm !NPM_VER! несовместим с hermes-agent ^(нужен 11.17+ или 12^).
+    if "!AUTOCLOSE!"=="1" (
+        echo %ESC%[1;33m→%ESC%[0m Авто-обновление до npm@12...
+    ) else (
+        set /p "NPM_CHOICE=%ESC%[33mОбновить npm до 12? ^(Enter — да, N — нет^): %ESC%[0m"
+    )
+    if /i "!NPM_CHOICE!"=="N" (
+        echo %ESC%[1;33m  .   npm не обновлён — сборка может не пройти.%ESC%[0m
+    ) else (
+        echo %ESC%[1;33m→%ESC%[0m Обновляем npm до npm@12 в реальном профиле...
+        echo %ESC%[2m    "!NPM_CMD!" install -g npm@12%ESC%[0m
+        set "APPDATA=!REAL_APPDATA!"
+        call "!NPM_CMD!" install -g npm@12
+        if !errorlevel! equ 0 (
+            echo %ESC%[1;32m+ %ESC%[0m npm обновлён до 12.
+            set "REAL_NPM_DIR=!REAL_APPDATA!
+pm"
+            if exist "!REAL_NPM_DIR!
+pm.cmd" set "NPM_CMD=!REAL_NPM_DIR!
+pm.cmd"
+        ) else (
+            echo %ESC%[1;31m  [ОШИБКА] Не удалось обновить npm.%ESC%[0m
+        )
+        set "APPDATA=%DATA_DIR%ppdata"
+    )
+)
+
+
 
 echo.
 echo.
