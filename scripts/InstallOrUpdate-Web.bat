@@ -87,7 +87,6 @@ if !errorlevel! equ 0 (
 
 if !GIT_FOUND! equ 0 (
     echo.
-    echo.
     echo %ESC%[1;31m################################################################################%ESC%[0m
     echo %ESC%[1;31m##                                                                            ##%ESC%[0m
     echo %ESC%[1;31m##%ESC%[0m                            %ESC%[1;37mGit не найден в системе%ESC%[0m                         %ESC%[1;31m##%ESC%[0m
@@ -220,9 +219,6 @@ if !NPM_NEEDS_UPDATE! equ 1 (
     )
 )
 
-
-
-echo.
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
