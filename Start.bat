@@ -250,6 +250,8 @@ if !WEB_INSTALLED! equ 1 (
     ) else (
         echo %ESC%[2m       Dashboard не запущен — запускаем в отдельном окне.%ESC%[0m
         echo %ESC%[2m       Для постоянной работы установите службу: [1] → [4]%ESC%[0m
+        call "%SCRIPTS_DIR%\Ensure-Dashboard-Token.bat"
+        set /p "HERMES_DASHBOARD_SESSION_TOKEN=" < "%HERMES_HOME%\dashboard.token"
         start "Hermes Web" cmd /k ""%REPO_DIR%\venv\Scripts\hermes.exe" dashboard --host 0.0.0.0 --port 9119 --skip-build"
     )
     goto menu
