@@ -198,7 +198,7 @@ if "!choice!"=="9" (
     echo %ESC%[1;33mНастройка подключения к другому серверу Hermes%ESC%[0m
     echo.
     set "REMOTE_HOST="
-    set /p "REMOTE_HOST=%ESC%[1mАдрес сервера%ESC%[0m %ESC%[2m^(IP или host, напр. 192.168.0.25^)%ESC%[0m: "
+    set /p "REMOTE_HOST=%ESC%[1mАдрес сервера%ESC%[0m %ESC%[2m(IP или host, напр. 192.168.0.25)%ESC%[0m: "
     set "REMOTE_HOST=!REMOTE_HOST: =!"
     if "!REMOTE_HOST!"=="" (
         echo %ESC%[1;33m. %ESC%[0mПодключение отменено.
