@@ -213,9 +213,11 @@ if "!choice!"=="9" (
     if "!REMOTE_PORT!"=="" set "REMOTE_PORT=9119"
     set "REMOTE_PORT=!REMOTE_PORT: =!"
     set "REMOTE_TOKEN="
-    set /p "REMOTE_TOKEN=%ESC%[1mТокен сервера%ESC%[0m %ESC%[2m(из HERMES_DASHBOARD_SESSION_TOKEN / dashboard.token на сервере)%ESC%[0m: "
-    if "!REMOTE_TOKEN!"=="" (
-        echo %ESC%[1;33m. %ESC%[0mТокен не введён — подключение отменено.
+    if /i "!REMOTE_HOST!"=="127.0.0.1" (
+        set /p "REMOTE_TOKEN=%ESC%[1mТокен %ESC%[2m[Enter — без токена]%ESC%[0m: "
+    )
+    if /i "!REMOTE_HOST!"=="127.0.0.1" if "!REMOTE_TOKEN!"""===
+        echo %ESC%[1;33m. %ESC%[0mТокен не введён для локального подключения — отмена.
         echo.
         pause
         goto menu
