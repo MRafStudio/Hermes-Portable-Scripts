@@ -1,6 +1,7 @@
 # scripts\patch\install_ffmpeg.ps1
 # Установка ffmpeg.exe в портабельный каталог HERMES_HOME\bin.
-# Надёжная цепочка скачивания (как NSSM): git-curl -> bitsadmin -> certutil -> PS TLS12.
+# Приоритет: глобальный ffmpeg из реестрового PATH (Machine+User) -> копирование exe+DLL;
+# если глобального нет или он невалиден - скачивание (цепочка git-curl -> bitsadmin -> certutil -> PS TLS12).
 # Зеркала: BtbN gpl -> BtbN lgpl -> gyan.dev essentials.
 param(
     [string]$HermesHome = $env:HERMES_HOME
@@ -17,9 +18,59 @@ if (Test-Path $target) {
     exit 0
 }
 
-if (-not (Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir | Out-Null }
+# Поиск глобального бинарника в реестровом PATH (Machine+User).
+# НЕ используем $env:Path: в сессиях Hermes там первым идёт домашний bin
+# (C:\NEURO\Hermes\data\hermes\bin) - нам нужны только ВНЕШНИЕ установки.
+function Find-GlobalTool([string]$ExeName) {
+    $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $dirs = @()
+    foreach ($p in @($machinePath, $userPath)) {
+        if (-not $p) { continue }
+        $dirs += $p -split ";" | Where-Object { $_ -and (Test-Path $_) }
+    }
+    foreach ($d in ($dirs | Select-Object -Unique)) {
+        # Исключаем каталоги Hermes (дом/полигон) - берём только внешние установки
+        if ($d -like "*hermes*" -or $d -like "*$HermesHome*") { continue }
+        $candidate = Join-Path $d $ExeName
+        if (Test-Path $candidate) { return $candidate }
+    }
+    return $null
+}
 
-# Зеркала: 1) BtbN gpl (большой, полный) 2) BtbN lgpl 3) gyan.dev essentials (меньше)
+# --- Копирование глобального ffmpeg (экономия ~144 МБ трафика) ---
+$globalFfmpeg = Find-GlobalTool "ffmpeg.exe"
+if ($globalFfmpeg) {
+    Write-Host "    Found global ffmpeg: $globalFfmpeg" -ForegroundColor Gray
+    # Валидируем ИСТОЧНИК: запускается ли он вообще
+    $srcOk = $false
+    try { & $globalFfmpeg -version *> $null; if ($LASTEXITCODE -eq 0) { $srcOk = $true } } catch { $srcOk = $false }
+    if ($srcOk) {
+        if (-not (Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir | Out-Null }
+        Copy-Item $globalFfmpeg -Destination $target -Force
+        # Динамическая сборка (gyan.dev): копируем DLL рядом с exe - без них ffmpeg не стартует.
+        # Статическая сборка (BtbN): DLL нет - копируется только exe, это тоже корректно.
+        $srcDir = Split-Path $globalFfmpeg
+        Get-ChildItem "$srcDir\*.dll" -ErrorAction SilentlyContinue | ForEach-Object {
+            Copy-Item $_.FullName -Destination $binDir -Force
+        }
+        # Валидируем КОПИЮ: DLL на месте? exe не повреждён? Если нет - чистим и качаем fallback
+        $copyOk = $false
+        try { & $target -version *> $null; if ($LASTEXITCODE -eq 0) { $copyOk = $true } } catch { $copyOk = $false }
+        if ($copyOk) {
+            $copiedSize = (Get-ChildItem $binDir -File | Where-Object { $_.Name -eq "ffmpeg.exe" -or $_.Extension -eq ".dll" } | Measure-Object Length -Sum).Sum
+            Write-Host "  +   ffmpeg copied from global: $target ($([math]::Round($copiedSize/1MB,1)) MB total)" -ForegroundColor Green
+            exit 0
+        }
+        Write-Host "  .   copied ffmpeg failed validation, removing and falling back to download..." -ForegroundColor Yellow
+        Remove-Item $target -Force -ErrorAction SilentlyContinue
+        Get-ChildItem "$binDir\*.dll" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    } else {
+        Write-Host "  .   global ffmpeg failed validation, falling back to download..." -ForegroundColor Yellow
+    }
+}
+
+# --- Fallback: скачивание (git-curl -> bitsadmin -> certutil -> PS TLS12) ---
 $mirrors = @(
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
     "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip"
