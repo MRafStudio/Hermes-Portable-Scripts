@@ -199,13 +199,6 @@ if not defined REMOTE_URL (
     pause
     goto menu
 )
-if not defined REMOTE_TOKEN (
-    echo %ESC%[1;31m[ОШИБКА] В файле %HERMES_HOME%\remote-server.ini нет REMOTE_TOKEN.%ESC%[0m
-    echo %ESC%[33m      Настройте заново: [5] Варианты запуска -^> [9] Hermes — Desktop ^(другой сервер^).%ESC%[0m
-    echo.
-    pause
-    goto menu
-)
 echo %ESC%[1;33m- %ESC%[0mПроверяю доступность %ESC%[1m!REMOTE_URL!%ESC%[0m...
 set "TCP_OK=False"
 for /f "usebackq delims=" %%r in (`powershell -NoProfile -Command "(Test-NetConnection -ComputerName '!REMOTE_HOST!' -Port !REMOTE_PORT! -WarningAction SilentlyContinue).TcpTestSucceeded"`) do set "TCP_OK=%%r"
@@ -216,7 +209,8 @@ if /i not "!TCP_OK!"=="True" (
     if /i "!FORCE!"=="N" goto menu
 )
 set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
-set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
+set "HERMES_DESKTOP_REMOTE_TOKEN="
+if /i "!REMOTE_HOST!"=="127.0.0.1" if defined REMOTE_TOKEN set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
 echo %ESC%[1;32m+ %ESC%[0mЗапускаю Desktop с подключением к !REMOTE_URL!...
 echo.
 start "" "!DESKTOP_EXE_PATH!"
