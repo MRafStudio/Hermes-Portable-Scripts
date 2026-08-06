@@ -144,6 +144,8 @@ if !SERVICE_INSTALLED! equ 1 (
     echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mУдалить службу Hermes%ESC%[0m
 )
 echo.
+echo   %ESC%[1;37m[7]%ESC%[0m %ESC%[1mОткрыть порт в брандмауэре %ESC%[2m^(удалённый доступ^)%ESC%[0m
+echo.
 
 if !SERVICE_INSTALLED! equ 1 (
     echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[36mПодключение с другого компьютера%ESC%[0m
@@ -162,6 +164,7 @@ if "!choice!"=="2" goto install_desktop
 if "!choice!"=="4" goto install_service
 if "!choice!"=="5" goto restart_service
 if "!choice!"=="6" goto remove_service
+if "!choice!"=="7" goto firewall_port
 if "!choice!"=="8" goto connect_guide
 if "!choice!"=="0" goto exit
 goto menu
@@ -195,6 +198,10 @@ goto menu
 
 :restart_service
 call "%SCRIPTS_DIR%\Restart-Hermes-Service.bat"
+goto menu
+
+:firewall_port
+call "%SCRIPTS_DIR%\Open-Firewall-Port.bat"
 goto menu
 
 :connect_guide

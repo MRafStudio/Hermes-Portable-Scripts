@@ -546,6 +546,22 @@ echo   %ESC%[2m  Desktop:     !EXE_PATH!%ESC%[0m
 echo   %ESC%[2m  Язык:        Русский доступен в Settings → Appearance%ESC%[0m
 echo  %ESC%[36m────────────────────────────────────────────────────────────────────────────────%ESC%[0m
 
+REM ============================================================================
+REM   Открытие порта в брандмауэре (удалённый доступ)
+REM ============================================================================
+echo.
+echo   %ESC%[1;33m- %ESC%[0mОткрыть порт 9119 в брандмауэре для доступа с других ПК?
+net session >nul 2>&1
+if !errorlevel! neq 0 (
+    echo   %ESC%[33m      Установка запущена НЕ от администратора — порт не открыт.%ESC%[0m
+    echo   %ESC%[33m      Сделайте позже: Start.bat -^> [1] -^> [7]%ESC%[0m
+) else (
+    set /p "OPEN_PORT=%ESC%[33m      [Enter = да, N = нет]: %ESC%[0m"
+    if /i not "!OPEN_PORT!"=="N" (
+        call "%SCRIPTS_DIR%\Open-Firewall-Port.bat" 9119 "Hermes Desktop 9119"
+    )
+)
+
 if "%AUTOCLOSE%"=="1" (
     call "%SCRIPTS_DIR%\SmartPause.bat" 5
 ) else (
