@@ -67,18 +67,18 @@ echo %ESC%[1;36m##%ESC%[0m %ESC%[1;37m                Hermes AI Agent (Portable)
 echo %ESC%[1;36m##                                                                            ##%ESC%[0m
 echo %ESC%[1;36m################################################################################%ESC%[0m
 echo.
-echo %ESC%[1;37m[1] %ESC%[0m %ESC%[1mHermes setup%ESC%[0m                     %ESC%[2m— мастер первичной настройки%ESC%[0m
-echo %ESC%[1;37m[2] %ESC%[0m %ESC%[1mHermes model%ESC%[0m                     %ESC%[2m— выбрать модель и провайдера%ESC%[0m
-echo %ESC%[1;37m[3] %ESC%[0m %ESC%[1mHermes tools%ESC%[0m                     %ESC%[2m— настроить инструменты%ESC%[0m
+echo %ESC%[1;37m[1] %ESC%[0m %ESC%[1mHermes setup%ESC%[0m                      %ESC%[2m— мастер первичной настройки%ESC%[0m
+echo %ESC%[1;37m[2] %ESC%[0m %ESC%[1mHermes model%ESC%[0m                      %ESC%[2m— выбрать модель и провайдера%ESC%[0m
+echo %ESC%[1;37m[3] %ESC%[0m %ESC%[1mHermes tools%ESC%[0m                      %ESC%[2m— настроить инструменты%ESC%[0m
 echo.
-echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mHermes — Interactive CLI%ESC%[0m         %ESC%[2m— начать диалог в терминале%ESC%[0m
-echo %ESC%[1;37m[5] %ESC%[0m %ESC%[1mHermes — Dashboard%ESC%[0m               %ESC%[2m— запустить веб-панель%ESC%[0m
+echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mHermes — Interactive CLI%ESC%[0m          %ESC%[2m— начать диалог в терминале%ESC%[0m
+echo %ESC%[1;37m[5] %ESC%[0m %ESC%[1mHermes — Dashboard%ESC%[0m                %ESC%[2m— запустить веб-панель%ESC%[0m
 if defined DESKTOP_EXE (
-    echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mHermes — Desktop%ESC%[0m                %ESC%[2m— запустить графическую версию%ESC%[0m
+    echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mHermes — Desktop%ESC%[0m                 %ESC%[2m— запустить графическую версию%ESC%[0m
 )
 echo.
-echo %ESC%[1;37m[7] %ESC%[0m %ESC%[1mHermes gateway%ESC%[0m                   %ESC%[2m— запустить шлюз (Telegram, Discord)%ESC%[0m
-echo %ESC%[1;37m[8] %ESC%[0m %ESC%[1mHermes doctor%ESC%[0m                    %ESC%[2m— диагностика проблем%ESC%[0m
+echo %ESC%[1;37m[7] %ESC%[0m %ESC%[1mHermes gateway%ESC%[0m                    %ESC%[2m— запустить шлюз (Telegram, Discord)%ESC%[0m
+echo %ESC%[1;37m[8] %ESC%[0m %ESC%[1mHermes doctor%ESC%[0m                     %ESC%[2m— диагностика проблем%ESC%[0m
 echo %ESC%[1;37m[9] %ESC%[0m %ESC%[1mHermes — Desktop ^(другой сервер^)%ESC%[0m  %ESC%[2m— подключение к удалённому серверу%ESC%[0m
 echo.
 echo %ESC%[1;37m[0] %ESC%[0m %ESC%[1mВыход в главное меню%ESC%[0m
