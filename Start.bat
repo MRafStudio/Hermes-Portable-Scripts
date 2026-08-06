@@ -208,9 +208,13 @@ if /i not "!TCP_OK!"=="True" (
     set /p "FORCE="
     if /i "!FORCE!"=="N" goto menu
 )
-set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
-set "HERMES_DESKTOP_REMOTE_TOKEN="
-if /i "!REMOTE_HOST!"=="127.0.0.1" if defined REMOTE_TOKEN set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
+if /i "!REMOTE_HOST!"=="127.0.0.1" (
+    set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
+    if defined REMOTE_TOKEN set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
+) else (
+    set "HERMES_DESKTOP_REMOTE_URL="
+    set "HERMES_DESKTOP_REMOTE_TOKEN="
+)
 echo %ESC%[1;32m+ %ESC%[0mЗапускаю Desktop с подключением к !REMOTE_URL!...
 echo.
 start "" "!DESKTOP_EXE_PATH!"
