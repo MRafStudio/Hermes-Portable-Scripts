@@ -210,6 +210,14 @@ if "!choice!"=="9" (
     set /p "REMOTE_PORT=%ESC%[1mПорт%ESC%[0m %ESC%[2m[Enter = 9119]%ESC%[0m: "
     if "!REMOTE_PORT!"=="" set "REMOTE_PORT=9119"
     set "REMOTE_PORT=!REMOTE_PORT: =!"
+    set "REMOTE_TOKEN="
+    set /p "REMOTE_TOKEN=%ESC%[1mТокен сервера%ESC%[0m %ESC%[2m(из HERMES_DASHBOARD_SESSION_TOKEN / dashboard.token на сервере)%ESC%[0m: "
+    if "!REMOTE_TOKEN!"=="" (
+        echo %ESC%[1;33m. %ESC%[0mТокен не введён — подключение отменено.
+        echo.
+        pause
+        goto menu
+    )
     echo.
     echo %ESC%[1;33m- %ESC%[0mПроверяю доступность !REMOTE_HOST!:!REMOTE_PORT!...
     set "TCP_OK=False"
@@ -219,11 +227,13 @@ if "!choice!"=="9" (
         > "%HERMES_HOME%\remote-server.ini" echo REMOTE_HOST=!REMOTE_HOST!
         >> "%HERMES_HOME%\remote-server.ini" echo REMOTE_PORT=!REMOTE_PORT!
         >> "%HERMES_HOME%\remote-server.ini" echo REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!
+        >> "%HERMES_HOME%\remote-server.ini" echo REMOTE_TOKEN=!REMOTE_TOKEN!
         echo %ESC%[1;32m+ %ESC%[0mПараметры сохранены: %HERMES_HOME%\remote-server.ini
         echo.
         if defined DESKTOP_EXE (
             echo %ESC%[1;33m- %ESC%[0mЗапускаю Hermes Desktop с подключением к удалённому серверу...
             set "HERMES_DESKTOP_REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!"
+            set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
             start "" "!DESKTOP_EXE!"
         ) else (
             echo %ESC%[1;33m. %ESC%[0mDesktop не собран — параметры сохранены, подключиться можно после сборки: [5] -^> [9].
