@@ -152,6 +152,8 @@ if "%choice%"=="5" (
         start "" "http://localhost:9119"
     ) else (
         echo %ESC%[1;33m. %ESC%[0m Dashboard не запущен — запускаем в отдельном окне.
+        call "%SCRIPTS_DIR%\Ensure-Dashboard-Token.bat"
+        set /p "HERMES_DASHBOARD_SESSION_TOKEN=" < "%HERMES_HOME%\dashboard.token"
         start "Hermes Web" cmd /k ""%REPO_DIR%\venv\Scripts\hermes.exe" dashboard --host 0.0.0.0 --port 9119 --skip-build"
     )
     echo.
