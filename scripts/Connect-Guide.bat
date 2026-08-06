@@ -78,7 +78,7 @@ if !errorlevel! equ 0 (
     echo   %ESC%[1;32m  [+] Правило брандмауэра: есть%ESC%[0m
 ) else (
     echo   %ESC%[1;33m  [.] Правило брандмауэра не найдено — откройте порт:
-    echo   %ESC%[33m      Start.bat -^> [1] -^> [2] ^(или вручную netsh advfirewall ... localport=!SERVICE_PORT!^)%ESC%[0m
+    echo   %ESC%[33m      Start.bat -^> [1] -^> [7] ^(или вручную netsh advfirewall ... localport=!SERVICE_PORT!^)%ESC%[0m
 )
 
 REM --- 0.4: IP-адреса сервера ---

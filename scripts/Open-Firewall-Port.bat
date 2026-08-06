@@ -50,6 +50,15 @@ REM ============================================================================
 set "RULE_NAME=%~2"
 if not defined RULE_NAME set "RULE_NAME=Hermes !SERVICE_PORT!"
 
+echo   %ESC%[1;33m- %ESC%[0mПроверяю существующие правила для порта %ESC%[1m!SERVICE_PORT!%ESC%[0m...
+netsh advfirewall firewall show rule name=all | findstr /i "!SERVICE_PORT!" >nul 2>&1
+if !errorlevel! equ 0 (
+    echo   %ESC%[1;33m. %ESC%[0mПравило для порта !SERVICE_PORT! уже существует — пропускаю.
+    echo   %ESC%[33m      Если удалённый доступ не работает — проверьте профиль сети ^(Частная^).%ESC%[0m
+    echo.
+    pause
+    exit /b 0
+)
 echo   %ESC%[1;33m- %ESC%[0mОткрываю TCP-порт %ESC%[1m!SERVICE_PORT!%ESC%[0m ^(правило: "!RULE_NAME!"^)...
 netsh advfirewall firewall add rule name="!RULE_NAME!" dir=in action=allow protocol=TCP localport=!SERVICE_PORT!
 if !errorlevel! equ 0 (
