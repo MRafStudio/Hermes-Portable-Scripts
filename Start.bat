@@ -133,6 +133,7 @@ echo.
 if !ANY_INSTALLED! equ 1 (
     echo %ESC%[1;37m[5]%ESC%[0m %ESC%[36mHermes — Варианты запуска%ESC%[0m
 )
+echo %ESC%[1;37m[6]%ESC%[0m %ESC%[1mHermes — Desktop ^(другой сервер^)%ESC%[0m %ESC%[2m— подключение к удалённому серверу%ESC%[0m
 REM Быстрый запуск: Desktop приоритет, иначе Web
 if !DESKTOP_INSTALLED! equ 1 (
     echo %ESC%[1;6m[*]%ESC%[0m %ESC%[32mБыстрый запуск Hermes Desktop%ESC%[0m
@@ -157,6 +158,7 @@ if "%choice%"=="1" goto setup
 if "%choice%"=="2" goto dev_tools
 
 if "%choice%"=="5" goto launch_options
+if "%choice%"=="6" goto desktop_remote
 if "%choice%"=="0" goto exit
 goto menu
 
@@ -170,6 +172,47 @@ goto menu
 
 :launch_options
 call "%SCRIPTS_DIR%\LaunchOptions.bat"
+goto menu
+
+:desktop_remote
+cls
+echo.
+echo %ESC%[1;33m-%ESC%[0m %ESC%[1mHermes — Desktop ^(другой сервер^)%ESC%[0m
+echo.
+if not defined DESKTOP_EXE_PATH (
+    echo %ESC%[1;31m[ОШИБКА] Desktop не собран. Сначала соберите: [1] Установка/Обновление -^> [2] Установить Hermes Desktop.%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+if not exist "%HERMES_HOME%\remote-server.ini" (
+    echo %ESC%[1;31m[ОШИБКА] Параметры удалённого сервера не сохранены.%ESC%[0m
+    echo %ESC%[33m      Настройте подключение: [5] Варианты запуска -^> [9] Hermes — Desktop ^(другой сервер^).%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+for /f "usebackq tokens=1,* delims==" %%a in ("%HERMES_HOME%\remote-server.ini") do set "%%a=%%b"
+if not defined REMOTE_URL (
+    echo %ESC%[1;31m[ОШИБКА] Файл %HERMES_HOME%\remote-server.ini повреждён.%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+echo %ESC%[1;33m- %ESC%[0mПроверяю доступность %ESC%[1m!REMOTE_URL!%ESC%[0m...
+set "TCP_OK=False"
+for /f "usebackq delims=" %%r in (`powershell -NoProfile -Command "(Test-NetConnection -ComputerName '!REMOTE_HOST!' -Port !REMOTE_PORT! -WarningAction SilentlyContinue).TcpTestSucceeded"`) do set "TCP_OK=%%r"
+if /i not "!TCP_OK!"=="True" (
+    echo %ESC%[1;33m. %ESC%[0mСервер не отвечает. Всё равно запустить? %ESC%[2m[Enter = да, N = нет]%ESC%[0m
+    set "FORCE="
+    set /p "FORCE="
+    if /i "!FORCE!"=="N" goto menu
+)
+set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
+echo %ESC%[1;32m+ %ESC%[0mЗапускаю Desktop с подключением к !REMOTE_URL!...
+echo.
+start "" "!DESKTOP_EXE_PATH!"
+pause
 goto menu
 
 :launch
