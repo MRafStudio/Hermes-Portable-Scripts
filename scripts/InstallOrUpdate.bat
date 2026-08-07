@@ -264,11 +264,12 @@ echo.
 for /f "usebackq delims=" %%r in (`powershell -NoProfile -Command "(Test-NetConnection -ComputerName '!REMOTE_HOST!' -Port !REMOTE_PORT! -WarningAction SilentlyContinue).TcpTestSucceeded"`) do set "TCP_OK=%%r"
 if /i "!TCP_OK!"=="True" (
     echo %ESC%[1;32m+ %ESC%[0mСервер доступен!
-    > "%HERMES_HOME%\remote-server.ini" echo REMOTE_HOST=!REMOTE_HOST!
-    >> "%HERMES_HOME%\remote-server.ini" echo REMOTE_PORT=!REMOTE_PORT!
-    >> "%HERMES_HOME%\remote-server.ini" echo REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!
-    >> "%HERMES_HOME%\remote-server.ini" echo REMOTE_TOKEN=!REMOTE_TOKEN!
-    echo %ESC%[1;32m+ %ESC%[0mПараметры сохранены: %HERMES_HOME%\remote-server.ini
+    > "%HERMES_HOME%\portable_start.ini" echo CONSOLE=0
+    >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_HOST=!REMOTE_HOST!
+    >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_PORT=!REMOTE_PORT!
+    >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!
+    >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_TOKEN=!REMOTE_TOKEN!
+    echo %ESC%[1;32m+ %ESC%[0mПараметры сохранены: %HERMES_HOME%\portable_start.ini
     echo.
     if defined DESKTOP_EXE (
         echo %ESC%[1;33m- %ESC%[0mЗапускаю Hermes Desktop с подключением к удалённому серверу...
