@@ -167,7 +167,7 @@ if "!choice!"=="5" goto restart_service
 if "!choice!"=="6" goto remove_service
 if "!choice!"=="7" goto firewall_port
 if "!choice!"=="8" goto change_password
-if "!choice!"=="9" goto remote_set
+if "!choice!"=="9" call "%SCRIPTS_DIR%\Connection.bat"
 if "!choice!"=="0" goto exit
 goto menu
 
@@ -227,57 +227,6 @@ if not "!NEW_USER!"""==="" "%REPO_DIR%env\Scripts\hermes.exe" config set dashbo
 if not "!NEW_PASS!"""==="" "%REPO_DIR%env\Scripts\hermes.exe" config set dashboard.basic_auth.password !NEW_PASS! 2>nul
 echo.
 echo [1;32m+ [0mЛогин и пароль обновлены. Перезапустите сервер ^(Start.bat — Enter или [5]^).
-echo.
-pause
-goto menu
-
-:remote_set
-cls
-echo %ESC%[1;33mНастройка подключения к другому серверу Hermes%ESC%[0m
-echo.
-set "REMOTE_HOST="
-set /p "REMOTE_HOST=%ESC%[1mАдрес сервера%ESC%[0m %ESC%[2m(IP или host, напр. 192.168.0.25)%ESC%[0m: "
-set "REMOTE_HOST=!REMOTE_HOST: =!"
-if "!REMOTE_HOST!"=="" (
-    echo %ESC%[1;33m. %ESC%[0mПодключение отменено.
-    echo.
-    pause
-    goto menu
-)
-set "REMOTE_PORT="
-set /p "REMOTE_PORT=%ESC%[1mПорт%ESC%[0m %ESC%[2m[Enter = 9119]%ESC%[0m: "
-if "!REMOTE_PORT!"=="" set "REMOTE_PORT=9119"
-set "REMOTE_PORT=!REMOTE_PORT: =!"
-echo.
-set "CHECK="
-set /p "CHECK=%ESC%[1mПроверить соединение%ESC%[0m %ESC%[2m(y/N)%ESC%[0m: "
-set "TCP_OK=False"
-if /i "!CHECK!"=="y" (
-    echo %ESC%[1;33m- %ESC%[0mПроверяю доступность !REMOTE_HOST!:!REMOTE_PORT!...
-    for /f "usebackq delims=" %%r in (`powershell -NoProfile -Command "(Test-NetConnection -ComputerName '!REMOTE_HOST!' -Port !REMOTE_PORT! -WarningAction SilentlyContinue).TcpTestSucceeded"`) do set "TCP_OK=%%r"
-    if /i "!TCP_OK!"=="False" (
-        echo %ESC%[1;31m[ОШИБКА] Сервер !REMOTE_HOST!:!REMOTE_PORT! недоступен — параметры не сохранены.%ESC%[0m
-        echo.
-        pause
-        goto menu
-    )
-    echo %ESC%[1;32m+ %ESC%[0mСервер доступен!
-) else (
-    echo %ESC%[1;33m. %ESC%[0mПроверка пропущена — сохраняю параметры.
-)
-> "%HERMES_HOME%\portable_start.ini" echo CONSOLE=0
->> "%HERMES_HOME%\portable_start.ini" echo REMOTE_HOST=!REMOTE_HOST!
->> "%HERMES_HOME%\portable_start.ini" echo REMOTE_PORT=!REMOTE_PORT!
->> "%HERMES_HOME%\portable_start.ini" echo REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!
-echo %ESC%[1;32m+ %ESC%[0mПараметры сохранены: %HERMES_HOME%\portable_start.ini
-echo.
-if defined DESKTOP_EXE (
-    echo %ESC%[1;33m- %ESC%[0mЗапускаю Hermes Desktop с подключением к серверу...
-    set "HERMES_DESKTOP_REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!"
-    start "" "!DESKTOP_EXE!"
-) else (
-    echo %ESC%[1;33m. %ESC%[0mDesktop не собран — параметры сохранены, подключиться можно после сборки: [5] -^> [4].
-)
 echo.
 pause
 goto menu
