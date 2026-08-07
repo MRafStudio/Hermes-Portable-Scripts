@@ -114,9 +114,9 @@ if !IS_LOCAL! equ 1 (
         call "%SCRIPTS_DIR%\Ensure-Dashboard-Token.bat"
         set /p "HERMES_DASHBOARD_SESSION_TOKEN=" < "%HERMES_HOME%\dashboard.token"
         if "!CONSOLE!"=="1" (
-            start "Hermes Web" cmd /k ""%HERMES_EXE%" dashboard --host 0.0.0.0 --port !REMOTE_PORT! --skip-build"
+            start "Hermes Web" cmd /k ""%HERMES_EXE%" dashboard --host !REMOTE_HOST! --port !REMOTE_PORT! --skip-build"
         ) else (
-            start "Hermes Web" cmd /c ""%HERMES_EXE%" dashboard --host 0.0.0.0 --port !REMOTE_PORT! --skip-build"
+            start "Hermes Web" cmd /c ""%HERMES_EXE%" dashboard --host !REMOTE_HOST! --port !REMOTE_PORT! --skip-build"
         )
     )
 ) else (
