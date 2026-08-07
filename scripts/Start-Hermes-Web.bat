@@ -92,6 +92,7 @@ REM   локальный = 127.0.0.1 / localhost / любой IP локальн�
 REM   remote    = любой другой адрес (подключаемся по REMOTE_URL)
 REM ============================================================================
 set "IS_LOCAL=0"
+if /i "!REMOTE_HOST!"=="0.0.0.0" set "IS_LOCAL=1"
 if /i "!REMOTE_HOST!"=="127.0.0.1" set "IS_LOCAL=1"
 if /i "!REMOTE_HOST!"=="localhost" set "IS_LOCAL=1"
 if !IS_LOCAL! equ 0 (
