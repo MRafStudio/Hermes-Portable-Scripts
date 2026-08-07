@@ -77,7 +77,7 @@ if defined DESKTOP_EXE (
     echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mHermes — Desktop%ESC%[0m                 %ESC%[2m— запустить графическую версию%ESC%[0m
 )
 echo.
-echo %ESC%[1;37m[7] %ESC%[0m %ESC%[1mHermes gateway%ESC%[0m                    %ESC%[2m— запустить шлюз (Telegram, Discord)%ESC%[0m
+echo %ESC%[1;37m[7] %ESC%[0m %ESC%[1mHermes gateway%ESC%[0m                    %ESC%[2m— настроить шлюз (Telegram, Discord)%ESC%[0m
 echo %ESC%[1;37m[8] %ESC%[0m %ESC%[1mHermes doctor%ESC%[0m                     %ESC%[2m— диагностика проблем%ESC%[0m
 echo.
 echo %ESC%[1;37m[0] %ESC%[0m %ESC%[1mВыход в главное меню%ESC%[0m
