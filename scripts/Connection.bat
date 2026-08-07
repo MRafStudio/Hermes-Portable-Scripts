@@ -59,15 +59,17 @@ REM ============================================================================
 set "AUTH_USER="
 set "AUTH_PASS="
 if exist "%HERMES_EXE%" (
-    for /f "usebackq delims=" %%u in (`"%HERMES_EXE%" config get dashboard.basic_auth.username 2^>nul ^| findstr /v "Config key not set"`) do set "AUTH_USER=%%u"
-    for /f "usebackq delims=" %%p in (`"%HERMES_EXE%" config get dashboard.basic_auth.password 2^>nul ^| findstr /v "Config key not set"`) do set "AUTH_PASS=%%p"
+    for /f "usebackq delims=" %%u in (`"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\get_basic_auth.py" "%HERMES_HOME%\config.yaml" username`) do set "AUTH_USER=%%u"
+    for /f "usebackq delims=" %%p in (`"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\get_basic_auth.py" "%HERMES_HOME%\config.yaml" password`) do set "AUTH_PASS=%%p"
 )
 
 :menu
 cls
 echo %ESC%[1;36m################################################################################%ESC%[0m
-echo %ESC%[1;36m##%ESC%[0m            %ESC%[1;37mHermes Portable%ESC%[0m — %ESC%[1;33mПараметры подключения%ESC%[0m              %ESC%[1;36m##%ESC%[0m
+echo %ESC%[1;36m##%ESC%[0m                  %ESC%[1;37mHermes Portable%ESC%[0m — %ESC%[1;33mПараметры подключения%ESC%[0m                   %ESC%[1;36m##%ESC%[0m
 echo %ESC%[1;36m################################################################################%ESC%[0m
+echo.
+echo   %ESC%[1;33mHERMES_HOME:%ESC%[0m %ESC%[2m%HERMES_HOME%%ESC%[0m
 echo.
 echo   %ESC%[1;33mПодключение:%ESC%[0m
 echo     %ESC%[2mАдрес:     %ESC%[0m !REMOTE_HOST!
