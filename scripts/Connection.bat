@@ -164,12 +164,12 @@ if not exist "%HERMES_EXE%" (
 set "NEW_USER="
 set /p "NEW_USER=%ESC%[1mЛогин%ESC%[0m %ESC%[2m[Enter = !AUTH_USER!]%ESC%[0m: "
 set "NEW_USER=!NEW_USER: =!"
-if "!NEW_USER!"=="" if defined AUTH_USER set "NEW_USER=!AUTH_USER!"
+if "!NEW_USER!"=="" if defined AUTH_USER if not "!AUTH_USER!"=="" set "NEW_USER=!AUTH_USER!"
 if "!NEW_USER!"=="" set "NEW_USER=admin"
 set "NEW_PASS="
 set /p "NEW_PASS=%ESC%[1mПароль%ESC%[0m %ESC%[2m[Enter — без изменений]%ESC%[0m: "
 echo.
-if defined NEW_PASS (
+if not "!NEW_PASS!"=="" (
     "%HERMES_EXE%" config set dashboard.basic_auth.username "!NEW_USER!"
     "%HERMES_EXE%" config set dashboard.basic_auth.password "!NEW_PASS!"
     echo %ESC%[1;32m+ %ESC%[0mЛогин и пароль обновлены в config.yaml.
