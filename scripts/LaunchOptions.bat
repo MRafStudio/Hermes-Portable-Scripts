@@ -71,16 +71,14 @@ echo %ESC%[1;37m[1] %ESC%[0m %ESC%[1mHermes setup%ESC%[0m                      %
 echo %ESC%[1;37m[2] %ESC%[0m %ESC%[1mHermes model%ESC%[0m                      %ESC%[2m— выбрать модель и провайдера%ESC%[0m
 echo %ESC%[1;37m[3] %ESC%[0m %ESC%[1mHermes tools%ESC%[0m                      %ESC%[2m— настроить инструменты%ESC%[0m
 echo.
-echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mHermes — Desktop ^(другой сервер^)%ESC%[0m  %ESC%[2m— подключение к удалённому серверу%ESC%[0m
-echo %ESC%[1;37m[5] %ESC%[0m %ESC%[1mHermes — Interactive CLI%ESC%[0m          %ESC%[2m— начать диалог в терминале%ESC%[0m
-echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mHermes — Dashboard%ESC%[0m                %ESC%[2m— запустить веб-панель%ESC%[0m
+echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mHermes — Interactive CLI%ESC%[0m          %ESC%[2m— начать диалог в терминале%ESC%[0m
+echo %ESC%[1;37m[5] %ESC%[0m %ESC%[1mHermes — Dashboard%ESC%[0m                %ESC%[2m— запустить веб-панель%ESC%[0m
 if defined DESKTOP_EXE (
     echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mHermes — Desktop%ESC%[0m                 %ESC%[2m— запустить графическую версию%ESC%[0m
 )
 echo.
 echo %ESC%[1;37m[7] %ESC%[0m %ESC%[1mHermes gateway%ESC%[0m                    %ESC%[2m— запустить шлюз (Telegram, Discord)%ESC%[0m
 echo %ESC%[1;37m[8] %ESC%[0m %ESC%[1mHermes doctor%ESC%[0m                     %ESC%[2m— диагностика проблем%ESC%[0m
-
 echo.
 echo %ESC%[1;37m[0] %ESC%[0m %ESC%[1mВыход в главное меню%ESC%[0m
 echo.
@@ -133,63 +131,8 @@ if "%choice%"=="3" (
     goto menu    
 )
 
-REM --- [4] Hermes — Desktop (другой сервер) ---
-if "!choice!"=="4" (
-    cls
-    echo %ESC%[1;33mНастройка подключения к другому серверу Hermes%ESC%[0m
-    echo.
-    set "REMOTE_HOST="
-    set /p "REMOTE_HOST=%ESC%[1mАдрес сервера%ESC%[0m %ESC%[2m(IP или host, напр. 192.168.0.25)%ESC%[0m: "
-    set "REMOTE_HOST=!REMOTE_HOST: =!"
-    if "!REMOTE_HOST!"=="" (
-        echo %ESC%[1;33m. %ESC%[0mПодключение отменено.
-        echo.
-        pause
-        goto menu
-    )
-    set "REMOTE_PORT="
-    set /p "REMOTE_PORT=%ESC%[1mПорт%ESC%[0m %ESC%[2m[Enter = 9119]%ESC%[0m: "
-    if "!REMOTE_PORT!"=="" set "REMOTE_PORT=9119"
-    set "REMOTE_PORT=!REMOTE_PORT: =!"
-    set "REMOTE_TOKEN="
-    if /i "!REMOTE_HOST!"=="127.0.0.1" (
-        set /p "REMOTE_TOKEN=%ESC%[1mТокен %ESC%[2m[Enter — без токена]%ESC%[0m: "
-    )
-    if /i "!REMOTE_HOST!"=="127.0.0.1" if "!REMOTE_TOKEN!"""===
-        echo %ESC%[1;33m. %ESC%[0mТокен не введён для локального подключения — отмена.
-        echo.
-        pause
-        goto menu
-    )
-    echo.
-    echo %ESC%[1;33m- %ESC%[0mПроверяю доступность !REMOTE_HOST!:!REMOTE_PORT!...
-    set "TCP_OK=False"
-    for /f "usebackq delims=" %%r in (`powershell -NoProfile -Command "(Test-NetConnection -ComputerName '!REMOTE_HOST!' -Port !REMOTE_PORT! -WarningAction SilentlyContinue).TcpTestSucceeded"`) do set "TCP_OK=%%r"
-    if /i "!TCP_OK!"=="True" (
-        echo %ESC%[1;32m+ %ESC%[0mСервер доступен!
-        > "%HERMES_HOME%\remote-server.ini" echo REMOTE_HOST=!REMOTE_HOST!
-        >> "%HERMES_HOME%\remote-server.ini" echo REMOTE_PORT=!REMOTE_PORT!
-        >> "%HERMES_HOME%\remote-server.ini" echo REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!
-        >> "%HERMES_HOME%\remote-server.ini" echo REMOTE_TOKEN=!REMOTE_TOKEN!
-        echo %ESC%[1;32m+ %ESC%[0mПараметры сохранены: %HERMES_HOME%\remote-server.ini
-        echo.
-        if defined DESKTOP_EXE (
-            echo %ESC%[1;33m- %ESC%[0mЗапускаю Hermes Desktop с подключением к удалённому серверу...
-            set "HERMES_DESKTOP_REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!"
-            set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
-            start "" "!DESKTOP_EXE!"
-        ) else (
-            echo %ESC%[1;33m. %ESC%[0mDesktop не собран — параметры сохранены, подключиться можно после сборки: [5] -^> [9].
-        )
-    ) else (
-        echo %ESC%[1;31m[ОШИБКА] Сервер !REMOTE_HOST!:!REMOTE_PORT! недоступен — параметры не сохранены.%ESC%[0m
-    )
-    echo.
-    pause
-    goto menu
-
-REM --- [5] Hermes — Interactive CLI ---
-if "%choice%"=="5" (
+REM --- [4] Hermes — Interactive CLI ---
+if "%choice%"=="4" (
     cls
     echo %ESC%[1;33mЗапуск: Hermes — Interactive CLI%ESC%[0m
     echo.
@@ -197,8 +140,8 @@ if "%choice%"=="5" (
     goto menu
 )
 
-REM --- [6] Hermes — Dashboard ---
-if "%choice%"=="6" (
+REM --- [5] Hermes — Dashboard ---
+if "%choice%"=="5" (
     cls
     echo %ESC%[1;33mЗапуск: Hermes — Dashboard%ESC%[0m
     echo.

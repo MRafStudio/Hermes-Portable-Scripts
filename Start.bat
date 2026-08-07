@@ -19,6 +19,19 @@ set "DATA_DIR=%ROOT_DIR%\data"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"
 
 REM ============================================================================
+REM   portable_start.ini — параметры запуска (автосоздание с дефолтами)
+REM ============================================================================
+set "START_INI=%HERMES_HOME%\portable_start.ini"
+if not exist "%START_INI%" (
+    > "%START_INI%" echo CONSOLE=0
+    >> "%START_INI%" echo REMOTE_HOST=127.0.0.1
+    >> "%START_INI%" echo REMOTE_PORT=9119
+    >> "%START_INI%" echo REMOTE_URL=http://127.0.0.1:9119
+    >> "%START_INI%" echo REMOTE_TOKEN=none
+    echo %ESC%[1;33m- %ESC%[0mСоздан %START_INI% с параметрами по умолчанию.
+)
+
+REM ============================================================================
 REM   Синхронизация переменных окружения пользователя с корнем запуска
 REM   (реестр всегда указывает на тот корень, из которого запущен Start.bat)
 REM ============================================================================
@@ -185,16 +198,16 @@ if not defined DESKTOP_EXE_PATH (
     pause
     goto menu
 )
-if not exist "%HERMES_HOME%\remote-server.ini" (
+if not exist "%HERMES_HOME%\portable_start.ini" (
     echo %ESC%[1;31m[ОШИБКА] Параметры удалённого сервера не сохранены.%ESC%[0m
     echo %ESC%[33m      Настройте подключение: [5] Варианты запуска -^> [9] Hermes — Desktop ^(другой сервер^).%ESC%[0m
     echo.
     pause
     goto menu
 )
-for /f "usebackq tokens=1,* delims==" %%a in ("%HERMES_HOME%\remote-server.ini") do set "%%a=%%b"
+for /f "usebackq tokens=1,* delims==" %%a in ("%HERMES_HOME%\portable_start.ini") do set "%%a=%%b"
 if not defined REMOTE_URL (
-    echo %ESC%[1;31m[ОШИБКА] Файл %HERMES_HOME%\remote-server.ini повреждён.%ESC%[0m
+    echo %ESC%[1;31m[ОШИБКА] Файл %HERMES_HOME%\portable_start.ini повреждён.%ESC%[0m
     echo.
     pause
     goto menu
