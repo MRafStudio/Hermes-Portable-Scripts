@@ -144,6 +144,7 @@ set /p "REMOTE_PORT=%ESC%[1mПорт%ESC%[0m %ESC%[2m[Enter = 9119]%ESC%[0m: "
 if "!REMOTE_PORT!"=="" set "REMOTE_PORT=9119"
 if not "!REMOTE_PORT!"=="" set "REMOTE_PORT=!REMOTE_PORT: =!"
 set "REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!"
+if "!REMOTE_HOST!"=="0.0.0.0" set "REMOTE_URL=http://127.0.0.1:!REMOTE_PORT!"
 echo.
 set "CHECK="
 set /p "CHECK=%ESC%[1mПроверить соединение%ESC%[0m %ESC%[2m(y/N)%ESC%[0m: "
