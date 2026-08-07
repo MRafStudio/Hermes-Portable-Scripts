@@ -133,9 +133,20 @@ echo.
 
 REM ============================================================================
 REM   Запуск Hermes с изолированным окружением
-REM   (start наследует текущее окружение — изоляция передаётся автоматически)
+REM   CONSOLE=1 — через Start-Hermes-Desktop-Console.bat (логи при падении)
+REM   CONSOLE=0 — прямой запуск без консоли (portable_start.ini)
 REM ============================================================================
-start /min "Hermes Desktop Console" cmd /c "%SCRIPTS_DIR%\Start-Hermes-Desktop-Console.bat"
+set "CONSOLE=0"
+set "START_INI=%HERMES_HOME%\portable_start.ini"
+if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
+    if /i "%%a"=="CONSOLE" set "CONSOLE=%%b"
+)
+if "!CONSOLE!"=="1" (
+    start /min "Hermes Desktop Console" cmd /c "%SCRIPTS_DIR%\Start-Hermes-Desktop-Console.bat"
+) else (
+    cd /d "%HOME%"
+    start "" "%HERMES_EXE%"
+)
 
 echo   %ESC%[1;32mHermes Desktop запущен%ESC%[0m
 echo   %ESC%[1;32mОкно закроется через 3 секунды...%ESC%[0m
