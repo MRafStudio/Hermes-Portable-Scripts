@@ -146,7 +146,6 @@ echo.
 if !ANY_INSTALLED! equ 1 (
     echo %ESC%[1;37m[5]%ESC%[0m %ESC%[36mHermes — Варианты запуска%ESC%[0m
 )
-echo %ESC%[1;37m[6]%ESC%[0m %ESC%[1mHermes — Desktop ^(другой сервер^)%ESC%[0m %ESC%[2m— подключение к удалённому серверу%ESC%[0m
 REM Быстрый запуск: Desktop приоритет, иначе Web
 if !DESKTOP_INSTALLED! equ 1 (
     echo %ESC%[1;6m[*]%ESC%[0m %ESC%[32mБыстрый запуск Hermes Desktop%ESC%[0m
@@ -171,7 +170,6 @@ if "%choice%"=="1" goto setup
 if "%choice%"=="2" goto dev_tools
 
 if "%choice%"=="5" goto launch_options
-if "%choice%"=="6" goto desktop_remote
 if "%choice%"=="0" goto exit
 goto menu
 
@@ -185,53 +183,6 @@ goto menu
 
 :launch_options
 call "%SCRIPTS_DIR%\LaunchOptions.bat"
-goto menu
-
-:desktop_remote
-cls
-echo.
-echo %ESC%[1;33m-%ESC%[0m %ESC%[1mHermes — Desktop ^(другой сервер^)%ESC%[0m
-echo.
-if not defined DESKTOP_EXE_PATH (
-    echo %ESC%[1;31m[ОШИБКА] Desktop не собран. Сначала соберите: [1] Установка, обновление и настройки -^> [2] Установить Hermes Desktop.%ESC%[0m
-    echo.
-    pause
-    goto menu
-)
-if not exist "%HERMES_HOME%\portable_start.ini" (
-    echo %ESC%[1;31m[ОШИБКА] Параметры удалённого сервера не сохранены.%ESC%[0m
-    echo %ESC%[33m      Настройте подключение: [5] Варианты запуска -^> [9] Hermes — Desktop ^(другой сервер^).%ESC%[0m
-    echo.
-    pause
-    goto menu
-)
-for /f "usebackq tokens=1,* delims==" %%a in ("%HERMES_HOME%\portable_start.ini") do set "%%a=%%b"
-if not defined REMOTE_URL (
-    echo %ESC%[1;31m[ОШИБКА] Файл %HERMES_HOME%\portable_start.ini повреждён.%ESC%[0m
-    echo.
-    pause
-    goto menu
-)
-echo %ESC%[1;33m- %ESC%[0mПроверяю доступность %ESC%[1m!REMOTE_URL!%ESC%[0m...
-set "TCP_OK=False"
-for /f "usebackq delims=" %%r in (`powershell -NoProfile -Command "(Test-NetConnection -ComputerName '!REMOTE_HOST!' -Port !REMOTE_PORT! -WarningAction SilentlyContinue).TcpTestSucceeded"`) do set "TCP_OK=%%r"
-if /i not "!TCP_OK!"=="True" (
-    echo %ESC%[1;33m. %ESC%[0mСервер не отвечает. Всё равно запустить? %ESC%[2m[Enter = да, N = нет]%ESC%[0m
-    set "FORCE="
-    set /p "FORCE="
-    if /i "!FORCE!"=="N" goto menu
-)
-if /i "!REMOTE_HOST!"=="127.0.0.1" (
-    set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
-    if defined REMOTE_TOKEN set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
-) else (
-    set "HERMES_DESKTOP_REMOTE_URL="
-    set "HERMES_DESKTOP_REMOTE_TOKEN="
-)
-echo %ESC%[1;32m+ %ESC%[0mЗапускаю Desktop с подключением к !REMOTE_URL!...
-echo.
-start "" "!DESKTOP_EXE_PATH!"
-pause
 goto menu
 
 :launch
@@ -248,23 +199,7 @@ if !WEB_INSTALLED! equ 1 (
     echo.
     echo %ESC%[1;33m-%ESC%[0m %ESC%[1mЗапуск Hermes Web %ESC%[2m^(dashboard^)%ESC%[0m...%ESC%[0m
     echo.
-    REM Порт dashboard уже слушается (служба ИЛИ ручной запуск) — просто открываем браузер!
-    netstat -ano | findstr /c:":9119" | findstr /c:"LISTENING" >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo %ESC%[1;32m+ %ESC%[0m Сервер dashboard уже работает — открываем web UI в браузере.
-        start "" "http://localhost:9119"
-    ) else if !SERVICE_INSTALLED! equ 1 (
-        echo %ESC%[1;33m. %ESC%[0m Служба установлена, но не запущена — запускаем...
-        net start !SERVICE_NAME! >nul 2>&1
-        echo %ESC%[1;32m+ %ESC%[0m Служба запущена — открываем web UI в браузере.
-        start "" "http://localhost:9119"
-    ) else (
-        echo %ESC%[2m       Dashboard не запущен — запускаем в отдельном окне.%ESC%[0m
-        echo %ESC%[2m       Для постоянной работы установите службу: [1] → [4]%ESC%[0m
-        call "%SCRIPTS_DIR%\Ensure-Dashboard-Token.bat"
-        set /p "HERMES_DASHBOARD_SESSION_TOKEN=" < "%HERMES_HOME%\dashboard.token"
-        start "Hermes Web" cmd /k ""%REPO_DIR%\venv\Scripts\hermes.exe" dashboard --host 0.0.0.0 --port 9119 --skip-build"
-    )
+    call "%SCRIPTS_DIR%\Start-Hermes-Web.bat"
     goto menu
 )
 cls
