@@ -145,16 +145,18 @@ if "%choice%"=="5" (
     cls
     echo %ESC%[1;33mЗапуск: Hermes — Dashboard%ESC%[0m
     echo.
-    netstat -ano | findstr /c:":9119" | findstr /c:"LISTENING" >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo %ESC%[1;32m+ %ESC%[0m Dashboard уже работает — открываем web UI в браузере.
-        start "" "http://localhost:9119"
-    ) else (
-        echo %ESC%[1;33m. %ESC%[0m Dashboard не запущен — запускаем в отдельном окне.
-        call "%SCRIPTS_DIR%\Ensure-Dashboard-Token.bat"
-        set /p "HERMES_DASHBOARD_SESSION_TOKEN=" < "%HERMES_HOME%\dashboard.token"
-        start "Hermes Web" cmd /k ""%REPO_DIR%\venv\Scripts\hermes.exe" dashboard --host 0.0.0.0 --port 9119 --skip-build"
-    )
+    call "%SCRIPTS_DIR%\Start-Hermes-Web.bat"
+    echo.
+    pause
+    goto menu
+)
+
+REM --- [6] Hermes — Desktop ---
+if "%choice%"=="6" (
+    cls
+    echo %ESC%[1;33mЗапуск: Hermes — Desktop%ESC%[0m
+    echo.
+    call "%SCRIPTS_DIR%\Start-Hermes-Desktop.bat"
     echo.
     pause
     goto menu
