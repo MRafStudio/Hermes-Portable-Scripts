@@ -119,7 +119,7 @@ if !errorlevel! equ 0 (
 )
 
 REM ============================================================================
-REM   Порт (фиксированный, для удалённого доступа; 0.0.0.0 форсируется)
+REM   Порт (фиксированный, для удалённого доступа)
 REM   Параметр %2 = порт (для автоматизации).
 REM ============================================================================
 set "SERVICE_PORT=%~2"
@@ -129,6 +129,38 @@ if not defined SERVICE_PORT (
     if "!SERVICE_PORT!"=="" set "SERVICE_PORT=9119"
 )
 set "SERVICE_PORT=!SERVICE_PORT: =!"
+
+REM ============================================================================
+REM   Хост (адрес прослушивания): список доступных адаптеров
+REM   [1] 0.0.0.0 — все адаптеры (по умолчанию, удалённый доступ)
+REM   [2] 127.0.0.1 — только локальный
+REM   [N] — IP конкретного адаптера
+REM ============================================================================
+set "SERVICE_HOST=0.0.0.0"
+echo   %ESC%[1;33m-%ESC%[0m Доступные адреса прослушивания:
+echo   %ESC%[2m      [1] 0.0.0.0   — все адаптеры (по умолчанию)%ESC%[0m
+echo   %ESC%[2m      [2] 127.0.0.1 — только локальный%ESC%[0m
+set "IP_N=2"
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notmatch '^169\.254' } | Select-Object -ExpandProperty IPAddress)"`) do (
+    set /a IP_N+=1
+    set "IP_!IP_N!=%%i"
+    echo   %ESC%[2m      [!IP_N!] %%i%ESC%[0m
+)
+set "HOST_CHOICE="
+set /p "HOST_CHOICE=%ESC%[1mВыберите адрес%ESC%[0m %ESC%[2m[Enter = 0.0.0.0]%ESC%[0m: "
+set "HOST_CHOICE=!HOST_CHOICE: =!"
+if "!HOST_CHOICE!"=="2" set "SERVICE_HOST=127.0.0.1"
+if defined HOST_CHOICE if !HOST_CHOICE! GTR 2 (
+    set "SERVICE_HOST="
+    for %%x in (!HOST_CHOICE!) do if defined IP_%%x set "SERVICE_HOST=!IP_%%x!"
+    if not defined SERVICE_HOST (
+        echo   %ESC%[1;31m  ОШИБКА: неверный выбор.%ESC%[0m
+        echo.
+        pause
+        exit /b 1
+    )
+)
+echo   %ESC%[1;32m+%ESC%[0m Адрес прослушивания: !SERVICE_HOST!
 
 netstat -ano | findstr ":%SERVICE_PORT% " >nul 2>&1
 if !errorlevel! equ 0 (
@@ -263,7 +295,7 @@ set /p "DASH_TOKEN=" < "%HERMES_HOME%\dashboard.token"
 
 REM --skip-build: dashboard не собирает web UI при старте (иначе цикл
 REM "Web UI npm install failed" — web workspace не установлен; dist уже готов)
-"%NSSM_EXE%" install "!SERVICE_NAME!" "%HERMES_CLI%" dashboard --host 0.0.0.0 --port "!SERVICE_PORT!" --no-open --skip-build
+"%NSSM_EXE%" install "!SERVICE_NAME!" "%HERMES_CLI%" dashboard --host "!SERVICE_HOST!" --port "!SERVICE_PORT!" --no-open --skip-build
 if !errorlevel! neq 0 (
     echo   %ESC%[1;31m[ОШИБКА] nssm install не удался.%ESC%[0m
     echo.
