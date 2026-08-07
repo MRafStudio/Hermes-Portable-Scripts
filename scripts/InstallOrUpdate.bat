@@ -148,7 +148,7 @@ echo   %ESC%[1;37m[7]%ESC%[0m %ESC%[1mОткрыть порт в брандма�
 echo.
 
 if !SERVICE_INSTALLED! equ 1 (
-    echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[36mПодключение с другого компьютера%ESC%[0m
+    echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mИзменить логин и пароль %ESC%[2m^(удалённый доступ^)%ESC%[0m
     echo.
 )
 
@@ -165,7 +165,7 @@ if "!choice!"=="4" goto install_service
 if "!choice!"=="5" goto restart_service
 if "!choice!"=="6" goto remove_service
 if "!choice!"=="7" goto firewall_port
-if "!choice!"=="8" goto connect_guide
+if "!choice!"=="8" goto change_password
 if "!choice!"=="0" goto exit
 goto menu
 
@@ -213,5 +213,20 @@ if !ANY_INSTALLED! equ 0 (
 call "%SCRIPTS_DIR%\Connect-Guide.bat"
 goto menu
 
+:change_password
+cls
+echo [1;33mИзменение логина и пароля ^(удалённый доступ^)[0m
+echo.
+set "NEW_USER="
+set /p "NEW_USER=[1mЛогин [2m[Enter — оставить текущий][0m: "
+set "NEW_PASS="
+set /p "NEW_PASS=[1mПароль[0m: "
+if not "!NEW_USER!"""==="" "%REPO_DIR%env\Scripts\hermes.exe" config set dashboard.basic_auth.username !NEW_USER! 2>nul
+if not "!NEW_PASS!"""==="" "%REPO_DIR%env\Scripts\hermes.exe" config set dashboard.basic_auth.password !NEW_PASS! 2>nul
+echo.
+echo [1;32m+ [0mЛогин и пароль обновлены. Перезапустите сервер ^(Start.bat — Enter или [5]^).
+echo.
+pause
+goto menu
 :exit
 exit /b 0
