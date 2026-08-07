@@ -125,7 +125,7 @@ REM [2] Инструменты и [5] Варианты запуска — тол
 set "ANY_INSTALLED=0"
 if !DESKTOP_INSTALLED! equ 1 set "ANY_INSTALLED=1"
 if !WEB_INSTALLED! equ 1 set "ANY_INSTALLED=1"
-echo %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановка / Обновление компонентов%ESC%[0m
+echo %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановка, обновление и настройки%ESC%[0m
 if !ANY_INSTALLED! equ 1 (
     echo %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИнструменты%ESC%[0m
 )
@@ -180,7 +180,7 @@ echo.
 echo %ESC%[1;33m-%ESC%[0m %ESC%[1mHermes — Desktop ^(другой сервер^)%ESC%[0m
 echo.
 if not defined DESKTOP_EXE_PATH (
-    echo %ESC%[1;31m[ОШИБКА] Desktop не собран. Сначала соберите: [1] Установка/Обновление -^> [2] Установить Hermes Desktop.%ESC%[0m
+    echo %ESC%[1;31m[ОШИБКА] Desktop не собран. Сначала соберите: [1] Установка, обновление и настройки -^> [2] Установить Hermes Desktop.%ESC%[0m
     echo.
     pause
     goto menu
