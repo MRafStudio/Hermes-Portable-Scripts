@@ -51,7 +51,6 @@ set "CONSOLE=0"
 set "REMOTE_HOST=127.0.0.1"
 set "REMOTE_PORT=9119"
 set "REMOTE_URL=http://127.0.0.1:9119"
-set "REMOTE_TOKEN=none"
 set "START_INI=%HERMES_HOME%\portable_start.ini"
 if exist "%START_INI%" (
     for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
@@ -59,7 +58,6 @@ if exist "%START_INI%" (
         if /i "%%a"=="REMOTE_HOST" set "REMOTE_HOST=%%b"
         if /i "%%a"=="REMOTE_PORT" set "REMOTE_PORT=%%b"
         if /i "%%a"=="REMOTE_URL" set "REMOTE_URL=%%b"
-        if /i "%%a"=="REMOTE_TOKEN" set "REMOTE_TOKEN=%%b"
     )
 )
 

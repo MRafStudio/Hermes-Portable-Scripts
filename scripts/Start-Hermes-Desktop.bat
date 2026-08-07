@@ -142,20 +142,13 @@ if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI
     if /i "%%a"=="CONSOLE" set "CONSOLE=%%b"
 )
 set "REMOTE_HOST=127.0.0.1"
-set "REMOTE_URL=http://127.0.0.1:9119"
-set "REMOTE_TOKEN=none"
 set "START_INI=%HERMES_HOME%\portable_start.ini"
 if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
     if /i "%%a"=="REMOTE_HOST" set "REMOTE_HOST=%%b"
-    if /i "%%a"=="REMOTE_URL" set "REMOTE_URL=%%b"
-    if /i "%%a"=="REMOTE_TOKEN" set "REMOTE_TOKEN=%%b"
 )
-if /i "!REMOTE_HOST!"=="127.0.0.1" (
-    set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
-    if /i not "!REMOTE_TOKEN!"=="none" set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
-) else (
-    set "HERMES_DESKTOP_REMOTE_URL="
-    set "HERMES_DESKTOP_REMOTE_TOKEN="
+if /i not "!REMOTE_HOST!"=="127.0.0.1" (
+    echo %ESC%[1;33m. %ESC%[0m Remote-режим: подключение через Settings -^> Gateway -^> Remote -^> Sign in.
+    echo %ESC%[2m       Адрес: !REMOTE_HOST!%ESC%[0m
 )
 
 if "!CONSOLE!"=="1" (
