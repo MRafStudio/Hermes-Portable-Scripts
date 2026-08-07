@@ -71,7 +71,7 @@ echo %ESC%[1;37m[1] %ESC%[0m %ESC%[1mHermes setup%ESC%[0m                      %
 echo %ESC%[1;37m[2] %ESC%[0m %ESC%[1mHermes model%ESC%[0m                      %ESC%[2m— выбрать модель и провайдера%ESC%[0m
 echo %ESC%[1;37m[3] %ESC%[0m %ESC%[1mHermes tools%ESC%[0m                      %ESC%[2m— настроить инструменты%ESC%[0m
 echo.
-echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mHermes — Interactive CLI%ESC%[0m          %ESC%[2m— начать диалог в терминале%ESC%[0m
+echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mHermes CLI (локально)%ESC%[0m          %ESC%[2m— начать диалог в терминале%ESC%[0m
 echo %ESC%[1;37m[5] %ESC%[0m %ESC%[1mHermes — Dashboard%ESC%[0m                %ESC%[2m— запустить веб-панель%ESC%[0m
 if defined DESKTOP_EXE (
     echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mHermes — Desktop%ESC%[0m                 %ESC%[2m— запустить графическую версию%ESC%[0m
