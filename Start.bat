@@ -132,7 +132,7 @@ if defined SERVICE_NAME set "SERVICE_INSTALLED=1"
 if !SERVICE_INSTALLED! equ 1 (
     echo %ESC%[1;32m+ %ESC%[0m Служба: %ESC%[1m!SERVICE_NAME!%ESC%[0m %ESC%[2m^(установлена^)%ESC%[0m
 ) else (
-    echo %ESC%[1;33m. %ESC%[0m Служба Hermes %ESC%[2m^(не установлена — см. [1] п.5^)%ESC%[0m
+    echo %ESC%[1;33m. %ESC%[0m Служба Hermes %ESC%[2m^(не установлена — см. [1] п.4^)%ESC%[0m
 )
 
 echo.
