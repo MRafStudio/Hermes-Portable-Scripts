@@ -44,7 +44,7 @@ cls
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
-echo  %ESC%[1;36m##%ESC%[0m                 %ESC%[1;37mHermes Portable%ESC%[0m   —   %ESC%[1;33mУстановка / Обновление%ESC%[0m               %ESC%[1;36m##%ESC%[0m
+echo  %ESC%[1;36m##%ESC%[0m          %ESC%[1;37mHermes Portable%ESC%[0m   —   %ESC%[1;33mУстановка / Обновление / Настройки%ESC%[0m          %ESC%[1;36m##%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
@@ -152,7 +152,7 @@ if !SERVICE_INSTALLED! equ 1 (
     echo.
 )
 echo   %ESC%[1;37m[9]%ESC%[0m %ESC%[1mПараметры подключения к серверу Hermes %ESC%[0m
-
+echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 set "choice="
