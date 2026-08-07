@@ -85,10 +85,24 @@ echo   %ESC%[1;33mURL:%ESC%[0m    %ESC%[2m!REMOTE_URL!%ESC%[0m
 echo.
 
 REM ============================================================================
-REM   Локальный сервер (127.0.0.1) — запускаем dashboard при необходимости
+REM   Определение типа подключения:
+REM   локальный = 127.0.0.1 / localhost / любой IP локальных адаптеров
+REM   remote    = любой другой адрес (подключаемся по REMOTE_URL)
+REM ============================================================================
+set "IS_LOCAL=0"
+if /i "!REMOTE_HOST!"=="127.0.0.1" set "IS_LOCAL=1"
+if /i "!REMOTE_HOST!"=="localhost" set "IS_LOCAL=1"
+if !IS_LOCAL! equ 0 (
+    for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue).IPAddress"`) do (
+        if /i "!REMOTE_HOST!"=="%%i" set "IS_LOCAL=1"
+    )
+)
+
+REM ============================================================================
+REM   Локальный сервер — запускаем dashboard при необходимости
 REM   Удалённый сервер — просто открываем браузер на REMOTE_URL
 REM ============================================================================
-if /i "!REMOTE_HOST!"=="127.0.0.1" (
+if !IS_LOCAL! equ 1 (
     REM Порт уже слушается (служба ИЛИ ручной запуск) — открываем браузер
     netstat -ano | findstr /c:":!REMOTE_PORT!" | findstr /c:"LISTENING" >nul 2>&1
     if !errorlevel! equ 0 (
