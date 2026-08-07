@@ -248,18 +248,6 @@ set "REMOTE_PORT="
 set /p "REMOTE_PORT=%ESC%[1mПорт%ESC%[0m %ESC%[2m[Enter = 9119]%ESC%[0m: "
 if "!REMOTE_PORT!"=="" set "REMOTE_PORT=9119"
 set "REMOTE_PORT=!REMOTE_PORT: =!"
-set "REMOTE_TOKEN="
-if /i "!REMOTE_HOST!"=="127.0.0.1" (
-    set /p "REMOTE_TOKEN=%ESC%[1mТокен %ESC%[2m[Enter — без токена]%ESC%[0m: "
-)
-if /i "!REMOTE_HOST!"=="127.0.0.1" (
-        if "!REMOTE_TOKEN!"=="" (
-            echo %ESC%[1;33m. %ESC%[0mТокен не введён для локального подключения — отмена.
-            echo.
-            pause
-            goto menu
-        )
-)
 echo.
 for /f "usebackq delims=" %%r in (`powershell -NoProfile -Command "(Test-NetConnection -ComputerName '!REMOTE_HOST!' -Port !REMOTE_PORT! -WarningAction SilentlyContinue).TcpTestSucceeded"`) do set "TCP_OK=%%r"
 if /i "!TCP_OK!"=="True" (
@@ -268,13 +256,11 @@ if /i "!TCP_OK!"=="True" (
     >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_HOST=!REMOTE_HOST!
     >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_PORT=!REMOTE_PORT!
     >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!
-    >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_TOKEN=!REMOTE_TOKEN!
     echo %ESC%[1;32m+ %ESC%[0mПараметры сохранены: %HERMES_HOME%\portable_start.ini
     echo.
     if defined DESKTOP_EXE (
         echo %ESC%[1;33m- %ESC%[0mЗапускаю Hermes Desktop с подключением к удалённому серверу...
         set "HERMES_DESKTOP_REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!"
-        set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
         start "" "!DESKTOP_EXE!"
     ) else (
         echo %ESC%[1;33m. %ESC%[0mDesktop не собран — параметры сохранены, подключиться можно после сборки: [5] -^> [4].
