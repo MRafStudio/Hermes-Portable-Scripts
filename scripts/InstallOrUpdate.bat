@@ -249,24 +249,34 @@ set /p "REMOTE_PORT=%ESC%[1mПорт%ESC%[0m %ESC%[2m[Enter = 9119]%ESC%[0m: "
 if "!REMOTE_PORT!"=="" set "REMOTE_PORT=9119"
 set "REMOTE_PORT=!REMOTE_PORT: =!"
 echo.
-for /f "usebackq delims=" %%r in (`powershell -NoProfile -Command "(Test-NetConnection -ComputerName '!REMOTE_HOST!' -Port !REMOTE_PORT! -WarningAction SilentlyContinue).TcpTestSucceeded"`) do set "TCP_OK=%%r"
-if /i "!TCP_OK!"=="True" (
-    echo %ESC%[1;32m+ %ESC%[0mСервер доступен!
-    > "%HERMES_HOME%\portable_start.ini" echo CONSOLE=0
-    >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_HOST=!REMOTE_HOST!
-    >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_PORT=!REMOTE_PORT!
-    >> "%HERMES_HOME%\portable_start.ini" echo REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!
-    echo %ESC%[1;32m+ %ESC%[0mПараметры сохранены: %HERMES_HOME%\portable_start.ini
-    echo.
-    if defined DESKTOP_EXE (
-        echo %ESC%[1;33m- %ESC%[0mЗапускаю Hermes Desktop с подключением к удалённому серверу...
-        set "HERMES_DESKTOP_REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!"
-        start "" "!DESKTOP_EXE!"
-    ) else (
-        echo %ESC%[1;33m. %ESC%[0mDesktop не собран — параметры сохранены, подключиться можно после сборки: [5] -^> [4].
+set "CHECK="
+set /p "CHECK=%ESC%[1mПроверить соединение%ESC%[0m %ESC%[2m(y/N)%ESC%[0m: "
+set "TCP_OK=False"
+if /i "!CHECK!"=="y" (
+    echo %ESC%[1;33m- %ESC%[0mПроверяю доступность !REMOTE_HOST!:!REMOTE_PORT!...
+    for /f "usebackq delims=" %%r in (`powershell -NoProfile -Command "(Test-NetConnection -ComputerName '!REMOTE_HOST!' -Port !REMOTE_PORT! -WarningAction SilentlyContinue).TcpTestSucceeded"`) do set "TCP_OK=%%r"
+    if /i "!TCP_OK!"=="False" (
+        echo %ESC%[1;31m[ОШИБКА] Сервер !REMOTE_HOST!:!REMOTE_PORT! недоступен — параметры не сохранены.%ESC%[0m
+        echo.
+        pause
+        goto menu
     )
+    echo %ESC%[1;32m+ %ESC%[0mСервер доступен!
 ) else (
-    echo %ESC%[1;31m[ОШИБКА] Сервер !REMOTE_HOST!:!REMOTE_PORT! недоступен — параметры не сохранены.%ESC%[0m
+    echo %ESC%[1;33m. %ESC%[0mПроверка пропущена — сохраняю параметры.
+)
+> "%HERMES_HOME%\portable_start.ini" echo CONSOLE=0
+>> "%HERMES_HOME%\portable_start.ini" echo REMOTE_HOST=!REMOTE_HOST!
+>> "%HERMES_HOME%\portable_start.ini" echo REMOTE_PORT=!REMOTE_PORT!
+>> "%HERMES_HOME%\portable_start.ini" echo REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!
+echo %ESC%[1;32m+ %ESC%[0mПараметры сохранены: %HERMES_HOME%\portable_start.ini
+echo.
+if defined DESKTOP_EXE (
+    echo %ESC%[1;33m- %ESC%[0mЗапускаю Hermes Desktop с подключением к серверу...
+    set "HERMES_DESKTOP_REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!"
+    start "" "!DESKTOP_EXE!"
+) else (
+    echo %ESC%[1;33m. %ESC%[0mDesktop не собран — параметры сохранены, подключиться можно после сборки: [5] -^> [4].
 )
 echo.
 pause
