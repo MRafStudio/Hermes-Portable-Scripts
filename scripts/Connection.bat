@@ -59,8 +59,8 @@ REM ============================================================================
 set "AUTH_USER="
 set "AUTH_PASS="
 if exist "%HERMES_EXE%" (
-    for /f "usebackq delims=" %%u in (`"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\get_basic_auth.py" "%HERMES_EXE%" username`) do set "AUTH_USER=%%u"
-    for /f "usebackq delims=" %%p in (`"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\get_basic_auth.py" "%HERMES_EXE%" password`) do set "AUTH_PASS=%%p"
+    for /f "usebackq delims=" %%u in (`%REPO_DIR%\venv\Scripts\python.exe -u %SCRIPTS_DIR%\patch\get_basic_auth.py %HERMES_EXE% username`) do set "AUTH_USER=%%u"
+    for /f "usebackq delims=" %%p in (`%REPO_DIR%\venv\Scripts\python.exe -u %SCRIPTS_DIR%\patch\get_basic_auth.py %HERMES_EXE% password`) do set "AUTH_PASS=%%p"
 )
 
 :menu
