@@ -112,7 +112,7 @@ echo   %ESC%[1;33m-%ESC%[0m Доступные адреса прослушива
 echo   %ESC%[2m      [1] 0.0.0.0   — все адаптеры (по умолчанию, удалённый доступ)%ESC%[0m
 echo   %ESC%[2m      [2] 127.0.0.1 — только локальный%ESC%[0m
 set "IP_N=2"
-for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notmatch '^169\.254' } | Select-Object -ExpandProperty IPAddress)"`) do (
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notmatch '^169\.254' -and $_.IPAddress -notmatch '^127\.' } | Select-Object -ExpandProperty IPAddress)"`) do (
     set /a IP_N+=1
     set "IP_!IP_N!=%%i"
     echo   %ESC%[2m      [!IP_N!] %%i%ESC%[0m
