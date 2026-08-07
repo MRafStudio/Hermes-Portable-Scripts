@@ -51,7 +51,6 @@ set "CONSOLE=0"
 set "REMOTE_HOST=127.0.0.1"
 set "REMOTE_PORT=9119"
 set "REMOTE_URL=http://127.0.0.1:9119"
-if defined REMOTE_URL if not "!REMOTE_URL:0.0.0.0=!"=="!REMOTE_URL!" set "REMOTE_URL=!REMOTE_URL:0.0.0.0=127.0.0.1!"
 set "START_INI=%HERMES_HOME%\portable_start.ini"
 if exist "%START_INI%" (
     for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
@@ -61,6 +60,8 @@ if exist "%START_INI%" (
         if /i "%%a"=="REMOTE_URL" set "REMOTE_URL=%%b"
     )
 )
+REM 0.0.0.0 — адрес прослушивания, коннектиться нельзя: URL → 127.0.0.1
+if defined REMOTE_URL if not "!REMOTE_URL:0.0.0.0=!"=="!REMOTE_URL!" set "REMOTE_URL=!REMOTE_URL:0.0.0.0=127.0.0.1!"
 
 REM ============================================================================
 REM   Проверка hermes.exe
