@@ -155,7 +155,8 @@ if "!CONSOLE!"=="1" (
     start /min "Hermes Desktop Console" cmd /c "%SCRIPTS_DIR%\Start-Hermes-Desktop-Console.bat"
 ) else (
     cd /d "%HOME%"
-    start "" "%HERMES_EXE%"
+    if not exist "%DATA_DIR%\temp" mkdir "%DATA_DIR%\temp" 2>nul
+    start "" "%HERMES_EXE%" > "%DATA_DIR%\temp\desktop-launch.log" 2>&1
 )
 
 echo   %ESC%[1;32mHermes Desktop запущен%ESC%[0m
