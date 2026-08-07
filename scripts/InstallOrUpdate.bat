@@ -151,7 +151,7 @@ if !SERVICE_INSTALLED! equ 1 (
     echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mИзменить логин и пароль %ESC%[2m^(удалённый доступ^)%ESC%[0m
     echo.
 )
-echo   %ESC%[1;37m[9] %ESC%[0m %ESC%[1mHermes Remote ^(другой сервер^)%ESC%[0m  %ESC%[2m— параметры подключения к серверу%ESC%[0m
+echo   %ESC%[1;37m[9]%ESC%[0m %ESC%[1mПараметры подключения к серверу Hermes %ESC%[0m
 
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
