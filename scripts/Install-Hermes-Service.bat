@@ -128,7 +128,7 @@ if not defined SERVICE_PORT (
     set /p "SERVICE_PORT=%ESC%[1mПорт для удалённого доступа%ESC%[0m %ESC%[2m[Enter = 9119]%ESC%[0m: "
     if "!SERVICE_PORT!"=="" set "SERVICE_PORT=9119"
 )
-set "SERVICE_PORT=!SERVICE_PORT: =!"
+if not "!SERVICE_PORT!"=="" set "SERVICE_PORT=!SERVICE_PORT: =!"
 
 REM ============================================================================
 REM   Хост (адрес прослушивания): список доступных адаптеров
@@ -148,7 +148,7 @@ for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPAdd
 )
 set "HOST_CHOICE="
 set /p "HOST_CHOICE=%ESC%[1mВыберите адрес%ESC%[0m %ESC%[2m[Enter = 0.0.0.0]%ESC%[0m: "
-set "HOST_CHOICE=!HOST_CHOICE: =!"
+if not "!HOST_CHOICE!"=="" set "HOST_CHOICE=!HOST_CHOICE: =!"
 if "!HOST_CHOICE!"=="2" set "SERVICE_HOST=127.0.0.1"
 if defined HOST_CHOICE if !HOST_CHOICE! GTR 2 (
     set "SERVICE_HOST="
@@ -249,7 +249,7 @@ if not defined AUTH_USER (
     set /p "AUTH_USER=%ESC%[1mЛогин веб-доступа%ESC%[0m %ESC%[2m[Enter = admin]%ESC%[0m: "
     if "!AUTH_USER!"=="" set "AUTH_USER=admin"
 )
-set "AUTH_USER=!AUTH_USER: =!"
+if not "!AUTH_USER!"=="" set "AUTH_USER=!AUTH_USER: =!"
 
 set "AUTH_PASS=%~4"
 if not defined AUTH_PASS set /p "AUTH_PASS=%ESC%[1mПароль веб-доступа%ESC%[0m: "

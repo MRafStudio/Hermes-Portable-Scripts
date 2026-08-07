@@ -95,7 +95,7 @@ echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад%ESC%[0m
 echo.
 set "choice="
 set /p "choice=%ESC%[33mВыберите действие: %ESC%[0m"
-set "choice=!choice: =!"
+if not "!choice!"=="" set "choice=!choice: =!"
 if "!choice!"=="1" goto set_connection
 if "!choice!"=="2" goto set_auth
 if "!choice!"=="0" exit /b 0
@@ -110,7 +110,7 @@ echo %ESC%[1;33mИзменение параметров подключения%E
 echo.
 set "REMOTE_HOST="
 set /p "REMOTE_HOST=%ESC%[1mАдрес сервера%ESC%[0m %ESC%[2m(IP или host, напр. 192.168.0.25)%ESC%[0m: "
-set "REMOTE_HOST=!REMOTE_HOST: =!"
+if not "!REMOTE_HOST!"=="" set "REMOTE_HOST=!REMOTE_HOST: =!"
 if "!REMOTE_HOST!"=="" (
     echo %ESC%[1;33m. %ESC%[0mОтменено.
     echo.
@@ -120,7 +120,7 @@ if "!REMOTE_HOST!"=="" (
 set "REMOTE_PORT="
 set /p "REMOTE_PORT=%ESC%[1mПорт%ESC%[0m %ESC%[2m[Enter = 9119]%ESC%[0m: "
 if "!REMOTE_PORT!"=="" set "REMOTE_PORT=9119"
-set "REMOTE_PORT=!REMOTE_PORT: =!"
+if not "!REMOTE_PORT!"=="" set "REMOTE_PORT=!REMOTE_PORT: =!"
 set "REMOTE_URL=http://!REMOTE_HOST!:!REMOTE_PORT!"
 echo.
 set "CHECK="
@@ -163,7 +163,7 @@ if not exist "%HERMES_EXE%" (
 )
 set "NEW_USER="
 set /p "NEW_USER=%ESC%[1mЛогин%ESC%[0m %ESC%[2m[Enter = !AUTH_USER!]%ESC%[0m: "
-set "NEW_USER=!NEW_USER: =!"
+if not "!NEW_USER!"=="" set "NEW_USER=!NEW_USER: =!"
 if "!NEW_USER!"=="" if defined AUTH_USER if not "!AUTH_USER!"=="" set "NEW_USER=!AUTH_USER!"
 if "!NEW_USER!"=="" set "NEW_USER=admin"
 set "NEW_PASS="

@@ -59,7 +59,7 @@ set "ELECTRON_VERSION="
 for /f "tokens=*" %%a in ('type "%DESKTOP_PACKAGE%" ^| findstr /C:"\"electron\":"') do (
     set "LINE=%%a"
     set "LINE=!LINE:*"electron":=!"
-    set "LINE=!LINE: =!"
+    if not "!LINE!"=="" set "LINE=!LINE: =!"
     set "LINE=!LINE:"=!"
     set "LINE=!LINE:,=!"
     set "LINE=!LINE:^=!"
@@ -167,7 +167,7 @@ certutil -hashfile "%ELECTRON_ZIP_PATH%" SHA256 > "%TEMP%\hash.txt" 2>nul
 set "HASH_SET="
 for /f "skip=1 tokens=*" %%a in ('type "%TEMP%\hash.txt"') do (
     set "HASH=%%a"
-    set "HASH=!HASH: =!"
+    if not "!HASH!"=="" set "HASH=!HASH: =!"
     if not defined HASH_SET (
         > "%NPM_ELECTRON_CACHE%\SHASUMS256.txt-%ELECTRON_VERSION%" echo !HASH! *%ELECTRON_ZIP%
         set "HASH_SET=1"

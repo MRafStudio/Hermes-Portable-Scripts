@@ -99,7 +99,7 @@ if !ANY_INSTALLED! equ 0 (
     set "choice="
     set /p "choice=%ESC%[33mВыберите действие: %ESC%[0m"
 
-    set "choice=!choice: =!"
+    if not "!choice!"=="" set "choice=!choice: =!"
     if "!choice!"=="" goto menu
     if "!choice!"=="1" goto install_web
 if "!choice!"=="2" goto install_desktop
@@ -158,7 +158,7 @@ echo.
 set "choice="
 set /p "choice=%ESC%[33mВыберите действие: %ESC%[0m"
 
-set "choice=!choice: =!"
+if not "!choice!"=="" set "choice=!choice: =!"
 if "!choice!"=="" goto menu
 if "!choice!"=="1" goto install_web
 if "!choice!"=="2" goto install_desktop

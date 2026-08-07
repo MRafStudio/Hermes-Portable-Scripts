@@ -60,7 +60,7 @@ REM Достаём --port N из командной строки службы
 if defined BIN (
     for /f "tokens=2" %%n in ('echo !BIN! ^| findstr /c:"--port"') do set "SERVICE_PORT=%%n"
 )
-set "SERVICE_PORT=!SERVICE_PORT: =!"
+if not "!SERVICE_PORT!"=="" set "SERVICE_PORT=!SERVICE_PORT: =!"
 if "!SERVICE_PORT!"=="" set "SERVICE_PORT=9119"
 
 netstat -ano | findstr "0.0.0.0:!SERVICE_PORT! " >nul 2>&1
@@ -86,7 +86,7 @@ echo.
 echo   %ESC%[1;33m  IP-адреса этого компьютера ^(для подключения^):%ESC%[0m
 for /f "tokens=2 delims=:" %%i in ('ipconfig ^| findstr /i "IPv4"') do (
     set "CURIP=%%i"
-    if defined CURIP set "CURIP=!CURIP: =!"
+    if defined CURIP if not "!CURIP!"=="" set "CURIP=!CURIP: =!"
     echo   %ESC%[1;32m    http://!CURIP!:!SERVICE_PORT!%ESC%[0m
 )
 

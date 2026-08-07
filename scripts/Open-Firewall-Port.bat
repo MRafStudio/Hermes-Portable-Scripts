@@ -30,7 +30,7 @@ if not defined SERVICE_PORT (
     set /p "SERVICE_PORT=%ESC%[1mПорт для открытия%ESC%[0m %ESC%[2m[Enter = 9119]%ESC%[0m: "
     if "!SERVICE_PORT!"=="" set "SERVICE_PORT=9119"
 )
-set "SERVICE_PORT=!SERVICE_PORT: =!"
+if not "!SERVICE_PORT!"=="" set "SERVICE_PORT=!SERVICE_PORT: =!"
 
 REM ============================================================================
 REM   Имя правила (параметр %2 или автоматическое)
