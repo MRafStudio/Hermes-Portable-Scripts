@@ -108,11 +108,33 @@ REM ============================================================================
 cls
 echo %ESC%[1;33mИзменение параметров подключения%ESC%[0m
 echo.
+echo   %ESC%[1;33m-%ESC%[0m Доступные адреса прослушивания:
+echo   %ESC%[2m      [1] 0.0.0.0   — все адаптеры (по умолчанию, удалённый доступ)%ESC%[0m
+echo   %ESC%[2m      [2] 127.0.0.1 — только локальный%ESC%[0m
+set "IP_N=2"
+for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -notmatch '^169\.254' } | Select-Object -ExpandProperty IPAddress)"`) do (
+    set /a IP_N+=1
+    set "IP_!IP_N!=%%i"
+    echo   %ESC%[2m      [!IP_N!] %%i%ESC%[0m
+)
+echo   %ESC%[2m      [0] Ввести адрес вручную ^(сторонний сервер^)%ESC%[0m
 set "REMOTE_HOST="
-set /p "REMOTE_HOST=%ESC%[1mАдрес сервера%ESC%[0m %ESC%[2m(IP или host, напр. 192.168.0.25)%ESC%[0m: "
-if not "!REMOTE_HOST!"=="" set "REMOTE_HOST=!REMOTE_HOST: =!"
+set "HOST_CHOICE="
+set /p "HOST_CHOICE=%ESC%[1mВыберите адрес%ESC%[0m %ESC%[2m[Enter = 0.0.0.0]%ESC%[0m: "
+if not "!HOST_CHOICE!"=="" set "HOST_CHOICE=!HOST_CHOICE: =!"
+if "!HOST_CHOICE!"=="" set "REMOTE_HOST=0.0.0.0"
+if "!HOST_CHOICE!"=="1" set "REMOTE_HOST=0.0.0.0"
+if "!HOST_CHOICE!"=="2" set "REMOTE_HOST=127.0.0.1"
+if "!HOST_CHOICE!"=="0" (
+    set /p "REMOTE_HOST=%ESC%[1mАдрес сервера%ESC%[0m %ESC%[2m(IP или host, напр. 192.168.0.25)%ESC%[0m: "
+    if not "!REMOTE_HOST!"=="" set "REMOTE_HOST=!REMOTE_HOST: =!"
+)
+if defined HOST_CHOICE if !HOST_CHOICE! GTR 2 (
+    set "REMOTE_HOST="
+    for %%x in (!HOST_CHOICE!) do if defined IP_%%x set "REMOTE_HOST=!IP_%%x!"
+)
 if "!REMOTE_HOST!"=="" (
-    echo %ESC%[1;33m. %ESC%[0mОтменено.
+    echo %ESC%[1;31m[ОШИБКА] Неверный выбор — подключение не изменено.%ESC%[0m
     echo.
     pause
     goto menu
