@@ -59,8 +59,8 @@ REM ============================================================================
 set "AUTH_USER="
 set "AUTH_PASS="
 if exist "%HERMES_EXE%" (
-    for /f "usebackq delims=" %%u in (`"%HERMES_EXE%" config get dashboard.basic_auth.username 2^>nul`) do set "AUTH_USER=%%u"
-    for /f "usebackq delims=" %%p in (`"%HERMES_EXE%" config get dashboard.basic_auth.password 2^>nul`) do set "AUTH_PASS=%%p"
+    for /f "usebackq delims=" %%u in (`"%HERMES_EXE%" config get dashboard.basic_auth.username 2^>nul ^| findstr /v "Config key not set"`) do set "AUTH_USER=%%u"
+    for /f "usebackq delims=" %%p in (`"%HERMES_EXE%" config get dashboard.basic_auth.password 2^>nul ^| findstr /v "Config key not set"`) do set "AUTH_PASS=%%p"
 )
 
 :menu
