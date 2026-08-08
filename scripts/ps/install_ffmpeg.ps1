@@ -1,4 +1,4 @@
-# scripts\patch\install_ffmpeg.ps1
+# scripts\ps\install_ffmpeg.ps1
 # Установка ffmpeg.exe в портабельный каталог HERMES_HOME\bin.
 # Приоритет: глобальный ffmpeg из реестрового PATH (Machine+User) -> копирование exe+DLL;
 # если глобального нет или он невалиден - скачивание (цепочка git-curl -> bitsadmin -> certutil -> PS TLS12).

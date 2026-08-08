@@ -1,4 +1,4 @@
-﻿# \scripts\patch\hermes_install_portable.ps1
+﻿# \scripts\ps\hermes_install_portable.ps1
 # Hermes Portable — Wrapper для install.ps1
 # ============================================================================
 # v2.0 — Сначала проверяет локальный install.ps1 в репозитории,

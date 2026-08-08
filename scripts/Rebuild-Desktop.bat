@@ -263,7 +263,7 @@ echo   %ESC%[1;33m  -   Проверка инструментов ^(rg, ffmpeg, 
 REM --- ripgrep (быстрый поиск, критичен для Hermes) ---
 if not exist "%HERMES_HOME%\bin\rg.exe" (
     echo   %ESC%[1;33m  .   ripgrep отсутствует — устанавливаем...%ESC%[0m
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install_rg.ps1" -HermesHome "%HERMES_HOME%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps\install_rg.ps1" -HermesHome "%HERMES_HOME%"
 )
 if exist "%HERMES_HOME%\bin\rg.exe" (
     echo   %ESC%[1;32m  +   ripgrep: OK%ESC%[0m
@@ -274,7 +274,7 @@ if exist "%HERMES_HOME%\bin\rg.exe" (
 REM --- ffmpeg (TTS голосовые) ---
 if not exist "%HERMES_HOME%\bin\ffmpeg.exe" (
     echo   %ESC%[1;33m  .   ffmpeg отсутствует — устанавливаем...%ESC%[0m
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install_ffmpeg.ps1" -HermesHome "%HERMES_HOME%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps\install_ffmpeg.ps1" -HermesHome "%HERMES_HOME%"
 )
 if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
     echo   %ESC%[1;32m  +   ffmpeg: OK%ESC%[0m
@@ -331,7 +331,7 @@ REM ============================================================================
 echo.
 echo   %ESC%[1;33m[3/5]%ESC%[0m %ESC%[1mПатчим конфиги TypeScript...%ESC%[0m
 
-set "PATCH_DIR=%SCRIPTS_DIR%\patch"
+set "PATCH_DIR=%SCRIPTS_DIR%\ps"
 
 REM --- types.ts ---
 set "TYPES_FILE=%I18N_DIR%\types.ts"
