@@ -482,7 +482,7 @@ echo   %ESC%[1;33m[5b/6]%ESC%[0m %ESC%[1mУстановка дополнител
 REM --- ripgrep (быстрый поиск в файлах, критично для Hermes) ---
 echo   %ESC%[1;33m  -   ripgrep ^(rg^)...%ESC%[0m
 if not exist "%HERMES_HOME%\bin\rg.exe" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install_rg.ps1" -HermesHome "%HERMES_HOME%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps\install_rg.ps1" -HermesHome "%HERMES_HOME%"
 )
 if exist "%HERMES_HOME%\bin\rg.exe" (
     echo   %ESC%[1;32m  +   ripgrep установлен.%ESC%[0m
@@ -493,7 +493,7 @@ if exist "%HERMES_HOME%\bin\rg.exe" (
 REM --- ffmpeg (необходим для TTS голосовых сообщений) ---
 echo   %ESC%[1;33m  -   ffmpeg...%ESC%[0m
 if not exist "%HERMES_HOME%\bin\ffmpeg.exe" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install_ffmpeg.ps1" -HermesHome "%HERMES_HOME%"
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps\install_ffmpeg.ps1" -HermesHome "%HERMES_HOME%"
 )
 if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
     echo   %ESC%[1;32m  +   ffmpeg установлен.%ESC%[0m

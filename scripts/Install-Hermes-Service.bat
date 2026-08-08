@@ -252,7 +252,7 @@ echo   %ESC%[1;33mЛогин%ESC%[0m %ESC%[2m- НЕ используйте си�
 set "AUTH_USER="
 set /p "AUTH_USER=%ESC%[1mЛогин веб-доступа%ESC%[0m %ESC%[2m[Enter = admin]%ESC%[0m: "
 if "!AUTH_USER!"=="" set "AUTH_USER=admin"
-"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_credentials.py" "!AUTH_USER!" > "%TEMP%\user_chk.txt" 2>nul
+"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!AUTH_USER!" > "%TEMP%\user_chk.txt" 2>nul
 set /p "USER_CHK=" < "%TEMP%\user_chk.txt"
 del "%TEMP%\user_chk.txt" 2>nul
 if not "!USER_CHK!"=="OK" (
@@ -278,7 +278,7 @@ if "!AUTH_PASS!"=="" (
     echo   %ESC%[1;31m  Пароль не может быть пустым - повторите.%ESC%[0m
     goto ask_pass
 )
-"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_credentials.py" "!AUTH_PASS!" > "%TEMP%\pass_chk.txt" 2>nul
+"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!AUTH_PASS!" > "%TEMP%\pass_chk.txt" 2>nul
 set /p "PASS_CHK=" < "%TEMP%\pass_chk.txt"
 del "%TEMP%\pass_chk.txt" 2>nul
 if not "!PASS_CHK!"=="OK" (
@@ -294,7 +294,7 @@ if "!AUTH_PASS!"=="" (
     REM Пароль через STDIN (echo | python), хэш — в файл: вложенные кавычки
     REM в for /f / cmd /C ломаются (cmd не различает " и ') — файловый обмен надёжнее
     set "AUTH_HASH="
-    "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\hash_pass.py" "%REPO_DIR%" "!AUTH_PASS!" > "%TEMP%\auth_hash.txt" 2>nul
+    "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\hash_pass.py" "%REPO_DIR%" "!AUTH_PASS!" > "%TEMP%\auth_hash.txt" 2>nul
     if exist "%TEMP%\auth_hash.txt" set /p AUTH_HASH=<"%TEMP%\auth_hash.txt"
     del "%TEMP%\auth_hash.txt" 2>nul
     if not defined AUTH_HASH (

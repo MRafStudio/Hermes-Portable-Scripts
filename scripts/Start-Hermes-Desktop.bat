@@ -174,7 +174,7 @@ set "PYTHON_EXE=%REPO_DIR%\venv\Scripts\python.exe"
 set "UD_DIR=%USERPROFILE%\AppData\Roaming\Hermes"
 if defined HERMES_DESKTOP_USER_DATA_DIR set "UD_DIR=%HERMES_DESKTOP_USER_DATA_DIR%"
 if exist "%PYTHON_EXE%" (
-    "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\set_desktop_connection.py" "%UD_DIR%" "!REMOTE_URL!" "!REMOTE_HOST!" "%APPDATA%\Hermes" >nul 2>&1
+    "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\set_desktop_connection.py" "%UD_DIR%" "!REMOTE_URL!" "!REMOTE_HOST!" "%APPDATA%\Hermes" >nul 2>&1
 )
 
 if "!CONSOLE!"=="1" (

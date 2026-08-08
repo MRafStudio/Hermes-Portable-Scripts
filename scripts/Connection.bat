@@ -59,8 +59,8 @@ REM ============================================================================
 set "AUTH_USER="
 set "AUTH_PASS="
 if exist "%HERMES_EXE%" (
-    for /f "usebackq delims=" %%u in (`%REPO_DIR%\venv\Scripts\python.exe -u %SCRIPTS_DIR%\patch\get_basic_auth.py %HERMES_EXE% username`) do set "AUTH_USER=%%u"
-    for /f "usebackq delims=" %%p in (`%REPO_DIR%\venv\Scripts\python.exe -u %SCRIPTS_DIR%\patch\get_basic_auth.py %HERMES_EXE% password`) do set "AUTH_PASS=%%p"
+    for /f "usebackq delims=" %%u in (`%REPO_DIR%\venv\Scripts\python.exe -u %SCRIPTS_DIR%\py\get_basic_auth.py %HERMES_EXE% username`) do set "AUTH_USER=%%u"
+    for /f "usebackq delims=" %%p in (`%REPO_DIR%\venv\Scripts\python.exe -u %SCRIPTS_DIR%\py\get_basic_auth.py %HERMES_EXE% password`) do set "AUTH_PASS=%%p"
 )
 
 :menu
@@ -190,7 +190,7 @@ set /p "NEW_USER=%ESC%[1mЛогин%ESC%[0m %ESC%[2m[Enter = !AUTH_USER!]%ESC%[0
 if not "!NEW_USER!"=="" set "NEW_USER=!NEW_USER: =!"
 if "!NEW_USER!"=="" if defined AUTH_USER if not "!AUTH_USER!"=="" set "NEW_USER=!AUTH_USER!"
 if "!NEW_USER!"=="" set "NEW_USER=admin"
-"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_credentials.py" "!NEW_USER!" > "%TEMP%\user_chk.txt" 2>nul
+"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!NEW_USER!" > "%TEMP%\user_chk.txt" 2>nul
 set /p "USER_CHK=" < "%TEMP%\user_chk.txt"
 del "%TEMP%\user_chk.txt" 2>nul
 if not "!USER_CHK!"=="OK" (
@@ -205,7 +205,7 @@ if errorlevel 1 (
     goto menu
 )
 if not "!NEW_PASS!"=="" (
-    "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_credentials.py" "!NEW_PASS!" > "%TEMP%\pass_chk.txt" 2>nul
+    "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!NEW_PASS!" > "%TEMP%\pass_chk.txt" 2>nul
     set /p "PASS_CHK=" < "%TEMP%\pass_chk.txt"
     del "%TEMP%\pass_chk.txt" 2>nul
     if not "!PASS_CHK!"=="OK" (

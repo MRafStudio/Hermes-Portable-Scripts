@@ -35,8 +35,8 @@ REM ============================================================================
 REM   Синхронизация переменных окружения пользователя с корнем запуска
 REM   (реестр всегда указывает на тот корень, из которого запущен Start.bat)
 REM ============================================================================
-if exist "%SCRIPTS_DIR%\patch\Fix-UserEnv.ps1" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\Fix-UserEnv.ps1" -RootDir "%ROOT_DIR%"
+if exist "%SCRIPTS_DIR%\ps\Fix-UserEnv.ps1" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps\Fix-UserEnv.ps1" -RootDir "%ROOT_DIR%"
 )
 
 REM ============================================================================
