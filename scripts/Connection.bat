@@ -189,8 +189,22 @@ set /p "NEW_USER=%ESC%[1mЛогин%ESC%[0m %ESC%[2m[Enter = !AUTH_USER!]%ESC%[0
 if not "!NEW_USER!"=="" set "NEW_USER=!NEW_USER: =!"
 if "!NEW_USER!"=="" if defined AUTH_USER if not "!AUTH_USER!"=="" set "NEW_USER=!AUTH_USER!"
 if "!NEW_USER!"=="" set "NEW_USER=admin"
+echo   %ESC%[2mНЕ используйте символы ^& ^| ^< ^> ^^ — пароль будет испорчен.%ESC%[0m
 set "NEW_PASS="
 set /p "NEW_PASS=%ESC%[1mПароль%ESC%[0m %ESC%[2m[Enter — без изменений]%ESC%[0m: "
+if errorlevel 1 (
+    echo   %ESC%[1;31m  Пароль содержит запрещённые символы — не изменён.%ESC%[0m
+    goto menu
+)
+if not "!NEW_PASS!"=="" (
+    echo(!NEW_PASS!| "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_password.py" > "%TEMP%\pass_chk.txt" 2>nul
+    set /p "PASS_CHK=" < "%TEMP%\pass_chk.txt"
+    del "%TEMP%\pass_chk.txt" 2>nul
+    if not "!PASS_CHK!"=="OK" (
+        echo   %ESC%[1;31m  Пароль содержит запрещённые символы — не изменён.%ESC%[0m
+        goto menu
+    )
+)
 echo.
 if not "!NEW_PASS!"=="" (
     "%HERMES_EXE%" config set dashboard.basic_auth.username "!NEW_USER!"
