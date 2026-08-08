@@ -23,8 +23,8 @@ for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do 
 REM ============================================================================
 REM   Изоляция данных
 REM ============================================================================
-set "TEMP=%DATA_DIR%	emp"
-set "TMP=%DATA_DIR%	emp"
+set "TEMP=%DATA_DIR%\temp"
+set "TMP=%DATA_DIR%\temp"
 set "APPDATA=%DATA_DIR%\appdata"
 set "LOCALAPPDATA=%DATA_DIR%\localappdata"
 set "HOME=%DATA_DIR%\home"
@@ -53,17 +53,9 @@ if !errorlevel! neq 0 (
 )
 
 REM ============================================================================
-REM   Проверка установленного Hermes
+REM   Проверка установленного Hermes (для службы нужен CLI + web_dist,
+REM   Desktop-сборка не требуется)
 REM ============================================================================
-set "HERMES_EXE=%REPO_DIR%\apps\desktop\release\win-unpacked\Hermes.exe"
-if not exist "%HERMES_EXE%" (
-    echo   %ESC%[1;31m[ОШИБКА] Hermes не установлен.%ESC%[0m
-    echo   %ESC%[33mСначала выполните [1] Установить / Обновить Hermes Desktop.%ESC%[0m
-    echo.
-    pause
-    exit /b 1
-)
-
 set "PYTHON_EXE=%REPO_DIR%\venv\Scripts\python.exe"
 if not exist "%PYTHON_EXE%" (
     echo   %ESC%[1;31m[ОШИБКА] venv Python не найден: %PYTHON_EXE%%ESC%[0m
@@ -72,9 +64,16 @@ if not exist "%PYTHON_EXE%" (
     pause
     exit /b 1
 )
+if not exist "%REPO_DIR%\hermes_cli\web_dist\index.html" (
+    echo   %ESC%[1;31m[ОШИБКА] web_dist не найден: %REPO_DIR%\hermes_cli\web_dist%ESC%[0m
+    echo   %ESC%[33mУстановите [1] Hermes Web или Desktop, чтобы собрать web UI.%ESC%[0m
+    echo.
+    pause
+    exit /b 1
+)
 
-echo   %ESC%[1;32m+%ESC%[0m Hermes найден: %HERMES_EXE%
 echo   %ESC%[1;32m+%ESC%[0m Python: %PYTHON_EXE%
+echo   %ESC%[1;32m+%ESC%[0m Web dist: %REPO_DIR%\hermes_cli\web_dist
 echo.
 
 REM ============================================================================
@@ -316,8 +315,8 @@ if !errorlevel! neq 0 (
 REM HERMES_WEB_DIST — готовый web dist из Desktop-сборки (иначе dashboard
 REM пытается собрать web UI при каждом старте и падает: "Web UI npm install failed")
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra "HERMES_HOME=%HERMES_HOME%" "HOME=%DATA_DIR%\home" "USERPROFILE=%DATA_DIR%\home" "APPDATA=%DATA_DIR%\appdata" "LOCALAPPDATA=%DATA_DIR%\localappdata" "TEMP=%DATA_DIR%\temp" "PYTHONIOENCODING=utf-8" "HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist"
-"%NSSM_EXE%" set "!SERVICE_NAME!" AppStdout "%DATA_DIR%	emp\service-!LOG_NAME!.log"
-"%NSSM_EXE%" set "!SERVICE_NAME!" AppStderr "%DATA_DIR%	emp\service-!LOG_NAME!.log"
+"%NSSM_EXE%" set "!SERVICE_NAME!" AppStdout "%DATA_DIR%\temp\service-!LOG_NAME!.log"
+"%NSSM_EXE%" set "!SERVICE_NAME!" AppStderr "%DATA_DIR%\temp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppRotateFiles 1
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppRotateBytes 10485760
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppExit Default Restart
@@ -355,7 +354,7 @@ if !errorlevel! equ 0 (
 
 REM ============================================================================
 REM   Запуск службы (лог — только текущий запуск)
-if exist "%DATA_DIR%	emp\service-!LOG_NAME!.log" del /q "%DATA_DIR%	emp\service-!LOG_NAME!.log" 2>nul
+if exist "%DATA_DIR%\temp\service-!LOG_NAME!.log" del /q "%DATA_DIR%\temp\service-!LOG_NAME!.log" 2>nul
 REM ============================================================================
 echo   %ESC%[1;33m-%ESC%[0m Запуск службы "!SERVICE_NAME!"...
 "%NSSM_EXE%" start "!SERVICE_NAME!" >nul 2>&1
@@ -373,7 +372,7 @@ if !SERVICE_RUNNING! equ 1 (
     echo   %ESC%[1;32m+ Служба "!SERVICE_NAME!" запущена и работает.%ESC%[0m
 ) else (
     echo   %ESC%[1;33m. Служба "!SERVICE_NAME!" установлена, но НЕ запущена.%ESC%[0m
-    echo   %ESC%[33m  Лог: %DATA_DIR%	emp\service-!SERVICE_NAME!.log%ESC%[0m
+    echo   %ESC%[33m  Лог: %DATA_DIR%\temp\service-!SERVICE_NAME!.log%ESC%[0m
 )
 
 REM Ожидаем подъём dashboard (первый старт медленный — до 60 сек) — иначе ложное "НЕ слушается"
