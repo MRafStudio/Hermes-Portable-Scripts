@@ -260,14 +260,14 @@ set /p "AUTH_USER=%ESC%[1mЛогин веб-доступа%ESC%[0m %ESC%[2m[Ente
 if "!AUTH_USER!"=="" set "AUTH_USER=admin"
 "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!AUTH_USER!"
 if errorlevel 1 (
-    echo   %ESC%[1;31m  Логин содержит запрещённые символы (%%%% или ^!^! или пробел) - повторите.%ESC%[0m
+    echo   %ESC%[1;31m  Логин содержит запрещённые символы ^(%%%% или ^!^! или пробел^) - повторите.%ESC%[0m
     goto ask_user
 )
 :user_done
-
+pause
 if not defined AUTH_PASS set "AUTH_PASS=%~4"
 if not defined AUTH_PASS (
-    echo   %ESC%[1;33mПароль%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! (раскрытие переменных cmd)%ESC%[0m
+    echo   %ESC%[1;33mПароль%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! ^(раскрытие переменных cmd^)%ESC%[0m
     goto ask_pass
 )
 goto pass_done
@@ -275,19 +275,21 @@ goto pass_done
 set "AUTH_PASS="
 set /p "AUTH_PASS=%ESC%[1mПароль веб-доступа%ESC%[0m: "
 if errorlevel 1 (
-    echo   %ESC%[1;31m  Пароль содержит запрещённые символы (%%%% или ^!^!) - повторите.%ESC%[0m
+    echo   %ESC%[1;31m  Пароль содержит запрещённые символы ^(%%%% или ^!^!^) - повторите.%ESC%[0m
     goto ask_pass
 )
 if "!AUTH_PASS!"=="" (
     echo   %ESC%[1;31m  Пароль не может быть пустым - повторите.%ESC%[0m
     goto ask_pass
 )
+pause
 "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!AUTH_PASS!"
 if errorlevel 1 (
     echo   %ESC%[1;31m  Пароль содержит запрещённые символы - повторите без ^& ^| ^< ^> ^^.%ESC%[0m
     goto ask_pass
 )
 :pass_done
+pause
 if "!AUTH_PASS!"=="" (
     echo   %ESC%[1;31m  ВНИМАНИЕ: Пароль не задан — dashboard НЕ сможет слушать 0.0.0.0.%ESC%[0m
     echo   %ESC%[33mУстановка службы продолжится, но удалённый доступ будет недоступен.%ESC%[0m
