@@ -27,6 +27,7 @@ if not exist "%START_INI%" (
     >> "%START_INI%" echo REMOTE_HOST=127.0.0.1
     >> "%START_INI%" echo REMOTE_PORT=9119
     >> "%START_INI%" echo REMOTE_URL=http://127.0.0.1:9119
+    >> "%START_INI%" echo REMOTE_TOKEN=
     echo %ESC%[1;33m- %ESC%[0mСоздан %START_INI% с параметрами по умолчанию.
 )
 
