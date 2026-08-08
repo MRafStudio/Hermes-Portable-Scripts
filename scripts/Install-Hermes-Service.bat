@@ -241,75 +241,10 @@ echo.
 
 REM ============================================================================
 REM   Авторизация для удалённого доступа
-REM   dashboard ОТКАЗЫВАЕТСЯ слушать 0.0.0.0 без auth-провайдера (June 2026
-REM   hardening; --insecure больше не работает). Настраиваем basic_auth.
+REM   dashboard берёт basic_auth из config.yaml (dashboard.basic_auth.username/
+REM   password) — настраивается через [8] Изменить логин и пароль (Connection.bat)
+REM   или напрямую: hermes config set dashboard.basic_auth.username <логин>
 REM ============================================================================
-echo   %ESC%[1;33m-%ESC%[0m Для удалённого доступа dashboard требуется авторизация:
-set "AUTH_USER="
-set "AUTH_PASS="
-if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
-    if /i "%%a"=="AUTH_USER" set "AUTH_USER=%%b"
-    if /i "%%a"=="AUTH_PASS" set "AUTH_PASS=%%b"
-)
-if not defined AUTH_USER set "AUTH_USER=%~3"
-if defined AUTH_USER goto user_done
-:ask_user
-echo   %ESC%[1;33mЛогин%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! и пробелы%ESC%[0m
-set "AUTH_USER="
-set /p "AUTH_USER=%ESC%[1mЛогин веб-доступа%ESC%[0m %ESC%[2m[Enter = admin]%ESC%[0m: "
-if "!AUTH_USER!"=="" set "AUTH_USER=admin"
-"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!AUTH_USER!"
-if errorlevel 1 (
-    echo   %ESC%[1;31m  Логин содержит запрещённые символы ^(%%%% или ^!^! или пробел^) - повторите.%ESC%[0m
-    goto ask_user
-)
-:user_done
-if not defined AUTH_PASS set "AUTH_PASS=%~4"
-if not defined AUTH_PASS (
-    echo   %ESC%[1;33mПароль%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! ^(раскрытие переменных cmd^)%ESC%[0m
-    goto ask_pass
-)
-goto pass_done
-:ask_pass
-set "AUTH_PASS="
-set /p "AUTH_PASS=%ESC%[1mПароль веб-доступа%ESC%[0m: "
-if errorlevel 1 (
-    echo   %ESC%[1;31m  Пароль содержит запрещённые символы ^(%%%% или ^!^!^) - повторите.%ESC%[0m
-    goto ask_pass
-)
-if "!AUTH_PASS!"=="" (
-    echo   %ESC%[1;31m  Пароль не может быть пустым - повторите.%ESC%[0m
-    goto ask_pass
-)
-"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!AUTH_PASS!"
-if errorlevel 1 (
-    echo   %ESC%[1;31m  Пароль содержит запрещённые символы - повторите без ^& ^| ^< ^> ^^.%ESC%[0m
-    goto ask_pass
-)
-:pass_done
-if "!AUTH_PASS!"=="" (
-    echo   %ESC%[1;31m  ВНИМАНИЕ: Пароль не задан — dashboard НЕ сможет слушать 0.0.0.0.%ESC%[0m
-    echo   %ESC%[33mУстановка службы продолжится, но удалённый доступ будет недоступен.%ESC%[0m
-) else (
-    REM Генерируем scrypt-хэш пароля (venv python)
-    REM Пароль через STDIN (echo | python), хэш — в файл: вложенные кавычки
-    REM в for /f / cmd /C ломаются (cmd не различает " и ') — файловый обмен надёжнее
-    set "AUTH_HASH="
-    "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\hash_pass.py" "%REPO_DIR%" "!AUTH_PASS!" > "%TEMP%\auth_hash.txt" 2>nul
-    if exist "%TEMP%\auth_hash.txt" set /p AUTH_HASH=<"%TEMP%\auth_hash.txt"
-    del "%TEMP%\auth_hash.txt" 2>nul
-    if not defined AUTH_HASH (
-        echo   %ESC%[1;33m  !   Не удалось сгенерировать хэш пароля.%ESC%[0m
-    ) else (
-        REM Штатный механизм: hermes config set (config.py) — точечная запись,
-        REM merge не затирает чужие секции; замена ручного patch_dashboard_auth.ps1
-        "%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.username "!AUTH_USER!"
-        "%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.password_hash "!AUTH_HASH!"
-if defined AUTH_USER if not "!AUTH_PASS!"=="" (
-    "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\update_ini_auth.py" "%START_INI%" "!AUTH_USER!" "!AUTH_PASS!"
-)
-    )
-)
 
 REM ============================================================================
 REM   Установка службы
@@ -339,7 +274,7 @@ if !errorlevel! neq 0 (
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppDirectory "%HERMES_HOME%"
 REM HERMES_WEB_DIST — готовый web dist из Desktop-сборки (иначе dashboard
 REM пытается собрать web UI при каждом старте и падает: "Web UI npm install failed")
-"%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra HERMES_HOME=%HERMES_HOME% HOME=%DATA_DIR%\home USERPROFILE=%DATA_DIR%\home APPDATA=%DATA_DIR%\appdata LOCALAPPDATA=%DATA_DIR%\localappdata TEMP=%DATA_DIR%	emp PYTHONIOENCODING=utf-8 HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist
+"%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra "HERMES_HOME=%HERMES_HOME%" "HOME=%DATA_DIR%\home" "USERPROFILE=%DATA_DIR%\home" "APPDATA=%DATA_DIR%\appdata" "LOCALAPPDATA=%DATA_DIR%\localappdata" "TEMP=%DATA_DIR%\temp" "PYTHONIOENCODING=utf-8" "HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppStdout "%DATA_DIR%	emp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppStderr "%DATA_DIR%	emp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppRotateFiles 1
