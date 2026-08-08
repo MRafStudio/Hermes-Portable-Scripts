@@ -74,7 +74,7 @@ echo.
 echo %ESC%[1;37m[4] %ESC%[0m %ESC%[1mHermes CLI (локально)%ESC%[0m             %ESC%[2m— начать диалог в терминале%ESC%[0m
 echo %ESC%[1;37m[5] %ESC%[0m %ESC%[1mHermes — Dashboard%ESC%[0m                %ESC%[2m— запустить веб-панель%ESC%[0m
 if defined DESKTOP_EXE (
-    echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mHermes — Desktop%ESC%[0m                 %ESC%[2m— запустить графическую версию%ESC%[0m
+    echo %ESC%[1;37m[6] %ESC%[0m %ESC%[1mHermes — Desktop%ESC%[0m                  %ESC%[2m— запустить графическую версию%ESC%[0m
 )
 echo.
 echo %ESC%[1;37m[7] %ESC%[0m %ESC%[1mHermes gateway%ESC%[0m                    %ESC%[2m— настроить шлюз (Telegram, Discord)%ESC%[0m
@@ -147,7 +147,7 @@ if "%choice%"=="5" (
     echo.
     call "%SCRIPTS_DIR%\Start-Hermes-Web.bat"
     echo.
-    pause
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
     goto menu
 )
 
@@ -158,7 +158,7 @@ if "%choice%"=="6" (
     echo.
     call "%SCRIPTS_DIR%\Start-Hermes-Desktop.bat"
     echo.
-    pause
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
     goto menu
 )
 
@@ -169,7 +169,7 @@ if "%choice%"=="7" (
     echo.
     "%REPO_DIR%\venv\Scripts\hermes.exe" gateway
     echo.
-    pause
+    call "%SCRIPTS_DIR%\SmartPause.bat" 5
     goto menu
 )
 
