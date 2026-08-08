@@ -142,13 +142,27 @@ if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI
     if /i "%%a"=="CONSOLE" set "CONSOLE=%%b"
 )
 set "REMOTE_HOST=127.0.0.1"
+set "REMOTE_URL=http://127.0.0.1:9119"
 set "START_INI=%HERMES_HOME%\portable_start.ini"
 if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
     if /i "%%a"=="REMOTE_HOST" set "REMOTE_HOST=%%b"
+    if /i "%%a"=="REMOTE_URL" set "REMOTE_URL=%%b"
 )
 if /i not "!REMOTE_HOST!"=="127.0.0.1" (
     echo %ESC%[1;33m. %ESC%[0m Remote-режим: подключение через Settings -^> Gateway -^> Remote -^> Sign in.
     echo %ESC%[2m       Адрес: !REMOTE_HOST!%ESC%[0m
+)
+
+REM ============================================================================
+REM   Синхронизация connection.json (Desktop) с portable_start.ini
+REM   URL не локальный → mode=remote (Desktop подключается к REMOTE_URL, Sign in)
+REM   URL локальный   → mode=local (локальный backend)
+REM ============================================================================
+set "PYTHON_EXE=%REPO_DIR%\venv\Scripts\python.exe"
+set "UD_DIR=%APPDATA%\Hermes"
+if defined HERMES_DESKTOP_USER_DATA_DIR set "UD_DIR=%HERMES_DESKTOP_USER_DATA_DIR%"
+if exist "%PYTHON_EXE%" (
+    "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\set_desktop_connection.py" "%UD_DIR%" "!REMOTE_URL!" "!REMOTE_HOST!" >nul 2>&1
 )
 
 if "!CONSOLE!"=="1" (
