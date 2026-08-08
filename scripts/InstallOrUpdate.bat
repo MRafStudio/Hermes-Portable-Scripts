@@ -77,6 +77,11 @@ REM --- Что-то установлено (web или desktop)? ---
 set "ANY_INSTALLED=0"
 if !DESKTOP_INSTALLED! equ 1 set "ANY_INSTALLED=1"
 if !WEB_INSTALLED! equ 1 set "ANY_INSTALLED=1"
+REM --- Служба возможна, если есть web_dist ИЛИ Desktop-сборка ---
+set "CAN_INSTALL_SERVICE=0"
+if !WEB_INSTALLED! equ 1 set "CAN_INSTALL_SERVICE=1"
+if !DESKTOP_INSTALLED! equ 1 set "CAN_INSTALL_SERVICE=1"
+
 
 REM --- Статус службы ЭТОГО инстанса (по описанию с ROOT_DIR) ---
 set "SERVICE_NAME="
@@ -136,7 +141,7 @@ if !DESKTOP_INSTALLED! equ 1 (
     echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mУстановить Hermes Desktop%ESC%[0m
 )
 echo.
-if !SERVICE_INSTALLED! equ 0 (
+if !SERVICE_INSTALLED! equ 0 if !CAN_INSTALL_SERVICE! equ 1 (
     echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mУстановить службу Hermes %ESC%[2m^(удалённый доступ^)%ESC%[0m
 )
 if !SERVICE_INSTALLED! equ 1 (
