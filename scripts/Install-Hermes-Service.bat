@@ -245,7 +245,13 @@ REM   dashboard ОТКАЗЫВАЕТСЯ слушать 0.0.0.0 без auth-пр
 REM   hardening; --insecure больше не работает). Настраиваем basic_auth.
 REM ============================================================================
 echo   %ESC%[1;33m-%ESC%[0m Для удалённого доступа dashboard требуется авторизация:
-set "AUTH_USER=%~3"
+set "AUTH_USER="
+set "AUTH_PASS="
+if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
+    if /i "%%a"=="AUTH_USER" set "AUTH_USER=%%b"
+    if /i "%%a"=="AUTH_PASS" set "AUTH_PASS=%%b"
+)
+if not defined AUTH_USER set "AUTH_USER=%~3"
 if defined AUTH_USER goto user_done
 :ask_user
 echo   %ESC%[1;33mЛогин%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! и пробелы%ESC%[0m
@@ -259,7 +265,7 @@ if errorlevel 1 (
 )
 :user_done
 
-set "AUTH_PASS=%~4"
+if not defined AUTH_PASS set "AUTH_PASS=%~4"
 if not defined AUTH_PASS (
     echo   %ESC%[1;33mПароль%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! (раскрытие переменных cmd)%ESC%[0m
     goto ask_pass
@@ -300,6 +306,9 @@ if "!AUTH_PASS!"=="" (
         REM merge не затирает чужие секции; замена ручного patch_dashboard_auth.ps1
         "%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.username "!AUTH_USER!"
         "%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.password_hash "!AUTH_HASH!"
+if defined AUTH_USER if not "!AUTH_PASS!"=="" (
+    "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\update_ini_auth.py" "%START_INI%" "!AUTH_USER!" "!AUTH_PASS!"
+)
     )
 )
 
