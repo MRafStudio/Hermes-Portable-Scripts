@@ -241,10 +241,51 @@ echo.
 
 REM ============================================================================
 REM   Авторизация для удалённого доступа
-REM   dashboard берёт basic_auth из config.yaml (dashboard.basic_auth.username/
-REM   password) — настраивается через [8] Изменить логин и пароль (Connection.bat)
-REM   или напрямую: hermes config set dashboard.basic_auth.username <логин>
+REM   dashboard ОТКАЗЫВАЕТСЯ слушать 0.0.0.0 без auth-провайдера (June 2026
+REM   hardening; --insecure больше не работает).
+REM   Если basic_auth уже задан в config.yaml (не null) — используем молча;
+REM   иначе запрашиваем логин/пароль (как в Connection.bat) и сохраняем.
 REM ============================================================================
+set "AUTH_USER="
+set "AUTH_PASS="
+for /f "usebackq delims=" %%u in (`"%REPO_DIR%\venv\Scripts\hermes.exe" config get dashboard.basic_auth.username 2^>nul`) do set "AUTH_USER=%%u"
+for /f "usebackq delims=" %%p in (`"%REPO_DIR%\venv\Scripts\hermes.exe" config get dashboard.basic_auth.password 2^>nul`) do set "AUTH_PASS=%%p"
+if /i "!AUTH_USER!"=="null" set "AUTH_USER="
+if /i "!AUTH_USER!"=="None" set "AUTH_USER="
+if /i "!AUTH_PASS!"=="null" set "AUTH_PASS="
+if /i "!AUTH_PASS!"=="None" set "AUTH_PASS="
+if defined AUTH_USER if defined AUTH_PASS goto auth_done
+echo   %ESC%[1;33m-%ESC%[0m Для удалённого доступа dashboard требуется авторизация:
+if defined AUTH_USER goto pass_part
+:ask_user
+echo   %ESC%[1;33mЛогин%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! и пробелы%ESC%[0m
+set "AUTH_USER="
+set /p "AUTH_USER=%ESC%[1mЛогин веб-доступа%ESC%[0m %ESC%[2m[Enter = admin]%ESC%[0m: "
+if "!AUTH_USER!"=="" set "AUTH_USER=admin"
+"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!AUTH_USER!"
+if errorlevel 1 (
+    echo   %ESC%[1;31m  Логин содержит запрещённые символы ^(%%%% или ^!^! или пробел^) - повторите.%ESC%[0m
+    goto ask_user
+)
+:pass_part
+if defined AUTH_PASS goto save_auth
+:ask_pass
+echo   %ESC%[1;33mПароль%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! ^(раскрытие переменных cmd^)%ESC%[0m
+set "AUTH_PASS="
+set /p "AUTH_PASS=%ESC%[1mПароль веб-доступа%ESC%[0m: "
+if "!AUTH_PASS!"=="" (
+    echo   %ESC%[1;31m  Пароль не может быть пустым - повторите.%ESC%[0m
+    goto ask_pass
+)
+"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!AUTH_PASS!"
+if errorlevel 1 (
+    echo   %ESC%[1;31m  Пароль содержит запрещённые символы - повторите.%ESC%[0m
+    goto ask_pass
+)
+:save_auth
+"%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.username "!AUTH_USER!"
+"%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.password "!AUTH_PASS!"
+:auth_done
 
 REM ============================================================================
 REM   Установка службы
