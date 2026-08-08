@@ -254,7 +254,30 @@ if not defined AUTH_USER (
 if not "!AUTH_USER!"=="" set "AUTH_USER=!AUTH_USER: =!"
 
 set "AUTH_PASS=%~4"
-if not defined AUTH_PASS set /p "AUTH_PASS=%ESC%[1mПароль веб-доступа%ESC%[0m: "
+if not defined AUTH_PASS (
+    echo   %ESC%[1;33mПароль%ESC%[0m %ESC%[2m- НЕ используйте символы ^& ^| ^< ^> ^^: это разделители команд cmd, пароль будет испорчен%ESC%[0m
+    goto ask_pass
+)
+goto pass_done
+:ask_pass
+set "AUTH_PASS="
+set /p "AUTH_PASS=%ESC%[1mПароль веб-доступа%ESC%[0m: "
+if errorlevel 1 (
+    echo   %ESC%[1;31m  Пароль содержит запрещённые символы - повторите без ^& ^| ^< ^> ^^.%ESC%[0m
+    goto ask_pass
+)
+if "!AUTH_PASS!"=="" (
+    echo   %ESC%[1;31m  Пароль не может быть пустым - повторите.%ESC%[0m
+    goto ask_pass
+)
+echo(!AUTH_PASS!| "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_password.py" > "%TEMP%\pass_chk.txt" 2>nul
+set /p "PASS_CHK=" < "%TEMP%\pass_chk.txt"
+del "%TEMP%\pass_chk.txt" 2>nul
+if not "!PASS_CHK!"=="OK" (
+    echo   %ESC%[1;31m  Пароль содержит запрещённые символы - повторите без ^& ^| ^< ^> ^^.%ESC%[0m
+    goto ask_pass
+)
+:pass_done
 if "!AUTH_PASS!"=="" (
     echo   %ESC%[1;31m  ВНИМАНИЕ: Пароль не задан — dashboard НЕ сможет слушать 0.0.0.0.%ESC%[0m
     echo   %ESC%[33mУстановка службы продолжится, но удалённый доступ будет недоступен.%ESC%[0m
