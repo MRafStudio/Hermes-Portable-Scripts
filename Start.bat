@@ -163,6 +163,10 @@ if !DESKTOP_INSTALLED! equ 1 (
     echo.
 )
 
+REM [6] Desktop — локальное подключение (только если Desktop собран И в ini remote)
+if !DESKTOP_INSTALLED! equ 1 if "!CONN_MODE!"=="REMOTE" (
+    echo %ESC%[1;37m[6]%ESC%[0m %ESC%[32mHermes Desktop %ESC%[2m^(локальное подключение^)%ESC%[0m
+)
 echo %ESC%[1;37m[0]%ESC%[0m %ESC%[1mВыход%ESC%[0m
 echo.
 
@@ -178,6 +182,7 @@ if "%choice%"=="1" goto setup
 if "%choice%"=="2" goto dev_tools
 
 if "%choice%"=="5" goto launch_options
+if "%choice%"=="6" goto desktop_local
 if "%choice%"=="0" goto exit
 goto menu
 
@@ -187,6 +192,18 @@ goto menu
 
 :dev_tools
 call "%SCRIPTS_DIR%\Tools.bat"
+goto menu
+
+:desktop_local
+cls
+echo.
+echo %ESC%[1;33m-%ESC%[0m %ESC%[1mЗапуск Hermes Desktop %ESC%[2m^(локальное подключение^)%ESC%[0m...%ESC%[0m
+echo.
+REM Сбрасываем connection.json на локальный эндпоинт (иначе Desktop возьмёт remote из ini)
+if exist "%REPO_DIR%\venv\Scripts\python.exe" (
+    "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\set_desktop_connection.py" "!USERPROFILE!\AppData\Roaming\Hermes" "http://127.0.0.1:9119" "127.0.0.1" >nul 2>&1
+)
+start "" "!DESKTOP_EXE_PATH!"
 goto menu
 
 :launch_options
