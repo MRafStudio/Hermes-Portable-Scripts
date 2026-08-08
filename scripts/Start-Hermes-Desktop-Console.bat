@@ -22,8 +22,8 @@ REM   При запуске от Start-Hermes-Desktop.bat значения те 
 REM   при ПРЯМОМ запуске — защищает профиль пользователя от записи.
 REM ============================================================================
 set "DATA_DIR=%ROOT_DIR%\data"
-set "TEMP=%DATA_DIR%\temp"
-set "TMP=%DATA_DIR%\temp"
+set "TEMP=%DATA_DIR%	emp"
+set "TMP=%DATA_DIR%	emp"
 set "APPDATA=%DATA_DIR%\appdata"
 set "LOCALAPPDATA=%DATA_DIR%\localappdata"
 set "HOME=%DATA_DIR%\home"
