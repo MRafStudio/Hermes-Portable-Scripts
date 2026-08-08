@@ -154,15 +154,36 @@ if /i not "!REMOTE_HOST!"=="127.0.0.1" (
 )
 
 REM ============================================================================
+REM   Штатный env-оверрайд Desktop: HERMES_DESKTOP_REMOTE_URL + _TOKEN
+REM   (главнее connection.json — desktop всегда идёт на REMOTE_URL с токеном)
+REM   Включаем ТОЛЬКО для нелокального REMOTE_HOST с непустым REMOTE_TOKEN.
+REM ============================================================================
+set "REMOTE_TOKEN="
+if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
+    if /i "%%a"=="REMOTE_TOKEN" set "REMOTE_TOKEN=%%b"
+)
+if not "!REMOTE_TOKEN!"=="" (
+    if /i not "!REMOTE_HOST!"=="127.0.0.1" if /i not "!REMOTE_HOST!"=="0.0.0.0" if /i not "!REMOTE_HOST!"=="localhost" (
+        set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
+        set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
+        echo %ESC%[1;33m. %ESC%[0m Remote-режим (env): токен задан, desktop подключится к !REMOTE_URL!
+    )
+)
+
+REM ============================================================================
 REM   Синхронизация connection.json (Desktop) с portable_start.ini
 REM   URL не локальный → mode=remote (Desktop подключается к REMOTE_URL, Sign in)
 REM   URL локальный   → mode=local (локальный backend)
+REM   ВАЖНО: Electron/Chromium на Windows вычисляет userData как
+REM   %USERPROFILE%\AppData\Roaming\<app>, ИГНОРИРУЯ переменную APPDATA.
+REM   Поэтому основной путь — %USERPROFILE%\AppData\Roaming\Hermes,
+REM   а %APPDATA%\Hermes передаём скрипту как дополнительный (страховка).
 REM ============================================================================
 set "PYTHON_EXE=%REPO_DIR%\venv\Scripts\python.exe"
-set "UD_DIR=%APPDATA%\Hermes"
+set "UD_DIR=%USERPROFILE%\AppData\Roaming\Hermes"
 if defined HERMES_DESKTOP_USER_DATA_DIR set "UD_DIR=%HERMES_DESKTOP_USER_DATA_DIR%"
 if exist "%PYTHON_EXE%" (
-    "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\set_desktop_connection.py" "%UD_DIR%" "!REMOTE_URL!" "!REMOTE_HOST!" >nul 2>&1
+    "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\set_desktop_connection.py" "%UD_DIR%" "!REMOTE_URL!" "!REMOTE_HOST!" "%APPDATA%\Hermes" >nul 2>&1
 )
 
 if "!CONSOLE!"=="1" (
