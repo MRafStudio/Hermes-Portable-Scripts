@@ -246,12 +246,20 @@ REM   hardening; --insecure больше не работает). Настраи�
 REM ============================================================================
 echo   %ESC%[1;33m-%ESC%[0m Для удалённого доступа dashboard требуется авторизация:
 set "AUTH_USER=%~3"
-if not defined AUTH_USER (
-    set "AUTH_USER=admin"
-    set /p "AUTH_USER=%ESC%[1mЛогин веб-доступа%ESC%[0m %ESC%[2m[Enter = admin]%ESC%[0m: "
-    if "!AUTH_USER!"=="" set "AUTH_USER=admin"
+if defined AUTH_USER goto user_done
+:ask_user
+echo   %ESC%[1;33mЛогин%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! и пробелы%ESC%[0m
+set "AUTH_USER="
+set /p "AUTH_USER=%ESC%[1mЛогин веб-доступа%ESC%[0m %ESC%[2m[Enter = admin]%ESC%[0m: "
+if "!AUTH_USER!"=="" set "AUTH_USER=admin"
+"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_credentials.py" "!AUTH_USER!" > "%TEMP%\user_chk.txt" 2>nul
+set /p "USER_CHK=" < "%TEMP%\user_chk.txt"
+del "%TEMP%\user_chk.txt" 2>nul
+if not "!USER_CHK!"=="OK" (
+    echo   %ESC%[1;31m  Логин содержит запрещённые символы (%%%% или ^!^! или пробел) - повторите.%ESC%[0m
+    goto ask_user
 )
-if not "!AUTH_USER!"=="" set "AUTH_USER=!AUTH_USER: =!"
+:user_done
 
 set "AUTH_PASS=%~4"
 if not defined AUTH_PASS (
@@ -270,7 +278,7 @@ if "!AUTH_PASS!"=="" (
     echo   %ESC%[1;31m  Пароль не может быть пустым - повторите.%ESC%[0m
     goto ask_pass
 )
-"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_password.py" "!AUTH_PASS!" > "%TEMP%\pass_chk.txt" 2>nul
+"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_credentials.py" "!AUTH_PASS!" > "%TEMP%\pass_chk.txt" 2>nul
 set /p "PASS_CHK=" < "%TEMP%\pass_chk.txt"
 del "%TEMP%\pass_chk.txt" 2>nul
 if not "!PASS_CHK!"=="OK" (
