@@ -255,7 +255,7 @@ if not "!AUTH_USER!"=="" set "AUTH_USER=!AUTH_USER: =!"
 
 set "AUTH_PASS=%~4"
 if not defined AUTH_PASS (
-    echo   %ESC%[1;33mПароль%ESC%[0m %ESC%[2m- НЕ используйте символы ^& ^| ^< ^> ^^: это разделители команд cmd, пароль будет испорчен%ESC%[0m
+    echo   %ESC%[1;33mПароль%ESC%[0m %ESC%[2m- НЕ используйте символы %%%% и ^!^! (раскрытие переменных cmd)%ESC%[0m
     goto ask_pass
 )
 goto pass_done
@@ -263,14 +263,14 @@ goto pass_done
 set "AUTH_PASS="
 set /p "AUTH_PASS=%ESC%[1mПароль веб-доступа%ESC%[0m: "
 if errorlevel 1 (
-    echo   %ESC%[1;31m  Пароль содержит запрещённые символы - повторите без ^& ^| ^< ^> ^^.%ESC%[0m
+    echo   %ESC%[1;31m  Пароль содержит запрещённые символы (%%%% или ^!^!) - повторите.%ESC%[0m
     goto ask_pass
 )
 if "!AUTH_PASS!"=="" (
     echo   %ESC%[1;31m  Пароль не может быть пустым - повторите.%ESC%[0m
     goto ask_pass
 )
-echo(!AUTH_PASS!| "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_password.py" > "%TEMP%\pass_chk.txt" 2>nul
+"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\patch\validate_password.py" "!AUTH_PASS!" > "%TEMP%\pass_chk.txt" 2>nul
 set /p "PASS_CHK=" < "%TEMP%\pass_chk.txt"
 del "%TEMP%\pass_chk.txt" 2>nul
 if not "!PASS_CHK!"=="OK" (
@@ -286,7 +286,7 @@ if "!AUTH_PASS!"=="" (
     REM Пароль через STDIN (echo | python), хэш — в файл: вложенные кавычки
     REM в for /f / cmd /C ломаются (cmd не различает " и ') — файловый обмен надёжнее
     set "AUTH_HASH="
-    echo !AUTH_PASS! | "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\hash_pass.py" "%REPO_DIR%" > "%TEMP%\auth_hash.txt" 2>nul
+    "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\hash_pass.py" "%REPO_DIR%" "!AUTH_PASS!" > "%TEMP%\auth_hash.txt" 2>nul
     if exist "%TEMP%\auth_hash.txt" set /p AUTH_HASH=<"%TEMP%\auth_hash.txt"
     del "%TEMP%\auth_hash.txt" 2>nul
     if not defined AUTH_HASH (
