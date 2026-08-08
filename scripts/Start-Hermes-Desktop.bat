@@ -166,7 +166,7 @@ if not "!REMOTE_TOKEN!"=="" (
     if /i not "!REMOTE_HOST!"=="127.0.0.1" if /i not "!REMOTE_HOST!"=="0.0.0.0" if /i not "!REMOTE_HOST!"=="localhost" (
         set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
         set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
-        echo %ESC%[1;33m. %ESC%[0m Remote-режим (env): токен задан, desktop подключится к !REMOTE_URL!
+        echo %ESC%[1;33m. %ESC%[0m Remote-режим ^(env^): токен задан, desktop подключится к !REMOTE_URL!
     )
 )
 
