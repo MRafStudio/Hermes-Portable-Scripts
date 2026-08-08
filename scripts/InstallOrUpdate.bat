@@ -140,6 +140,9 @@ if !DESKTOP_INSTALLED! equ 1 (
 ) else (
     echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mУстановить Hermes Desktop%ESC%[0m
 )
+if !ANY_INSTALLED! equ 1 (
+    echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mГайд: подключение с другого ПК %ESC%[2m^(пошагово^)%ESC%[0m
+)
 echo.
 if !SERVICE_INSTALLED! equ 0 if !CAN_INSTALL_SERVICE! equ 1 (
     echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mУстановить службу Hermes %ESC%[2m^(удалённый доступ^)%ESC%[0m
@@ -167,6 +170,7 @@ if not "!choice!"=="" set "choice=!choice: =!"
 if "!choice!"=="" goto menu
 if "!choice!"=="1" goto install_web
 if "!choice!"=="2" goto install_desktop
+if "!choice!"=="3" goto connect_guide
 if "!choice!"=="4" goto install_service
 if "!choice!"=="5" goto restart_service
 if "!choice!"=="6" goto remove_service
