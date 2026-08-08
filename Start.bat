@@ -51,8 +51,8 @@ if exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" if exist "%CONFIG_
 REM ============================================================================
 REM   Изоляция данных (ничего в систему!)
 REM ============================================================================
-set "TEMP=%DATA_DIR%\temp"
-set "TMP=%DATA_DIR%\temp"
+set "TEMP=%DATA_DIR%	emp"
+set "TMP=%DATA_DIR%	emp"
 set "APPDATA=%DATA_DIR%\appdata"
 set "LOCALAPPDATA=%DATA_DIR%\localappdata"
 set "HOME=%DATA_DIR%\home"
@@ -80,7 +80,7 @@ if not exist "%HERMES_HOME%" mkdir "%HERMES_HOME%" 2>nul
 REM ============================================================================
 REM   Очистка логов: только текущий запуск (старые не нужны)
 REM ============================================================================
-if exist "%DATA_DIR%\temp\service-*.log" del /q "%DATA_DIR%\temp\service-*.log" 2>nul
+if exist "%DATA_DIR%	emp\service-*.log" del /q "%DATA_DIR%	emp\service-*.log" 2>nul
 if exist "%APPDATA%\Hermes\logs\*.log" del /q "%APPDATA%\Hermes\logs\*.log" 2>nul
 
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
