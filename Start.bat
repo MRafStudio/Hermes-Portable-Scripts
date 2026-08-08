@@ -93,14 +93,12 @@ echo.
 REM ============================================================================
 REM   Проверка статуса готовности компонентов и элементов запуска
 REM ============================================================================
-echo.
 for /f "delims=" %%m in ('call "%SCRIPTS_DIR%\Connection-Mode.bat"') do set "CONN_MODE=%%m"
 if "!CONN_MODE!"=="LOCAL" (
     echo   %ESC%[1;33mПодключение:%ESC%[0m %ESC%[1;32mLOCAL%ESC%[0m %ESC%[2m^(127.0.0.1 / свой IP^)%ESC%[0m
 ) else (
     echo   %ESC%[1;33mПодключение:%ESC%[0m %ESC%[1;33mREMOTE%ESC%[0m %ESC%[2m^(удалённый сервер^)%ESC%[0m
 )
-echo.
 echo   %ESC%[1;33mHERMES_HOME:%ESC%[0m %ESC%[2m%HERMES_HOME%%ESC%[0m
 echo.
 echo %ESC%[1;33mСтатус готовности:%ESC%[0m
