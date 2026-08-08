@@ -276,6 +276,12 @@ REM ----------------------------------------------------------------------------
 :token_client
 echo   %ESC%[1;33mРежим: %ESC%[0m %ESC%[1mКЛИЕНТ%ESC%[0m %ESC%[2m^(REMOTE_HOST: !REMOTE_HOST!^)%ESC%[0m
 echo.
+echo   %ESC%[1;33mВАЖНО:%ESC%[0m %ESC%[2mдля удалённого Desktop токен НЕ используется:%ESC%[0m
+echo   %ESC%[2m      публичный бинд dashboard не принимает ?token= ^(4401^).%ESC%[0m
+echo   %ESC%[2m      Desktop подключится через Sign in ^(пароль dashboard, basic_auth^),%ESC%[0m
+echo   %ESC%[2m      как в web. Токен нужен ТОЛЬКО для локального Desktop ^(loopback^),%ESC%[0m
+echo   %ESC%[2m      и из ini больше не передаётся ^(env-блок убран^).%ESC%[0m
+echo.
 if not "!REMOTE_TOKEN!"=="" (
     echo   %ESC%[2m      Текущий токен задан. Введите новый для замены или Enter, чтобы ОЧИСТИТЬ.%ESC%[0m
 ) else (

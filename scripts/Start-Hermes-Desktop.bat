@@ -154,21 +154,12 @@ if /i not "!REMOTE_HOST!"=="127.0.0.1" (
 )
 
 REM ============================================================================
-REM   Штатный env-оверрайд Desktop: HERMES_DESKTOP_REMOTE_URL + _TOKEN
-REM   (главнее connection.json — desktop всегда идёт на REMOTE_URL с токеном)
-REM   Включаем ТОЛЬКО для нелокального REMOTE_HOST с непустым REMOTE_TOKEN.
+REM   ВНИМАНИЕ: env-оверрайд Desktop (HERMES_DESKTOP_REMOTE_URL/_TOKEN) НЕ используем!
+REM   Публичный бинд dashboard (0.0.0.0) НЕ принимает ?token= (4401, June 2026
+REM   hardening) — токен работает только на loopback. Удалённое подключение
+REM   идёт через connection.json (mode=remote, authMode=oauth) → Sign in паролем
+REM   (basic_auth), как в web. См. set_desktop_connection.py ниже.
 REM ============================================================================
-set "REMOTE_TOKEN="
-if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
-    if /i "%%a"=="REMOTE_TOKEN" set "REMOTE_TOKEN=%%b"
-)
-if not "!REMOTE_TOKEN!"=="" (
-    if /i not "!REMOTE_HOST!"=="127.0.0.1" if /i not "!REMOTE_HOST!"=="0.0.0.0" if /i not "!REMOTE_HOST!"=="localhost" (
-        set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
-        set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
-        echo %ESC%[1;33m. %ESC%[0m Remote-режим ^(env^): токен задан, desktop подключится к !REMOTE_URL!
-    )
-)
 
 REM ============================================================================
 REM   Синхронизация connection.json (Desktop) с portable_start.ini
