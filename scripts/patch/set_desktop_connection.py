@@ -36,6 +36,7 @@ def is_local_host(host):
     return False
 
 
+def build_config(cfg_path, remote_url, remote_host):
     config = {"mode": "local", "remote": {}, "profiles": {}}
     if os.path.exists(cfg_path):
         try:
@@ -52,9 +53,9 @@ def is_local_host(host):
         config["mode"] = "remote"
         config.setdefault("remote", {})
         config["remote"]["url"] = remote_url
-        # authMode не сбрасываем: oauth сохраняется, иначе token (по умолчанию)
-        if "authMode" not in config["remote"]:
-            config["remote"]["authMode"] = "oauth"
+        # Удалённое подключение — ТОЛЬКО пароль (oauth, Sign in):
+        # публичный бинд не принимает ?token= (4401) — токен работает только на loopback
+        config["remote"]["authMode"] = "oauth"
     else:
         config["mode"] = "local"
         # remote.url чистим (не локальный режим) — остальное (token/authMode) не трогаем
