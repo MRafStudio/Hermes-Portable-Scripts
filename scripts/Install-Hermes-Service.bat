@@ -374,7 +374,8 @@ if !errorlevel! equ 0 (
 )
 
 REM ============================================================================
-REM   Запуск службы
+REM   Запуск службы (лог — только текущий запуск)
+if exist "%DATA_DIR%\temp\service-!LOG_NAME!.log" del /q "%DATA_DIR%\temp\service-!LOG_NAME!.log" 2>nul
 REM ============================================================================
 echo   %ESC%[1;33m-%ESC%[0m Запуск службы "!SERVICE_NAME!"...
 "%NSSM_EXE%" start "!SERVICE_NAME!" >nul 2>&1
