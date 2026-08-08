@@ -114,8 +114,6 @@ if !IS_LOCAL! equ 1 (
     ) else (
         echo %ESC%[2m       Dashboard не запущен — запускаем в отдельном окне.%ESC%[0m
         echo %ESC%[2m       Для постоянной работы установите службу: [1] -^> [4]%ESC%[0m
-        call "%SCRIPTS_DIR%\Ensure-Dashboard-Token.bat"
-        set /p "HERMES_DASHBOARD_SESSION_TOKEN=" < "%HERMES_HOME%\dashboard.token"
         if "!CONSOLE!"=="1" (
             start "Hermes Web" cmd /k ""%HERMES_EXE%" dashboard --host !REMOTE_HOST! --port !REMOTE_PORT! --skip-build"
         ) else (
