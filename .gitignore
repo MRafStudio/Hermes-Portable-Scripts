@@ -61,3 +61,5 @@ uv/
 /scripts/ru-locale/ru.ts.bak
 /kobold/start.bat
 /kobold/default.kcpps
+/error
+/password
