@@ -74,6 +74,9 @@ if not exist "%HERMES_EXE%" (
 
 REM Рабочая директория Hermes — изолированный профиль data\home,
 REM а не наследованный откуда попало (иначе сессии/файлы падают в системный профиль)!
+REM --- Очистка логов: только текущий запуск ---
+if exist "%APPDATA%\Hermes\logs\*.log" del /q "%APPDATA%\Hermes\logs\*.log" 2>nul
+
 cd /d "%HOME%"
 
 "%HERMES_EXE%"
