@@ -203,7 +203,7 @@ REM Сбрасываем connection.json на локальный эндпоин�
 if exist "%REPO_DIR%\venv\Scripts\python.exe" (
     "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\set_desktop_connection.py" "!USERPROFILE!\AppData\Roaming\Hermes" "http://127.0.0.1:9119" "127.0.0.1" >nul 2>&1
 )
-start "" "!DESKTOP_EXE_PATH!"
+start /min "Hermes Desktop Console" cmd /c "%SCRIPTS_DIR%\Start-Hermes-Desktop-Console.bat"
 goto menu
 
 :launch_options
