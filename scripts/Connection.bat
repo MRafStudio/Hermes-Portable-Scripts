@@ -204,7 +204,6 @@ if errorlevel 1 (
 )
 if not "!NEW_PASS!"=="" (
     "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!NEW_PASS!"
-
     if errorlevel 1 (
         echo   %ESC%[1;31m  Пароль содержит запрещённые символы — не изменён.%ESC%[0m
         goto menu
@@ -214,7 +213,8 @@ echo.
 if not "!NEW_PASS!"=="" (
     "%HERMES_EXE%" config set dashboard.basic_auth.username "!NEW_USER!"
     "%HERMES_EXE%" config set dashboard.basic_auth.password "!NEW_PASS!"
-    echo %ESC%[1;32m+ %ESC%[0mЛогин и пароль обновлены в config.yaml.
+    "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\update_ini_auth.py" "%START_INI%" "!NEW_USER!" "!NEW_PASS!"
+    echo %ESC%[1;32m+ %ESC%[0mЛогин и пароль обновлены в config.yaml и portable_start.ini.
 ) else (
     "%HERMES_EXE%" config set dashboard.basic_auth.username "!NEW_USER!"
     echo %ESC%[1;32m+ %ESC%[0mЛогин обновлён в config.yaml ^(пароль без изменений^).
