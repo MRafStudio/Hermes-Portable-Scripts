@@ -2,9 +2,12 @@
 #   mode='remote' (если URL не локальный) / 'local' — profile/profiles не трогаем.
 #
 # Аргументы:
-#   sys.argv[1] — путь к каталогу userData (Electron: %APPDATA%\Hermes)
-#   sys.argv[2] — REMOTE_URL из portable_start.ini (может быть пустым)
-#   sys.argv[3] — REMOTE_HOST из portable_start.ini (для проверки локальности)
+#   sys.argv[1]    — путь к каталогу userData (основной)
+#   sys.argv[2]    — REMOTE_URL из portable_start.ini (может быть пустым)
+#   sys.argv[3]    — REMOTE_HOST из portable_start.ini (для проверки локальности)
+#   sys.argv[4:]   — дополнительные userData-каталоги (страховка: Electron/Chromium
+#                    на Windows берёт userData из %USERPROFILE%\AppData\Roaming\<app>,
+#                    игнорируя переменную APPDATA — пишем в оба места)
 #
 # Локальный URL: 127.0.0.1, localhost, ::1 или адрес одного из локальных адаптеров
 # (Get-NetIPAddress на стороне .bat передаётся через REMOTE_HOST; здесь дополнительно
@@ -33,16 +36,8 @@ def is_local_host(host):
     return False
 
 
-def main():
-    if len(sys.argv) < 3:
-        print("usage: set_desktop_connection.py <userData_dir> <REMOTE_URL> [REMOTE_HOST]")
-        return 2
-    user_data = sys.argv[1]
-    remote_url = (sys.argv[2] or "").strip()
-    remote_host = (sys.argv[3] if len(sys.argv) > 3 else "") or ""
-    cfg_path = os.path.join(user_data, "connection.json")
-
-    # Текущий конфиг (или дефолт)
+def build_config(cfg_path, remote_url, remote_host):
+    """Читает текущий connection.json и возвращает обновлённый конфиг."""
     config = {"mode": "local", "remote": {}, "profiles": {}}
     if os.path.exists(cfg_path):
         try:
@@ -69,10 +64,36 @@ def main():
             config["remote"].pop("url", None)
             if not config["remote"]:
                 config["remote"] = {}
+    return config
 
+
+def write_config(user_data, config):
+    """Пишет конфиг в userData-каталог (создавая его при необходимости)."""
     os.makedirs(user_data, exist_ok=True)
+    cfg_path = os.path.join(user_data, "connection.json")
     with open(cfg_path, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
+
+
+def main():
+    if len(sys.argv) < 3:
+        print("usage: set_desktop_connection.py <userData_dir> <REMOTE_URL> [REMOTE_HOST] [extra_userData_dir ...]")
+        return 2
+    user_data = sys.argv[1]
+    remote_url = (sys.argv[2] or "").strip()
+    remote_host = (sys.argv[3] if len(sys.argv) > 3 else "") or ""
+    extra_dirs = [a for a in sys.argv[4:] if a and a.strip()]
+
+    # Конфиг строим по основному каталогу (если там уже есть сохранённый remote/token — не теряем)
+    config = build_config(os.path.join(user_data, "connection.json"), remote_url, remote_host)
+
+    # Пишем во ВСЕ userData-каталоги (основной + страховочные)
+    for ud in [user_data] + extra_dirs:
+        try:
+            write_config(ud, config)
+        except Exception as e:
+            print("warn: cannot write %s: %s" % (ud, e), file=sys.stderr)
+
     print("mode=%s url=%s" % (config["mode"], config.get("remote", {}).get("url", "")))
     return 0
 

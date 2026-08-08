@@ -157,12 +157,16 @@ REM ============================================================================
 REM   Синхронизация connection.json (Desktop) с portable_start.ini
 REM   URL не локальный → mode=remote (Desktop подключается к REMOTE_URL, Sign in)
 REM   URL локальный   → mode=local (локальный backend)
+REM   ВАЖНО: Electron/Chromium на Windows вычисляет userData как
+REM   %USERPROFILE%\AppData\Roaming\<app>, ИГНОРИРУЯ переменную APPDATA.
+REM   Поэтому основной путь — %USERPROFILE%\AppData\Roaming\Hermes,
+REM   а %APPDATA%\Hermes передаём скрипту как дополнительный (страховка).
 REM ============================================================================
 set "PYTHON_EXE=%REPO_DIR%\venv\Scripts\python.exe"
-set "UD_DIR=%APPDATA%\Hermes"
+set "UD_DIR=%USERPROFILE%\AppData\Roaming\Hermes"
 if defined HERMES_DESKTOP_USER_DATA_DIR set "UD_DIR=%HERMES_DESKTOP_USER_DATA_DIR%"
 if exist "%PYTHON_EXE%" (
-    "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\set_desktop_connection.py" "%UD_DIR%" "!REMOTE_URL!" "!REMOTE_HOST!" >nul 2>&1
+    "%PYTHON_EXE%" "%SCRIPTS_DIR%\patch\set_desktop_connection.py" "%UD_DIR%" "!REMOTE_URL!" "!REMOTE_HOST!" "%APPDATA%\Hermes" >nul 2>&1
 )
 
 if "!CONSOLE!"=="1" (
