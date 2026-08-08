@@ -177,7 +177,7 @@ REM ============================================================================
 REM   NSSM (Non-Sucking Service Manager) — скачиваем при необходимости
 REM ============================================================================
 set "NSSM_EXE=%HERMES_HOME%\bin\nssm.exe"
-REM Portable-сборка: nssm лежит в scripts\bin (как uv.exe) — копируем без скачивания
+REM REM Portable-сборка: nssm лежит в scripts\bin (как uv.exe) — копируем без скачивания
 if not exist "%NSSM_EXE%" if exist "%SCRIPTS_DIR%\bin\nssm.exe" copy /y "%SCRIPTS_DIR%\bin\nssm.exe" "%NSSM_EXE%" >nul 2>&1
 if not exist "%NSSM_EXE%" (
     echo   %ESC%[1;33m- %ESC%[0mNSSM не найден — скачиваем...
