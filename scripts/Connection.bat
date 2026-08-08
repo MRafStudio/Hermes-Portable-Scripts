@@ -190,10 +190,8 @@ set /p "NEW_USER=%ESC%[1mЛогин%ESC%[0m %ESC%[2m[Enter = !AUTH_USER!]%ESC%[0
 if not "!NEW_USER!"=="" set "NEW_USER=!NEW_USER: =!"
 if "!NEW_USER!"=="" if defined AUTH_USER if not "!AUTH_USER!"=="" set "NEW_USER=!AUTH_USER!"
 if "!NEW_USER!"=="" set "NEW_USER=admin"
-"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!NEW_USER!" > "%TEMP%\user_chk.txt" 2>nul
-set /p "USER_CHK=" < "%TEMP%\user_chk.txt"
-del "%TEMP%\user_chk.txt" 2>nul
-if not "!USER_CHK!"=="OK" (
+"%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!NEW_USER!"
+if errorlevel 1 (
     echo   %ESC%[1;31m  Логин содержит запрещённые символы (%%%% или ^!^! или пробел) - не изменён.%ESC%[0m
     goto menu
 )
@@ -205,10 +203,9 @@ if errorlevel 1 (
     goto menu
 )
 if not "!NEW_PASS!"=="" (
-    "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!NEW_PASS!" > "%TEMP%\pass_chk.txt" 2>nul
-    set /p "PASS_CHK=" < "%TEMP%\pass_chk.txt"
-    del "%TEMP%\pass_chk.txt" 2>nul
-    if not "!PASS_CHK!"=="OK" (
+    "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\validate_credentials.py" "!NEW_PASS!"
+
+    if errorlevel 1 (
         echo   %ESC%[1;31m  Пароль содержит запрещённые символы — не изменён.%ESC%[0m
         goto menu
     )
