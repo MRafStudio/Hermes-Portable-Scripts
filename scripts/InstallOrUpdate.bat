@@ -228,8 +228,8 @@ set "NEW_USER="
 set /p "NEW_USER=[1mЛогин [2m[Enter — оставить текущий][0m: "
 set "NEW_PASS="
 set /p "NEW_PASS=[1mПароль[0m: "
-if not "!NEW_USER!"""==="" "%REPO_DIR%env\Scripts\hermes.exe" config set dashboard.basic_auth.username !NEW_USER! 2>nul
-if not "!NEW_PASS!"""==="" "%REPO_DIR%env\Scripts\hermes.exe" config set dashboard.basic_auth.password !NEW_PASS! 2>nul
+if not "!NEW_USER!"=="" "%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.username !NEW_USER! 2>nul
+if not "!NEW_PASS!"=="" "%REPO_DIR%\venv\Scripts\hermes.exe" config set dashboard.basic_auth.password !NEW_PASS! 2>nul
 echo.
 echo [1;32m+ [0mЛогин и пароль обновлены. Перезапустите сервер ^(Start.bat — Enter или [5]^).
 echo.
