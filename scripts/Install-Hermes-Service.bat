@@ -162,7 +162,7 @@ if defined HOST_CHOICE if !HOST_CHOICE! GTR 2 (
 )
 echo   %ESC%[1;32m+%ESC%[0m Адрес прослушивания: !SERVICE_HOST!
 
-netstat -ano | findstr ":%SERVICE_PORT% " >nul 2>&1
+netstat -ano | findstr ":!SERVICE_PORT! " >nul 2>&1
 if !errorlevel! equ 0 (
     echo   %ESC%[1;33m  ВНИМАНИЕ: Порт !SERVICE_PORT! уже занят.%ESC%[0m
     set /p "CONT=%ESC%[33mПродолжить с этим портом? ^(y/N^): %ESC%[0m"
@@ -289,10 +289,6 @@ if not exist "%HERMES_CLI%" (
     exit /b 1
 )
 
-REM Токен сервера для удалённого доступа (HERMES_DASHBOARD_SESSION_TOKEN)
-call "%SCRIPTS_DIR%\Ensure-Dashboard-Token.bat"
-set /p "DASH_TOKEN=" < "%HERMES_HOME%\dashboard.token"
-
 REM --skip-build: dashboard не собирает web UI при старте (иначе цикл
 REM "Web UI npm install failed" — web workspace не установлен; dist уже готов)
 "%NSSM_EXE%" install "!SERVICE_NAME!" "%HERMES_CLI%" dashboard --host "!SERVICE_HOST!" --port "!SERVICE_PORT!" --no-open --skip-build
@@ -306,7 +302,7 @@ if !errorlevel! neq 0 (
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppDirectory "%HERMES_HOME%"
 REM HERMES_WEB_DIST — готовый web dist из Desktop-сборки (иначе dashboard
 REM пытается собрать web UI при каждом старте и падает: "Web UI npm install failed")
-"%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra HERMES_DASHBOARD_SESSION_TOKEN=!DASH_TOKEN! HERMES_HOME=%HERMES_HOME% HOME=%DATA_DIR%\home USERPROFILE=%DATA_DIR%\home APPDATA=%DATA_DIR%\appdata LOCALAPPDATA=%DATA_DIR%\localappdata TEMP=%DATA_DIR%\temp PYTHONIOENCODING=utf-8 HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist
+"%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra HERMES_HOME=%HERMES_HOME% HOME=%DATA_DIR%\home USERPROFILE=%DATA_DIR%\home APPDATA=%DATA_DIR%\appdata LOCALAPPDATA=%DATA_DIR%\localappdata TEMP=%DATA_DIR%\temp PYTHONIOENCODING=utf-8 HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppStdout "%DATA_DIR%\temp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppStderr "%DATA_DIR%\temp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppRotateFiles 1

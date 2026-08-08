@@ -44,14 +44,12 @@ set "CONSOLE=0"
 set "REMOTE_HOST=127.0.0.1"
 set "REMOTE_PORT=9119"
 set "REMOTE_URL=http://127.0.0.1:9119"
-set "REMOTE_TOKEN="
 if exist "%START_INI%" (
     for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
         if /i "%%a"=="CONSOLE" set "CONSOLE=%%b"
         if /i "%%a"=="REMOTE_HOST" set "REMOTE_HOST=%%b"
         if /i "%%a"=="REMOTE_PORT" set "REMOTE_PORT=%%b"
         if /i "%%a"=="REMOTE_URL" set "REMOTE_URL=%%b"
-        if /i "%%a"=="REMOTE_TOKEN" set "REMOTE_TOKEN=%%b"
     )
 )
 
@@ -91,28 +89,8 @@ if defined AUTH_PASS (
     echo     %ESC%[2mПароль:   %ESC%[0m %ESC%[1;31mне задан%ESC%[0m
 )
 echo.
-echo   %ESC%[1;33mТокен удалённого доступа ^(dashboard^):%ESC%[0m
-set "IS_LOCAL=0"
-if /i "!REMOTE_HOST!"=="0.0.0.0" set "IS_LOCAL=1"
-if /i "!REMOTE_HOST!"=="127.0.0.1" set "IS_LOCAL=1"
-if /i "!REMOTE_HOST!"=="localhost" set "IS_LOCAL=1"
-if !IS_LOCAL! equ 1 (
-    if exist "%HERMES_HOME%\dashboard.token" (
-        echo     %ESC%[2mТокен:    %ESC%[0m %ESC%[32mзадан %ESC%[2m^(dashboard.token — сервер^)%ESC%[0m
-    ) else (
-        echo     %ESC%[2mТокен:    %ESC%[0m %ESC%[1;31mне задан%ESC%[0m %ESC%[2m^(см. [3] — генерация на сервере^)%ESC%[0m
-    )
-) else (
-    if not "!REMOTE_TOKEN!"=="" (
-        echo     %ESC%[2mТокен:    %ESC%[0m %ESC%[32mзадан %ESC%[2m^(portable_start.ini — клиент^)%ESC%[0m
-    ) else (
-        echo     %ESC%[2mТокен:    %ESC%[0m %ESC%[1;31mне задан%ESC%[0m %ESC%[2m^(см. [3] — ввод токена с сервера^)%ESC%[0m
-    )
-)
-echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mИзменить параметры подключения%ESC%[0m
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИзменить логин и пароль ^(авторизация^)%ESC%[0m
-echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mТокен удалённого доступа ^(dashboard^)%ESC%[0m
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад%ESC%[0m
 echo.
 set "choice="
@@ -120,7 +98,6 @@ set /p "choice=%ESC%[33mВыберите действие: %ESC%[0m"
 if not "!choice!"=="" set "choice=!choice: =!"
 if "!choice!"=="1" goto set_connection
 if "!choice!"=="2" goto set_auth
-if "!choice!"=="3" goto set_token
 if "!choice!"=="0" exit /b 0
 goto menu
 
@@ -189,7 +166,6 @@ if /i "!CHECK!"=="y" (
 >> "%START_INI%" echo REMOTE_HOST=!REMOTE_HOST!
 >> "%START_INI%" echo REMOTE_PORT=!REMOTE_PORT!
 >> "%START_INI%" echo REMOTE_URL=!REMOTE_URL!
->> "%START_INI%" echo REMOTE_TOKEN=!REMOTE_TOKEN!
 echo %ESC%[1;32m+ %ESC%[0mПараметры сохранены: %START_INI%
 echo.
 pause
@@ -225,95 +201,6 @@ if not "!NEW_PASS!"=="" (
     echo %ESC%[1;32m+ %ESC%[0mЛогин обновлён в config.yaml ^(пароль без изменений^).
 )
 echo %ESC%[2m      Перезапустите сервер, чтобы изменения вступили в силу.%ESC%[0m
-echo.
-pause
-goto menu
-
-REM ============================================================================
-REM   [3] Токен удалённого доступа (dashboard session token)
-REM   Сервер (REMOTE_HOST локальный): генерация/показ dashboard.token
-REM   Клиент (REMOTE_HOST внешний):  ввод токена -> connection.json Desktop
-REM ============================================================================
-:set_token
-cls
-echo %ESC%[1;33mТокен удалённого доступа ^(dashboard session token^)%ESC%[0m
-echo.
-
-REM --- Определение роли: сервер или клиент ---
-set "IS_LOCAL=0"
-if /i "!REMOTE_HOST!"=="0.0.0.0" set "IS_LOCAL=1"
-if /i "!REMOTE_HOST!"=="127.0.0.1" set "IS_LOCAL=1"
-if /i "!REMOTE_HOST!"=="localhost" set "IS_LOCAL=1"
-if !IS_LOCAL! equ 0 (
-    for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue).IPAddress"`) do (
-        if /i "!REMOTE_HOST!"=="%%i" set "IS_LOCAL=1"
-    )
-)
-if !IS_LOCAL! equ 1 goto token_server
-goto token_client
-
-REM ----------------------------------------------------------------------------
-REM   Серверная сторона: гарантируем dashboard.token и показываем его
-REM ----------------------------------------------------------------------------
-:token_server
-echo   %ESC%[1;33mРежим: %ESC%[0m %ESC%[1mСЕРВЕР%ESC%[0m %ESC%[2m^(REMOTE_HOST локальный^)%ESC%[0m
-echo.
-call "%SCRIPTS_DIR%\Ensure-Dashboard-Token.bat"
-set /p "DASH_TOKEN=" < "%HERMES_HOME%\dashboard.token"
-echo.
-echo   %ESC%[1;33mТокен сервера:%ESC%[0m %ESC%[1;32m!DASH_TOKEN!%ESC%[0m
-echo.
-echo   %ESC%[2m      Передайте его клиенту. На клиенте: Connection -^> [3] -^> ввод токена.%ESC%[0m
-echo   %ESC%[1;33mВАЖНО:%ESC%[0m %ESC%[2mсервер читает токен ТОЛЬКО при старте. Если web/служба уже%ESC%[0m
-echo   %ESC%[2m      запущены — перезапустите их, иначе продолжит действовать старый токен.%ESC%[0m
-echo.
-pause
-goto menu
-
-REM ----------------------------------------------------------------------------
-REM   Клиентская сторона: ввод токена и запись в connection.json Desktop
-REM ----------------------------------------------------------------------------
-:token_client
-echo   %ESC%[1;33mРежим: %ESC%[0m %ESC%[1mКЛИЕНТ%ESC%[0m %ESC%[2m^(REMOTE_HOST: !REMOTE_HOST!^)%ESC%[0m
-echo.
-echo   %ESC%[1;33mВАЖНО:%ESC%[0m %ESC%[2mдля удалённого Desktop токен НЕ используется:%ESC%[0m
-echo   %ESC%[2m      публичный бинд dashboard не принимает ?token= ^(4401^).%ESC%[0m
-echo   %ESC%[2m      Desktop подключится через Sign in ^(пароль dashboard, basic_auth^),%ESC%[0m
-echo   %ESC%[2m      как в web. Токен нужен ТОЛЬКО для локального Desktop ^(loopback^),%ESC%[0m
-echo   %ESC%[2m      и из ini больше не передаётся ^(env-блок убран^).%ESC%[0m
-echo.
-if not "!REMOTE_TOKEN!"=="" (
-    echo   %ESC%[2m      Текущий токен задан. Введите новый для замены или Enter, чтобы ОЧИСТИТЬ.%ESC%[0m
-) else (
-    echo   %ESC%[2m      Токен выдаёт сервер: там Connection -^> [3] -^> «Токен сервера».%ESC%[0m
-)
-echo.
-set "NEW_TOKEN="
-set /p "NEW_TOKEN=%ESC%[1mВведите токен с сервера%ESC%[0m %ESC%[2m[Enter — очистить/отмена]%ESC%[0m: "
-if "!NEW_TOKEN!"=="" (
-    set "NEW_TOKEN="
-    echo.
-    echo   %ESC%[1;33m- %ESC%[0m Токен очищен — Desktop вернётся в локальный режим.
-) else (
-    echo.
-    echo   %ESC%[1;33m- %ESC%[0m Записываю токен в portable_start.ini и connection.json Desktop...
-)
-> "%START_INI%" echo CONSOLE=!CONSOLE!
->> "%START_INI%" echo REMOTE_HOST=!REMOTE_HOST!
->> "%START_INI%" echo REMOTE_PORT=!REMOTE_PORT!
->> "%START_INI%" echo REMOTE_URL=!REMOTE_URL!
->> "%START_INI%" echo REMOTE_TOKEN=!NEW_TOKEN!
-if not "!NEW_TOKEN!"=="" (
-    "%REPO_DIR%\venv\Scripts\python.exe" -u "%SCRIPTS_DIR%\patch\set_desktop_token.py" "%USERPROFILE%\AppData\Roaming\Hermes" "!REMOTE_URL!" "!REMOTE_HOST!" "!NEW_TOKEN!" "%APPDATA%\Hermes"
-) else (
-    "%REPO_DIR%\venv\Scripts\python.exe" -u "%SCRIPTS_DIR%\patch\set_desktop_token.py" "%USERPROFILE%\AppData\Roaming\Hermes" "!REMOTE_URL!" "!REMOTE_HOST!" "" "%APPDATA%\Hermes" >nul 2>&1
-)
-echo.
-if "!NEW_TOKEN!"=="" (
-    echo   %ESC%[2m      Токен удалён. Запустите Hermes Desktop — он будет работать локально.%ESC%[0m
-) else (
-    echo   %ESC%[2m      Токен применён. Запустите Hermes Desktop — подключится к %ESC%[0m %ESC%[1m!REMOTE_URL!%ESC%[0m
-)
 echo.
 pause
 goto menu
