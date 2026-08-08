@@ -182,9 +182,9 @@ if not exist "%NSSM_EXE%" (
     set "NSSM_ZIP=%TEMP%\nssm-2.24.zip"
     if exist "%NSSM_ZIP%" del "%NSSM_ZIP%" 2>nul
 
-    REM --- Поиск curl (git for windows; в System32 на Win10 1607 curl НЕТ) ---
-    set "CURL="
-    if exist "%ProgramFiles%\Git\mingw64\bin\curl.exe" set "CURL=%ProgramFiles%\Git\mingw64\bin\curl.exe"
+    REM --- Поиск curl: System32 (Win11+), затем git for windows (Win10 1607) ---
+    if not defined CURL if exist "%SystemRoot%\System32\curl.exe" set "CURL=%SystemRoot%\System32\curl.exe"
+    if not defined CURL if exist "%ProgramFiles%\Git\mingw64\bin\curl.exe" set "CURL=%ProgramFiles%\Git\mingw64\bin\curl.exe"
     if not defined CURL if exist "%ProgramFiles(x86)%\Git\mingw64\bin\curl.exe" set "CURL=%ProgramFiles(x86)%\Git\mingw64\bin\curl.exe"
     if not defined CURL if exist "%LocalAppData%\Programs\Git\mingw64\bin\curl.exe" set "CURL=%LocalAppData%\Programs\Git\mingw64\bin\curl.exe"
 
