@@ -94,23 +94,41 @@ try {
 }
 
 # --- 6. embedding-модель (проверяем ДО конфига: путь в PATCH зависит от неё) ---
-if (-not (Test-Path (Join-Path $EmbedModelDir "onnx\model.onnx"))) {
-    Write-Host "[6/7] embedding model missing - downloading Xenova/all-MiniLM-L6-v2 (~329 MB) ..."
-    if (Test-Path $HfExe) {
+$embedModelOnnx = Join-Path $EmbedModelDir "onnx\model.onnx"
+if (Test-Path $embedModelOnnx) {
+    Write-Host "[6/7] embedding model: OK"
+} else {
+    Write-Host "  -   embedding model (Xenova/all-MiniLM-L6-v2)..."
+    # 6a. Копия из локального HF-кэша, если модель уже скачана туда
+    $hfCacheRoot = Join-Path $env:USERPROFILE ".cache\huggingface"
+    $snap = Get-ChildItem -Path (Join-Path $hfCacheRoot "hub\models--Xenova--all-MiniLM-L6-v2\snapshots") -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($snap) {
+        Copy-Item -Path (Join-Path $snap.FullName "*") -Destination $EmbedModelDir -Recurse -Force
+        Write-Host "  +   embedding model copied from HF cache."
+        $fixed += "embedding-model"
+    }
+    # 6b. Каскад скачивания: hf.exe + прокси -> hf.exe + hf-mirror -> прямой hf
+    if (-not (Test-Path $embedModelOnnx) -and (Test-Path $HfExe)) {
         $env:HTTPS_PROXY = "http://127.0.0.1:10809"
         $env:HTTP_PROXY  = "http://127.0.0.1:10809"
         & $HfExe download Xenova/all-MiniLM-L6-v2 --local-dir $EmbedModelDir 2>&1 | Out-Null
         Remove-Item Env:HTTPS_PROXY -ErrorAction SilentlyContinue
         Remove-Item Env:HTTP_PROXY -ErrorAction SilentlyContinue
     }
-    if (Test-Path (Join-Path $EmbedModelDir "onnx\model.onnx")) {
-        Write-Host "[6/7] embedding model downloaded: $EmbedModelDir"
+    if (-not (Test-Path $embedModelOnnx) -and (Test-Path $HfExe)) {
+        $env:HF_ENDPOINT = "https://hf-mirror.com"
+        & $HfExe download Xenova/all-MiniLM-L6-v2 --local-dir $EmbedModelDir 2>&1 | Out-Null
+        Remove-Item Env:HF_ENDPOINT -ErrorAction SilentlyContinue
+    }
+    if (-not (Test-Path $embedModelOnnx) -and (Test-Path $HfExe)) {
+        & $HfExe download Xenova/all-MiniLM-L6-v2 --local-dir $EmbedModelDir 2>&1 | Out-Null
+    }
+    if (Test-Path $embedModelOnnx) {
+        Write-Host "  +   embedding model installed: $EmbedModelDir"
         $fixed += "embedding-model"
     } else {
-        Write-Host "WARNING: embedding model download failed (hf.exe missing or no network)."
+        Write-Host "  .   embedding model NOT installed (vector search will be empty until fixed)"
     }
-} else {
-    Write-Host "[6/7] embedding model: OK"
 }
 
 # --- 2. config.yaml через штатный API bridge (GET/PATCH /api/v1/config) ---
