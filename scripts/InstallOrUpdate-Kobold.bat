@@ -173,14 +173,29 @@ if not exist "%MODELS_DIR%" mkdir "%MODELS_DIR%" 2>nul
 
 echo.
 echo %ESC%[1;33m 1/3 KoboldCPP.exe%ESC%[0m
-if exist "%KCPP_EXE%" (
-    echo   %ESC%[2m    koboldcpp.exe уже есть — удаляю для обновления...%ESC%[0m
-    del "%KCPP_EXE%" 2>nul
+REM --- актуальная версия (GitHub latest tag) ---
+set "LATEST_VERSION="
+for /f "delims=" %%v in ('powershell -NoProfile -NonInteractive -Command "$j = Invoke-RestMethod -Uri 'https://api.github.com/repos/LostRuins/koboldcpp/releases/latest' -Headers @{'User-Agent'='HermesPortable'} -TimeoutSec 30; $j.tag_name" 2^>nul') do set "LATEST_VERSION=%%v"
+set "LATEST_VERSION_CLEAN=!LATEST_VERSION!"
+if "!LATEST_VERSION_CLEAN:~0,1!"=="v" set "LATEST_VERSION_CLEAN=!LATEST_VERSION_CLEAN:~1!"
+REM --- установленная версия ---
+set "CURRENT_VERSION="
+if exist "%KCPP_EXE%" for /f "tokens=1" %%v in ('"%KCPP_EXE%" --version 2^>nul') do set "CURRENT_VERSION=%%v"
+echo   %ESC%[2m    Установленная: %ESC%[1m!CURRENT_VERSION!%ESC%[0m %ESC%[2m| актуальная: %ESC%[0m!LATEST_VERSION!
+set "NEED_DL=1"
+if defined CURRENT_VERSION if defined LATEST_VERSION_CLEAN if "!CURRENT_VERSION!"=="!LATEST_VERSION_CLEAN!" set "NEED_DL=0"
+if "!NEED_DL!"=="0" (
+    echo   %ESC%[1;32m    Версии совпадают — обновление не требуется.%ESC%[0m
+) else (
+    if defined LATEST_VERSION_CLEAN if exist "%KCPP_EXE%" (
+        echo   %ESC%[2m    Удаляю старую версию для обновления...%ESC%[0m
+        del "%KCPP_EXE%" 2>nul
+    )
+    set "KCPP_URL="
+    for /f "delims=" %%u in ('powershell -NoProfile -NonInteractive -Command "$j = Invoke-RestMethod -Uri 'https://api.github.com/repos/LostRuins/koboldcpp/releases/latest' -Headers @{'User-Agent'='HermesPortable'} -TimeoutSec 30; ($j.assets | Where-Object { $_.name -eq 'koboldcpp.exe' } | Select-Object -First 1).browser_download_url" 2^>nul') do set "KCPP_URL=%%u"
+    if not defined KCPP_URL set "KCPP_URL=%KCPP_FALLBACK_URL%"
+    call :download "%KCPP_URL%" "%KCPP_EXE%" "koboldcpp.exe"
 )
-set "KCPP_URL="
-for /f "delims=" %%u in ('powershell -NoProfile -NonInteractive -Command "$j = Invoke-RestMethod -Uri 'https://api.github.com/repos/LostRuins/koboldcpp/releases/latest' -Headers @{'User-Agent'='HermesPortable'} -TimeoutSec 30; ($j.assets | Where-Object { $_.name -eq 'koboldcpp.exe' } | Select-Object -First 1).browser_download_url" 2^>nul') do set "KCPP_URL=%%u"
-if not defined KCPP_URL set "KCPP_URL=%KCPP_FALLBACK_URL%"
-call :download "%KCPP_URL%" "%KCPP_EXE%" "koboldcpp.exe"
 
 echo.
 echo %ESC%[1;33m 2/3 Проектор ^(vision^)%ESC%[0m
