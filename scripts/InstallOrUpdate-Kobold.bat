@@ -225,7 +225,7 @@ if exist "%HERMES_EXE%" if exist "%CONFIG_YAML%" (
     ) else (
         echo   %ESC%[1;33m. %ESC%[0m Основная модель не настроена.
         set "use_kobold="
-        set /p "use_kobold=%ESC%[33mСделать KoboldCPP основной моделью ^(включая vision^) [Y/n]? %ESC%[0m"
+        set /p "use_kobold=%ESC%[33mСделать KoboldCPP основной моделью (включая vision) [Y/n]? %ESC%[0m"
         if /i not "!use_kobold!"=="n" (
             set "MODEL_KEY=model.default"
             findstr /c:"^model.default:" "%CONFIG_YAML%" >nul 2>&1 || set "MODEL_KEY=model.name"
