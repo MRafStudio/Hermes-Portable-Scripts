@@ -95,9 +95,9 @@ if !KCPP_INSTALLED! equ 1 (
     echo   %ESC%[1;33m. %ESC%[0m KoboldCPP — не установлен
 )
 if exist "%MODELS_DIR%\%MODEL_BF16%" (
-    echo   %ESC%[1;32m+ %ESC%[0m Модель: %ESC%[2m%MODEL_BF16% ^(BF16, >= 24 GB^)%ESC%[0m
+    echo   %ESC%[1;32m+ %ESC%[0m Модель: %ESC%[2m%MODEL_BF16% ^(BF16, ^>= 24 GB^)%ESC%[0m
 ) else if exist "%MODELS_DIR%\%MODEL_Q8%" (
-    echo   %ESC%[1;32m+ %ESC%[0m Модель: %ESC%[2m%MODEL_Q8% ^(Q8_0, >= 16 GB^)%ESC%[0m
+    echo   %ESC%[1;32m+ %ESC%[0m Модель: %ESC%[2m%MODEL_Q8% ^(Q8_0, ^>= 16 GB^)%ESC%[0m
 ) else (
     echo   %ESC%[1;33m. %ESC%[0m Модель: не установлена
 )
@@ -132,8 +132,8 @@ echo.
 
 
 REM --- Выбор модели ---
-echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mQwythos-9B BF16%ESC%[0m %ESC%[2m^(17.9 GB^)%ESC%[0m — для видеокарт с памятью ^(>= 24 GB^)
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mQwythos-9B Q8_0%ESC%[0m %ESC%[2m^(9.5 GB^)%ESC%[0m — для видеокарт с памятью ^(>= 16 GB^)
+echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mQwythos-9B BF16%ESC%[0m %ESC%[2m^(17.9 GB^)%ESC%[0m — для видеокарт с памятью ^(^>= 24 GB^)
+echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mQwythos-9B Q8_0%ESC%[0m %ESC%[2m^(9.5 GB^)%ESC%[0m — для видеокарт с памятью ^(^>= 16 GB^)
 echo.
 set "model_choice="
 set /p "model_choice=%ESC%[33mВыберите модель (1-2): %ESC%[0m"
