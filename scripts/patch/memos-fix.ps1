@@ -260,12 +260,24 @@ try {
 } catch {
     Write-Host "[7/7] viewer health check failed - it will start with the next Hermes session"
 }
+# --- Финальный вердикт: self-test должен быть успешен, иначе ОШИБКА ---
+$dbOk = Test-Path $dbFile
+$viewerOkFinal = $false
+try {
+    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:18800/" -UseBasicParsing -TimeoutSec 5
+    $viewerOkFinal = ($resp.StatusCode -eq 200)
+} catch { }
 if ($testBridge -and -not $testBridge.HasExited) { Stop-Process -Id $testBridge.Id -Force -ErrorAction SilentlyContinue }
 
 Write-Host ""
-if ($fixed.Count -gt 0) {
-    Write-Host "MemOS FIXED: $($fixed -join ', ')"
+if ($dbOk -and $viewerOkFinal) {
+    if ($fixed.Count -gt 0) {
+        Write-Host "MemOS FIXED: $($fixed -join ', ') - all checks passed"
+    } else {
+        Write-Host "MemOS FIX: everything is already OK - all checks passed"
+    }
+    exit 0
 } else {
-    Write-Host "MemOS FIX: everything is already OK"
+    Write-Host "ERROR: self-test failed (DB: $dbOk, viewer: $viewerOkFinal) - see messages above"
+    exit 1
 }
-exit 0
