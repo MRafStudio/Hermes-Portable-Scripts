@@ -163,9 +163,13 @@ set /p "confirm=%ESC%[33mПродолжить (y/N)? %ESC%[0m"
 if /i not "%confirm%"=="y" goto menu
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install-memos.ps1" -RootDir "%ROOT_DIR%"
+
+echo.
+echo %ESC%[1;36mПроверка установки MemOS: memos-fix.ps1 (самопроверка + доустановка недостающего)...%ESC%[0m
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\memos-fix.ps1" -RootDir "%ROOT_DIR%"
 if errorlevel 1 (
     echo.
-    echo %ESC%[1;31m[ОШИБКА] Установка не завершена — смотрите сообщения выше.%ESC%[0m
+    echo %ESC%[1;31m[ОШИБКА] Проблемы после установки MemOS — смотрите сообщения выше.%ESC%[0m
 ) else (
     echo.
     echo %ESC%[1;32mГотово. Проверка: при следующей сессии Hermes viewer откроется на :18800.%ESC%[0m
