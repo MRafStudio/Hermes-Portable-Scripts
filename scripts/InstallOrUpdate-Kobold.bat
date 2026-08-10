@@ -92,7 +92,7 @@ cls
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
-echo  %ESC%[1;36m##%ESC%[0m %ESC%[1;37m                    Hermes%ESC%[0m — %ESC%[1;33mKoboldCPP (локальная LLM)%ESC%[0m                %ESC%[1;36m##%ESC%[0m
+echo  %ESC%[1;36m##%ESC%[0m %ESC%[1;37m                      Hermes%ESC%[0m — %ESC%[1;33mKoboldCPP (локальная LLM)%ESC%[0m                   %ESC%[1;36m##%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
