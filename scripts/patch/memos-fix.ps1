@@ -50,6 +50,31 @@ function Invoke-Npm {
     return $code
 }
 
+# --- 0. Версия пакета: npm latest 2.0.14 содержит БАГ (llmFilterEnabled не передаётся в retrieval,
+#     финальный LLM-фильтр работает всегда и режет все хиты). Фикс - в 2.0.14-beta.1. ---
+$pkgJson = Join-Path $RuntimeHome "package.json"
+if (Test-Path $pkgJson) {
+    $pkgVer = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version
+    if ($pkgVer -eq "2.0.14") {
+        Write-Host "[0/7] package v$pkgVer has llmFilterEnabled bug - upgrading to 2.0.14-beta.1 ..."
+        Push-Location $RuntimeHome
+        $code = Invoke-Npm @("install", "@memtensor/memos-local-plugin@2.0.14-beta.1", "--no-audit", "--no-fund")
+        if ($code -eq 0) {
+            & $NodeBin.Source (Join-Path (Split-Path -Parent $NodeBin.Source) "..\node_modules\npm\bin\npm-cli.js") approve-scripts $NativePkgs 2>&1 | Out-Null
+            Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $NativePkgs) | Out-Null
+            $fixed += "package-beta"
+            Write-Host "[0/7] package upgraded to 2.0.14-beta.1 (llmFilterEnabled fix)"
+        } else {
+            Write-Host "WARNING: package upgrade to beta failed (network?) - final LLM filter will stay ON"
+        }
+        Pop-Location
+    } else {
+        Write-Host "[0/7] package version OK ($pkgVer)"
+    }
+} else {
+    Write-Host "[0/7] package.json not found - run the installer first."
+}
+
 # --- 1. node_modules + native bindings (пошагово, как вендорский install.hermes.sh) ---
 Push-Location $RuntimeHome
 try {
@@ -164,10 +189,10 @@ if ($viewerOk) {
             if (-not $patch.algorithm) { $patch.algorithm = @{} }
             $patch.algorithm.lightweightMemory = @{ enabled = $false }
         }
-        $lf = $cfg.config.retrieval.llmFilterEnabled
+        $lf = $cfg.config.algorithm.retrieval.llmFilterEnabled
         if ($lf -ne $false) {
-            if (-not $patch.retrieval) { $patch.retrieval = @{} }
-            $patch.retrieval.llmFilterEnabled = $false
+            if (-not $patch.algorithm) { $patch.algorithm = @{} }
+            $patch.algorithm.retrieval = @{ llmFilterEnabled = $false }
         }
         $emb = $cfg.config.embedding.model
         if ($emb -notmatch "all-MiniLM-L6-v2") {
