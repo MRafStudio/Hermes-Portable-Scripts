@@ -221,19 +221,40 @@ if ($viewerOk) {
     } catch { }
     if ($cfg) {
         $patch = @{}
-        $endpoint = $cfg.config.llm.endpoint
-        if ($endpoint -notmatch "127\.0\.0\.1:5101") {
-            $patch.llm = @{ endpoint = "http://127.0.0.1:5101/v1" }
+        # АВТОНОМНЫЙ режим: MemOS работает БЕЗ LLM (kobold НЕ нужен для памяти!).
+        # provider=local_only: фоновая рефлексия/суммаризация не грузят kobold,
+        # capture ~2мс, поиск ~3-60мс. Агент может вернуть openai_compatible позже.
+        $llmProvider = $cfg.config.llm.provider
+        if ($llmProvider -ne "local_only") {
+            $patch.llm = @{ provider = "local_only" }
         }
+        # lightweight=true: только summarize+embed+retrieval, нет фоновых LLM-задач
+        # (с local_only поиск по трассам работает — проверено стресс-тестом 1000 запросов)
         $lw = $cfg.config.algorithm.lightweightMemory.enabled
-        if ($lw -ne $false) {
+        if ($lw -ne $true) {
             if (-not $patch.algorithm) { $patch.algorithm = @{} }
-            $patch.algorithm.lightweightMemory = @{ enabled = $false }
+            $patch.algorithm.lightweightMemory = @{ enabled = $true }
         }
+        # эмбеддинги НЕ на каждый ход (массовая загрузка мгновенная) - пересчёт через
+        # POST /api/v1/embeddings/rebuild (локально, без LLM)
+        $et = $cfg.config.algorithm.capture.embedTraces
+        if ($et -ne $false) {
+            if (-not $patch.algorithm) { $patch.algorithm = @{} }
+            if (-not $patch.algorithm.capture) { $patch.algorithm.capture = @{} }
+            $patch.algorithm.capture.embedTraces = $false
+        }
+        # финальный LLM-фильтр поиска: выключен + не запускается при <50 кандидатов
         $lf = $cfg.config.algorithm.retrieval.llmFilterEnabled
         if ($lf -ne $false) {
             if (-not $patch.algorithm) { $patch.algorithm = @{} }
-            $patch.algorithm.retrieval = @{ llmFilterEnabled = $false }
+            if (-not $patch.algorithm.retrieval) { $patch.algorithm.retrieval = @{} }
+            $patch.algorithm.retrieval.llmFilterEnabled = $false
+        }
+        $mc = $cfg.config.algorithm.retrieval.llmFilterMinCandidates
+        if ($mc -lt 50) {
+            if (-not $patch.algorithm) { $patch.algorithm = @{} }
+            if (-not $patch.algorithm.retrieval) { $patch.algorithm.retrieval = @{} }
+            $patch.algorithm.retrieval.llmFilterMinCandidates = 50
         }
         $emb = $cfg.config.embedding.model
         if ($emb -notmatch "all-MiniLM-L6-v2") {
@@ -322,6 +343,14 @@ try {
         }
     } catch {
         Write-Host "[7/7] memory search: skipped ($($_.Exception.Message))"
+    }
+    # 7b. Пересчёт эмбеддингов (локально, БЕЗ LLM): покрывает трассы, созданные при
+    #     embedTraces=false (массовая загрузка) и старые трассы после UPDATE
+    try {
+        Invoke-RestMethod -Uri "http://127.0.0.1:18800/api/v1/embeddings/rebuild" -Method Post -Body "{}" -ContentType "application/json" -TimeoutSec 10 | Out-Null
+        Write-Host "[7/7] embeddings rebuild: launched (local, no LLM)"
+    } catch {
+        Write-Host "WARNING: embeddings rebuild failed: $($_.Exception.Message)"
     }
 } catch {
     Write-Host "[7/7] viewer health check failed - it will start with the next Hermes session"
