@@ -148,14 +148,15 @@ if !SERVICE_INSTALLED! equ 1 (
 )
 
 echo.
-REM [2] Инструменты и [5] Варианты запуска — только если что-то установлено
+REM [2] Инструменты пользователя и [5] Варианты запуска — только если что-то установлено
 set "ANY_INSTALLED=0"
 if !DESKTOP_INSTALLED! equ 1 set "ANY_INSTALLED=1"
 if !WEB_INSTALLED! equ 1 set "ANY_INSTALLED=1"
 echo %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановка, обновление и настройки%ESC%[0m
 if !ANY_INSTALLED! equ 1 (
-    echo %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИнструменты%ESC%[0m
+    echo %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИнструменты пользователя%ESC%[0m
 )
+echo %ESC%[1;37m[3]%ESC%[0m %ESC%[1mРасширения и плагины%ESC%[0m
 echo.
 if !ANY_INSTALLED! equ 1 (
     echo %ESC%[1;37m[5]%ESC%[0m %ESC%[36mHermes — Варианты запуска%ESC%[0m
@@ -186,6 +187,7 @@ if "%choice%"=="" goto launch
 if "%choice%"=="*" goto launch
 if "%choice%"=="1" goto setup
 if "%choice%"=="2" goto dev_tools
+if "%choice%"=="3" goto plugins
 
 if "%choice%"=="5" goto launch_options
 if "%choice%"=="6" goto desktop_local
@@ -198,6 +200,10 @@ goto menu
 
 :dev_tools
 call "%SCRIPTS_DIR%\Tools.bat"
+goto menu
+
+:plugins
+call "%SCRIPTS_DIR%\InstallOrUpdate-Plugins.bat"
 goto menu
 
 :desktop_local
