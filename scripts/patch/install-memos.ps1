@@ -118,14 +118,13 @@ Remove-Item -LiteralPath $packDir -Force -Recurse -ErrorAction SilentlyContinue
 Write-Host "npm install (native modules, may take a while)..."
 Push-Location $RuntimeHome
 Invoke-Npm @("install", "--no-audit", "--no-fund")
-# --- npm 12 блокирует install-скрипты native-модулей по умолчанию: без prebuild-бинарей
-#     better-sqlite3 / onnxruntime / sharp не работают — разрешаем их install-скрипты ---
-$approvePkgs = @("better-sqlite3", "onnxruntime-node", "sharp", "protobufjs", "esbuild")
+# --- npm 11+ блокирует install-скрипты native-модулей по умолчанию: без prebuild-бинарей
+#     better-sqlite3 / onnxruntime / sharp не работают — rebuild скачает prebuilds ---
+$nativePkgs = @("better-sqlite3", "onnxruntime-node", "sharp", "protobufjs", "esbuild")
 try {
-    & $npmPath install-scripts approve @approvePkgs 2>&1 | Out-Null
-    if ($LASTEXITCODE -ne 0) { Write-Host "npm install-scripts approve: not supported by this npm version (prebuilds may still be cached)" }
+    Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $nativePkgs)
 } catch {
-    Write-Host "npm install-scripts approve: skipped"
+    Write-Host "npm rebuild (native prebuilds): skipped"
 }
 $bridgeBundled = Test-Path (Join-Path $RuntimeHome "dist\bridge.mjs")
 if (-not $bridgeBundled) {
