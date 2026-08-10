@@ -269,8 +269,8 @@ if exist "%HERMES_EXE%" if exist "%CONFIG_YAML%" (
 echo.
 echo %ESC%[1;32m Готово!%ESC%[0m
 echo.
-echo   %ESC%[2mЗапуск KoboldCPP: %KCPP_DIR%\start_kobold.bat%ESC%[0m
-echo   %ESC%[2mAPI: http://127.0.0.1:%KCPP_PORT%/v1%ESC%[0m
+echo   %ESC%[2mДля запуска KoboldCPP: %KCPP_DIR%\start_kobold.bat%ESC%[0m
+echo   %ESC%[2mAPI будет доступно на: http://127.0.0.1:%KCPP_PORT%/v1%ESC%[0m
 echo.
 pause
 goto status
