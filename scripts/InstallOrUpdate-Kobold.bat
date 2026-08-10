@@ -126,20 +126,26 @@ echo   %ESC%[2mИсточник:   GitHub releases (koboldcpp.exe) + Hugging Fac
 echo.
 
 
-REM --- Выбор модели (справочник kobold_models.py; Enter = установленная / из config.yaml) ---
+REM --- Выбор модели (справочник kobold_models.py; Enter = модель из config.yaml) ---
 set "MODEL_COUNT=2"
 for /f "delims=" %%c in ('call "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_models.py" count 2^>nul') do set "MODEL_COUNT=%%c"
-"%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_models.py" menu "%MODELS_DIR%"
-echo.
-set "model_choice="
-set /p "model_choice=%ESC%[33mВыберите модель (1-!MODEL_COUNT!) %ESC%[2m[Enter = установленная]%ESC%[0m %ESC%[33m: %ESC%[0m"
-set "model_choice=%model_choice: =%"
 REM --- настроенная модель из config.yaml (через hermes config get) ---
 set "CFG_MODEL="
 if exist "%HERMES_EXE%" (
     for /f "delims=" %%m in ('call "%HERMES_EXE%" config get model.default 2^>nul') do set "CFG_MODEL=%%m"
     if "!CFG_MODEL:~0,18!"=="Config key not set" set "CFG_MODEL="
 )
+REM --- короткое имя для подсказки [Enter = ...] ---
+set "ENTER_LABEL="
+if defined CFG_MODEL (
+    for /f "delims=" %%l in ('call "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_models.py" label "!CFG_MODEL!" 2^>nul') do set "ENTER_LABEL=%%l"
+)
+if not defined ENTER_LABEL set "ENTER_LABEL=установленная"
+"%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_models.py" menu "%MODELS_DIR%"
+echo.
+set "model_choice="
+set /p "model_choice=%ESC%[33mВыберите модель (1-!MODEL_COUNT!) %ESC%[2m[Enter = !ENTER_LABEL!]%ESC%[0m %ESC%[33m: %ESC%[0m"
+set "model_choice=%model_choice: =%"
 set "PICK="
 for /f "delims=" %%p in ('call "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_models.py" pick "!model_choice!" "!CFG_MODEL!" "%MODELS_DIR%" 2^>nul') do set "PICK=%%p"
 if not defined PICK (
@@ -147,9 +153,10 @@ if not defined PICK (
     pause
     goto install_kobold
 )
-for /f "tokens=1-3 delims=|" %%a in ("!PICK!") do (
+for /f "tokens=1-4 delims=|" %%a in ("!PICK!") do (
     set "MODEL_FILE=%%b"
     set "MMPROJ_FILE=%%c"
+    set "MODEL_REPO=%%d"
 )
 set "MODEL_ID=koboldcpp/!MODEL_FILE:.gguf=!"
 set "MODEL_URL=https://huggingface.co/%MODEL_REPO%/resolve/main/%MODEL_FILE%"
