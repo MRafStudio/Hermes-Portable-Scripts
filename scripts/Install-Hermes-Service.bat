@@ -344,13 +344,8 @@ if not exist "%REPO_DIR%\hermes_cli\web_dist\index.html" (
 REM ============================================================================
 REM   Firewall: открываем порт
 REM ============================================================================
-echo   %ESC%[1;33m-%ESC%[0m Открытие порта !SERVICE_PORT! в брандмауэре...
-netsh advfirewall firewall add rule name="Hermes !SERVICE_NAME! !SERVICE_PORT!" dir=in action=allow protocol=TCP localport=!SERVICE_PORT! >nul 2>&1
-if !errorlevel! equ 0 (
-    echo   %ESC%[1;32m+%ESC%[0m Правило брандмауэра добавлено: "Hermes !SERVICE_NAME! !SERVICE_PORT!"
-) else (
-    echo   %ESC%[1;33m  !   Не удалось добавить правило ^(нужны права администратора^).%ESC%[0m
-)
+echo.
+call "%SCRIPTS_DIR%\Open-Firewall-Port-Auto.bat" !SERVICE_PORT! "Hermes !SERVICE_NAME!"
 
 REM ============================================================================
 REM   Запуск службы (лог — только текущий запуск)
