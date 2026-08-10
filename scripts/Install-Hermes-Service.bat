@@ -26,7 +26,7 @@ REM ============================================================================
 set "TEMP=%DATA_DIR%\temp"
 set "TMP=%DATA_DIR%\temp"
 set "APPDATA=%DATA_DIR%\appdata"
-set "LOCALAPPDATA=%DATA_DIR%\localappdata"
+set "LOCALAPPDATA=%DATA_DIR%\localappdata" "MEMOS_HOME=%HERMES_HOME%\memos-plugin"
 set "HOME=%DATA_DIR%\home"
 set "USERPROFILE=%DATA_DIR%\home"
 set "PYTHONIOENCODING=utf-8"
@@ -314,7 +314,7 @@ if !errorlevel! neq 0 (
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppDirectory "%HERMES_HOME%"
 REM HERMES_WEB_DIST — готовый web dist из Desktop-сборки (иначе dashboard
 REM пытается собрать web UI при каждом старте и падает: "Web UI npm install failed")
-"%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra "HERMES_HOME=%HERMES_HOME%" "HOME=%DATA_DIR%\home" "USERPROFILE=%DATA_DIR%\home" "APPDATA=%DATA_DIR%\appdata" "LOCALAPPDATA=%DATA_DIR%\localappdata" "TEMP=%DATA_DIR%\temp" "PYTHONIOENCODING=utf-8" "HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist"
+"%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra "HERMES_HOME=%HERMES_HOME%" "HOME=%DATA_DIR%\home" "USERPROFILE=%DATA_DIR%\home" "APPDATA=%DATA_DIR%\appdata" "LOCALAPPDATA=%DATA_DIR%\localappdata" "MEMOS_HOME=%HERMES_HOME%\memos-plugin" "TEMP=%DATA_DIR%\temp" "PYTHONIOENCODING=utf-8" "HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppStdout "%DATA_DIR%\temp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppStderr "%DATA_DIR%\temp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppRotateFiles 1

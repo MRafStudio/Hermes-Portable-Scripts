@@ -15,6 +15,7 @@ set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 
 REM HERMES_HOME — критично для Hermes!
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
+set "MEMOS_HOME=%HERMES_HOME%\memos-plugin"
 set "DATA_DIR=%ROOT_DIR%\data"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"
 
