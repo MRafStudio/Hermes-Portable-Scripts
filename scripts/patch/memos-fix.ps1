@@ -50,10 +50,20 @@ function Invoke-Npm {
     return $code
 }
 
-# --- 1. native bindings (better-sqlite3) ---
-$dbTestExpr = "const D=require('better-sqlite3');const db=new D(':memory:');db.exec('CREATE TABLE t(x)');db.close();console.log('OK')"
+# --- 1. node_modules + native bindings (пошагово, как вендорский install.hermes.sh) ---
 Push-Location $RuntimeHome
 try {
+    if (-not (Test-Path (Join-Path $RuntimeHome "node_modules"))) {
+        Write-Host "[1/7] node_modules missing - npm install (as vendor installer does)..."
+        $code = Invoke-Npm @("install", "--no-audit", "--no-fund", "--prefer-offline")
+        if ($code -ne 0) {
+            Write-Host "ERROR: npm install failed."
+            Pop-Location
+            exit 1
+        }
+        $fixed += "node_modules"
+    }
+    $dbTestExpr = "const D=require('better-sqlite3');const db=new D(':memory:');db.exec('CREATE TABLE t(x)');db.close();console.log('OK')"
     $dbTest = & $NodeBin.Source -e $dbTestExpr 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host "[1/7] better-sqlite3 bindings: OK"
@@ -70,6 +80,14 @@ try {
             Pop-Location
             exit 1
         }
+    }
+    # 1b. Манифест plugin.yaml -> memos_provider/ (вендорский install.hermes.sh шаг 0)
+    $providerManifest = Join-Path $AdapterDir "plugin.yaml"
+    $adapterManifest = Join-Path $RuntimeHome "adapters\hermes\plugin.yaml"
+    if (-not (Test-Path $providerManifest) -and (Test-Path $adapterManifest)) {
+        Copy-Item $adapterManifest $providerManifest -Force
+        Write-Host "[1/7] plugin.yaml copied to memos_provider/"
+        $fixed += "plugin.yaml"
     }
 } finally {
     Pop-Location
