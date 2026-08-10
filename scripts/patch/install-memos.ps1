@@ -1,4 +1,4 @@
-﻿﻿# install-memos.ps1
+# install-memos.ps1
 # ============================================================================
 # Установка/обновление MemOS (memos-local-plugin, @memtensor) в Hermes Portable.
 # Универсален: работает для любого корня (дом C:\NEURO\Hermes и полигон D:\NEURO\Hermes).
