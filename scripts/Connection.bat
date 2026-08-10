@@ -90,8 +90,8 @@ if defined AUTH_PASS (
 )
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mИзменить параметры подключения%ESC%[0m
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИзменить логин и пароль ^(локальный сервер^)%ESC%[0m
-echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mСбросить логин и пароль %ESC%[2m^(для сервера^)%ESC%[0m
+echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИзменить логин и пароль %ESC%[2m^(локальный сервер^)%ESC%[0m
+echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mСбросить логин и пароль %ESC%[2m^(локальный сервер^)%ESC%[0m
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад%ESC%[0m
 echo.
 set "choice="
