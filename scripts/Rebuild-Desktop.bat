@@ -191,7 +191,7 @@ if !NPM_NEEDS_UPDATE! equ 1 (
     if "!AUTOCLOSE!"=="1" (
         echo %ESC%[1;33m→%ESC%[0m Авто-обновление до npm@12...
     ) else (
-        set /p "NPM_CHOICE=%ESC%[33mОбновить npm до 12? ^(Enter — да, N — нет^): %ESC%[0m"
+        set /p "NPM_CHOICE=%ESC%[33mОбновить npm до 12? (Enter — да, N — нет): %ESC%[0m"
     )
     if /i "!NPM_CHOICE!"=="N" (
         echo %ESC%[1;33m  .   npm не обновлён — сборка может не пройти.%ESC%[0m

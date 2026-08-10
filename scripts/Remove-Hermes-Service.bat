@@ -46,7 +46,7 @@ if !errorlevel! neq 0 (
 )
 
 echo   %ESC%[1;33m- %ESC%[0mСлужба найдена: %ESC%[1m!SERVICE_NAME!%ESC%[0m
-set /p "CONF=%ESC%[33mУдалить службу "!SERVICE_NAME!"? ^(y/N^): %ESC%[0m"
+set /p "CONF=%ESC%[33mУдалить службу "!SERVICE_NAME!"? (y/N): %ESC%[0m"
 if /i not "!CONF!"=="y" (
     echo.
     pause

@@ -160,9 +160,8 @@ set "MMPROJ_URL=https://huggingface.co/%MODEL_REPO%/resolve/main/%MMPROJ_FILE%"
 
 echo.
 echo   %ESC%[33m  Будет загружено: %ESC%[1m%MODEL_FILE%%ESC%[0m
-echo   %ESC%[33m  Продолжить ^(y/N^)? %ESC%[0m
 set "confirm="
-set /p "confirm="
+set /p "confirm=%ESC%[33m  Продолжить (y/N)? %ESC%[0m"
 if /i not "%confirm%"=="y" goto menu
 
 REM ============================================================================

@@ -177,9 +177,8 @@ cls
 echo.
 echo %ESC%[1;33m-%ESC%[0m %ESC%[1mУдаление службы %SERVICE_NAME%...%ESC%[0m
 echo.
-echo   %ESC%[33m  Удалить службу %SERVICE_NAME% ^(y/N^)? %ESC%[0m
 set "confirm="
-set /p "confirm="
+set /p "confirm=%ESC%[33m  Удалить службу %SERVICE_NAME% (y/N)? %ESC%[0m"
 if /i not "%confirm%"=="y" goto menu
 
 "%NSSM_EXE%" stop "%SERVICE_NAME%" >nul 2>&1
