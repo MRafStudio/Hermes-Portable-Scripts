@@ -141,7 +141,7 @@ if (-not (Test-Path $PluginDir)) {
 # --- 4. config.yaml плагина (только при новой установке) ---
 $pluginCfg = Join-Path $RuntimeHome "config.yaml"
 if (-not (Test-Path $pluginCfg)) {
-    Write-Host "Writing plugin config.yaml (local embedder, kobold :5001, lightweight, telemetry OFF)..."
+    Write-Host "Writing plugin config.yaml (local embedder, kobold :5101, lightweight, telemetry OFF)..."
     @"
 version: 1
 viewer:
@@ -151,7 +151,7 @@ embedding:
   apiKey: ""
 llm:
   provider: openai_compatible
-  endpoint: http://127.0.0.1:5001/v1
+  endpoint: http://127.0.0.1:5101/v1
   apiKey: ""
   model: ""
 storage:
