@@ -72,30 +72,48 @@ function Invoke-Npm {
     return $code
 }
 
-# --- 0. Версия пакета: npm latest 2.0.14 содержит БАГ (llmFilterEnabled не передаётся в retrieval,
-#     финальный LLM-фильтр работает всегда и режет все хиты). Фикс - в 2.0.14-beta.1. ---
+# --- 0. ВЕРСИЯ ПАКЕТА (жёсткая проверка!): npm latest 2.0.14 содержит БАГ (llmFilterEnabled не
+#     передаётся в retrieval - финальный LLM-фильтр работает всегда и режет все хиты).
+#     Фикс - в 2.0.14-beta.1 (последняя опубликованная; 2.0.15 в npm НЕТ - только dev-репа).
+#     Проверяем ФАКТИЧЕСКУЮ версию в node_modules (НЕ корневой package.json - он может не
+#     обновиться при npm install поверх!) + наличие фикса в dist. ---
+$ExpectedPkgVer = "2.0.14-beta.1"
 $pkgJson = Join-Path (Join-Path $RuntimeHome "node_modules\@memtensor\memos-local-plugin") "package.json"
-if (-not (Test-Path $pkgJson)) { $pkgJson = Join-Path $RuntimeHome "package.json" }
 if (Test-Path $pkgJson) {
     $pkgVer = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version
-    if ($pkgVer -eq "2.0.14") {
-        Write-Host "[0/7] package v$pkgVer has llmFilterEnabled bug - upgrading to 2.0.14-beta.1 ..."
-        Push-Location $RuntimeHome
-        $code = Invoke-Npm @("install", "@memtensor/memos-local-plugin@2.0.14-beta.1", "--no-audit", "--no-fund")
-        if ($code -eq 0) {
-            & $NpmCmdPath approve-scripts $NativePkgs 2>&1 | Out-Null
-            Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $NativePkgs) | Out-Null
-            $fixed += "package-beta"
-            Write-Host "[0/7] package upgraded to 2.0.14-beta.1 (llmFilterEnabled fix)"
-        } else {
-            Write-Host "WARNING: package upgrade to beta failed (network?) - final LLM filter will stay ON"
-        }
-        Pop-Location
-    } else {
-        Write-Host "[0/7] package version OK ($pkgVer)"
-    }
 } else {
-    Write-Host "[0/7] package.json not found - run the installer first."
+    $pkgVer = ""
+}
+$distFix = Test-Path (Join-Path $RuntimeHome "dist\core\pipeline\deps.js")
+if ($distFix) {
+    $distFix = (Select-String -Path (Join-Path $RuntimeHome "dist\core\pipeline\deps.js") -Pattern "llmFilterEnabled: alg.lightweightMemory.enabled" -Quiet)
+}
+if ($pkgVer -eq $ExpectedPkgVer -and $distFix) {
+    Write-Host "[0/7] package version OK ($pkgVer, llmFilterEnabled fix present)"
+} else {
+    Write-Host "[0/7] package v'$pkgVer' (fix=$distFix) - need $ExpectedPkgVer (llmFilterEnabled bug in 2.0.14). Upgrading ..."
+    Push-Location $RuntimeHome
+    $code = Invoke-Npm @("install", "@memtensor/memos-local-plugin@$ExpectedPkgVer", "--force", "--no-audit", "--no-fund")
+    if ($code -eq 0) {
+        & $NpmCmdPath approve-scripts $NativePkgs 2>&1 | Out-Null
+        Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $NativePkgs) | Out-Null
+        # ВЕРИФИКАЦИЯ ПОСЛЕ (не верим коду на слово!): фактическая версия + фикс в dist
+        $pkgVer2 = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version
+        $distFix2 = Select-String -Path (Join-Path $RuntimeHome "dist\core\pipeline\deps.js") -Pattern "llmFilterEnabled: alg.lightweightMemory.enabled" -Quiet
+        if ($pkgVer2 -eq $ExpectedPkgVer -and $distFix2) {
+            $fixed += "package-beta"
+            Write-Host "[0/7] package upgraded to $ExpectedPkgVer (verified: v$pkgVer2, dist fix present)"
+        } else {
+            Write-Host "ERROR: package still v'$pkgVer2' (fix=$distFix2) after upgrade - MemOS search will stay broken."
+            Pop-Location
+            exit 1
+        }
+    } else {
+        Write-Host "ERROR: npm install $ExpectedPkgVer failed (code $code) - check npm/registry."
+        Pop-Location
+        exit 1
+    }
+    Pop-Location
 }
 
 # --- 1. node_modules + native bindings (пошагово, как вендорский install.hermes.sh) ---
