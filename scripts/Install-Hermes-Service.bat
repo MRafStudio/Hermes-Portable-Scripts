@@ -164,7 +164,7 @@ echo   %ESC%[1;32m+%ESC%[0m Адрес прослушивания: !SERVICE_HOST
 netstat -ano | findstr ":!SERVICE_PORT! " >nul 2>&1
 if !errorlevel! equ 0 (
     echo   %ESC%[1;33m  ВНИМАНИЕ: Порт !SERVICE_PORT! уже занят.%ESC%[0m
-    set /p "CONT=%ESC%[33mПродолжить с этим портом? ^(y/N^): %ESC%[0m"
+    set /p "CONT=%ESC%[33mПродолжить с этим портом? (y/N): %ESC%[0m"
     if /i not "!CONT!"=="y" (
         echo.
         pause
