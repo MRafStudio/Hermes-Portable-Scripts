@@ -55,10 +55,9 @@ set "MEMOS_INSTALLED=0"
 set "MEMOS_VERSION=?"
 if exist "%HERMES_HOME%\memos-plugin\package.json" (
     set "MEMOS_INSTALLED=1"
-    for /f "usebackq tokens=2 delims=:," %%v in ("%HERMES_HOME%\memos-plugin\package.json") do (
-        set "LINE=%%v"
-        set "LINE=!LINE: =!"
-        if "!LINE:~0,8!"=="\"version\"" set "MEMOS_VERSION=!LINE:~9,-1!"
+    for /f "usebackq tokens=2 delims=:, " %%v in (`findstr /c:"\"version\"" "%HERMES_HOME%\memos-plugin\package.json"`) do (
+        set "MEMOS_VERSION=%%v"
+        set "MEMOS_VERSION=!MEMOS_VERSION:"=!"
     )
 )
 if !MEMOS_INSTALLED! equ 1 (
@@ -69,7 +68,7 @@ if !MEMOS_INSTALLED! equ 1 (
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mMemOS — память агента%ESC%[0m
 if !MEMOS_INSTALLED! equ 1 (
-    echo       %ESC%[2mОбновить до актуальной версии из npm (настройки сохраняются)%ESC%[0m
+    echo       %ESC%[2mОбновить до актуальной версии из npm ^(настройки сохраняются^)%ESC%[0m
 ) else (
     echo       %ESC%[2mУстановить: L1/L2/L3 память, гибридный поиск, viewer :18800%ESC%[0m
 )
