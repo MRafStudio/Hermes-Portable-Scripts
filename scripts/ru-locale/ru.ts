@@ -131,6 +131,7 @@ export const ru = defineLocale({
     errors: {
       elevenLabsNeedsKey: 'Для STT ElevenLabs нужен ELEVENLABS_API_KEY.',
       elevenLabsRejectedKey: 'ElevenLabs отклонил API-ключ (401).',
+      diskFull: 'Диск переполнен — освободите место и повторите попытку.',
       gatewayAuthFailed: 'Сбой аутентификации шлюза - проверьте ваш API_SERVER_KEY.',
       methodNotAllowed:
         'Бэкенд десктопа отклонил запрос (405 Method Not Allowed). Попробуйте перезапустить Hermes Desktop.',
@@ -199,7 +200,8 @@ export const ru = defineLocale({
     unmuteHaptics: 'Включить тактильную отдачу',
     openSettings: 'Открыть настройки',
     openStarmap: 'Открыть звёздную карту',
-    openKeybinds: 'Горячие клавиши',
+    enterHud: 'Режим HUD',
+    exitHud: 'Выйти из режима HUD',
     layoutEditor: 'Редактор макета',
     layoutEditorTitle: 'Редактор макета — ⌘-клик сбрасывает макет',
   },
@@ -258,6 +260,7 @@ export const ru = defineLocale({
       'view.toggleReview': 'Показать / скрыть панель ревью',
       'view.toggleStatusbar': 'Переключить строку состояния',
       'view.showFiles': 'Показать обозреватель файлов',
+      'view.toggleHud': 'Переключить режим HUD',
       'view.showTerminal': 'Показать / скрыть терминал',
       'view.newTerminal': 'Новый терминал',
       'view.nextTerminal': 'Следующий терминал',
@@ -360,7 +363,19 @@ export const ru = defineLocale({
       disable: 'Отключить',
       failed: 'не удалось',
       empty: 'Плагины рабочего стола пока не установлены.',
-      kinds: { bundled: 'встроенный', disk: 'на диске', runtime: 'выполняемый' }
+      kinds: { bundled: 'встроенный', disk: 'на диске', runtime: 'выполняемый' },
+      agent: {
+        title: 'Плагины агента',
+        blurb:
+          'Работают в бэкенде Hermes — инструменты, навыки, MCP-серверы, хуки и слэш-команды. Переносимые — это пакеты Agent Plugins (навыки + MCP-наборы, работающие и в других агентах). Переключатели применяются к новым сессиям.',
+        empty: 'Пока не установлено ни одного плагина агента.',
+        loadFailed: 'Не удалось загрузить плагины агента',
+        portable: 'переносимый',
+        search: 'Поиск плагинов…',
+        noMatches: 'Нет плагинов по вашему запросу.',
+        toggleFailed: (name: string) => `Не удалось переключить ${name}`,
+        sources: { bundled: 'встроенный', user: 'пользовательский', git: 'git', project: 'проект', entrypoint: 'pip' }
+      }
     },
     notifications: {
       title: 'Уведомления',
@@ -392,6 +407,10 @@ export const ru = defineLocale({
         credits: {
           label: 'Уведомления о кредитах',
           description: 'Доступ к кредитам приостановлен или восстановлен.'
+        },
+        plugin: {
+          label: 'Уведомления плагина',
+          description: 'Плагин рабочего стола отправил уведомление, пока Hermes находился в фоновом режиме.'
         }
       },
       test: 'Отправить тестовое уведомление',
@@ -436,6 +455,12 @@ export const ru = defineLocale({
       uiScaleTitle: 'Масштаб интерфейса',
       uiScaleDesc: (percent: number) =>
         `Масштабирует текст и элементы управления во всём приложении. Cmd/Ctrl с +, - и 0 также работает. Текущий: ${percent}%.`,
+      terminalFontTitle: 'Шрифт терминала',
+      terminalFontDesc:
+        'Выберите установленный шрифт для терминалов Desktop. Nerd Fonts отрисовывают Powerlevel10k и иконки оболочки; оставьте пустым, чтобы использовать встроенный JetBrains Mono.',
+      terminalFontPlaceholder: 'MesloLGS NF или стек шрифтов CSS',
+      terminalFontPreview: 'Предпросмотр глифов',
+      terminalFontReset: 'Использовать по умолчанию',
       translucencyTitle: 'Прозрачность окна',
       translucencyDesc: 'Просматривайте рабочий стол сквозь всё окно. Только macOS и Windows.',
       backdropTitle: 'Фон чата',
@@ -710,6 +735,8 @@ export const ru = defineLocale({
       sshHermesPathTitle: 'Путь к Hermes (необязательно)',
       sshHermesPathDesc: 'Полный путь к удаленному исполняемому файлу Hermes. Пусто = автоматическое определение.',
       sshHermesPathPlaceholder: 'автоматическое определение',
+      sshRemoteProfileTitle: 'Удалённый профиль (необязательно)',
+      sshRemoteProfileDesc: 'Имя профиля на удалённом хосте. Если пусто — используется имя профиля Desktop.',
       sshTestConnection: 'Проверить SSH',
       sshConnect: 'Подключиться',
       sshButtonsHint: 'Сохранить будет применено при следующем запуске.Подключение переподключается сейчас.',
@@ -842,8 +869,8 @@ export const ru = defineLocale({
       disconnect: 'Отключить',
       disconnectInTerminal: 'Отключить в терминале',
       removeConfirm: provider => `Удалить учётные данные ${provider}?`,
-      removeExternalGeneric: provider => `Удалить внешние учётные данные ${provider}?`,
-      removeKeyManaged: provider => `API-ключ ${provider} управляется Hermes.`,
+      removeExternalGeneric: provider => `${provider} управляется собственным CLI — удалите его там.`,
+      removeKeyManaged: provider => `${provider} настроен через API-ключ. Удалите его в разделе API-ключи.`,
       removeTerminalConfirm: (provider, command) =>
         `Отключить ${provider}? Эта команда запускает "${command}" в терминале для очистки учётных данных.`,
       removeTerminalRunning: provider => `Удаление учётных данных ${provider}…`,
@@ -1167,7 +1194,7 @@ export const ru = defineLocale({
       installed: 'Установлен',
       generatedTag: 'Сгенерирован',
       adoptFailed: 'Не удалось приручить питомца',
-      toggleFailed: 'Не удалось переключить питомца',
+      toggleFailed: enabled => `Не удалось ${enabled ? 'включить' : 'выключить'} питомца.`,
       noneAvailable: 'Нет доступных питомцев'
     },
     generatePet: {
@@ -1547,11 +1574,17 @@ export const ru = defineLocale({
     search: 'Поиск профилей…',
     loading: 'Загрузка профилей…',
     newProfile: 'Новый профиль',
+    importProfile: 'Импорт профиля…',
+    exportProfile: 'Экспорт профиля…',
+    imported: 'Профиль импортирован',
+    exported: 'Профиль экспортирован',
+    failedImport: 'Не удалось импортировать профиль',
+    failedExport: 'Не удалось экспортировать профиль',
     allProfiles: 'Все профили',
     showAllProfiles: 'Показать все профили',
     switchToProfile: name => `Переключиться на ${name}`,
     manageProfiles: 'Управление профилями…',
-    actionsFor: name => `Действия для ${name}`,
+    actions: 'Действия',
     color: 'Цвет…',
     colorFor: name => `Цвет для ${name}`,
     setColor: color => `Установить цвет ${color}`,
@@ -1794,7 +1827,7 @@ export const ru = defineLocale({
     open: 'Открыть'
   },
 
-  artifactPane: {
+  artifactPreview: {
     versionOf: (current, total) => `v${current} из ${total}`,
     olderVersion: 'Старая версия',
     newerVersion: 'Новая версия',
@@ -1833,6 +1866,7 @@ export const ru = defineLocale({
     noWorkspace: 'Нет рабочего пространства',
     projectEmpty: 'Сессий пока нет',
     noSessions: 'Сессий пока нет',
+    noFilterMatches: 'Нет сессий, соответствующих этим фильтрам',
     projects: {
       sectionLabel: 'Проекты',
       home: 'Главная',
@@ -1860,6 +1894,11 @@ export const ru = defineLocale({
       menuAddFolder: 'Добавить папку',
       menuSetActive: 'Сделать активным',
       menuDelete: 'Удалить',
+      moveToProject: 'Переместить в проект',
+      movedTo: name => `Перемещено в ${name}`,
+      moveFailed: 'Не удалось переместить сессию',
+      moveNoFolder: 'В этом проекте нет папки для перемещения',
+      moveNoProjects: 'Нет других проектов',
       reveal: 'Показать в папке',
       copyPath: 'Копировать путь',
       removeFromSidebar: 'Скрыть из боковой панели',
@@ -1875,6 +1914,9 @@ export const ru = defineLocale({
       baseBranchPlaceholder: 'Поиск веток…',
       baseBranchNone: 'Ветки не найдены',
       startWorkFailed: 'Не удалось создать рабочее дерево',
+      worktreeProjectLabel: 'Проект',
+      worktreeProjectPlaceholder: 'Поиск проектов…',
+      worktreeProjectNone: 'Нет проектов с папкой',
       convertBranch: 'Преобразовать ветку…',
       convertBranchTitle: 'Преобразовать ветку',
       convertBranchDesc: 'Открыть checkout-ветки или создать рабочее дерево для свободной ветки.',
@@ -1883,6 +1925,7 @@ export const ru = defineLocale({
       branchOpenExisting: 'открыть',
       branchSwitchHome: 'переключить основную',
       branchCreateWorktree: 'новое рабочее дерево',
+      branchTrackRemote: 'отслеживать удалённую',
       branchesLoading: 'Загрузка веток…',
       noBranches: 'Ветки не найдены',
       removeWorktree: 'Удалить рабочее дерево',
@@ -1921,6 +1964,7 @@ export const ru = defineLocale({
       waitingForAnswer: 'Ожидание вашего ответа',
       finishedUnread: 'Завершено — не прочитано',
       backgroundRunning: 'Выполняется фоновая задача',
+      draftSession: 'Черновик — пока ничего не отправлено',
       handoffOrigin: platform => `Передано из ${platform}`,
       ownedByProfile: profile => `Профиль: ${profile}`,
       renamed: 'Переименовано',
@@ -1940,6 +1984,10 @@ export const ru = defineLocale({
       thisWeek: 'Ранее на этой неделе',
       lastWeek: 'На прошлой неделе',
       thisMonth: 'Ранее в этом месяце'
+    },
+    statusDivider: {
+      working: 'В работе',
+      done: 'Готово'
     }
   },
 
@@ -1968,6 +2016,7 @@ export const ru = defineLocale({
       'Скорректировать или продолжить'
     ],
     startVoice: 'Начать голосовой разговор',
+    openDirective: 'Открыть',
     queueMessage: 'Поставить в очередь',
     steer: 'Управлять текущим выполнением',
     stop: 'Остановить',
@@ -2548,10 +2597,6 @@ export const ru = defineLocale({
 
   preview: {
     tab: 'Предпросмотр',
-    closeTab: label => `Закрыть ${label}`,
-    closeOthers: 'Закрыть остальные',
-    closeToRight: 'Закрыть справа',
-    closeAll: 'Закрыть все',
     closePane: 'Закрыть панель предпросмотра',
     loading: 'Загрузка предпросмотра',
     unavailable: 'Предпросмотр недоступен',
@@ -2649,6 +2694,7 @@ export const ru = defineLocale({
     closeRunningBody:
       'Этот чат всё ещё работает (или ожидает вашего ввода). Закрытие вкладки скрывает её — сессия сохраняет свой прогресс и может быть снова открыта из боковой панели.',
     closeRunningConfirm: 'Закрыть вкладку',
+    reload: 'Перезагрузить',
     closeOthers: 'Закрыть другие',
     closeToRight: 'Закрыть справа',
     closeAll: 'Закрыть все',
@@ -2678,7 +2724,8 @@ export const ru = defineLocale({
     layoutNamePlaceholder: fallback => `Название макета (${fallback})`,
     saveApply: 'Сохранить и применить',
     notExpressible: 'это расположение взаимосвязано (пропеллер) — пока не может быть выражено как вложенные разделения',
-    zoneCount: count => `${count} зон`
+    zoneCount: count => `${count} зон`,
+    tabCount: count => `${count} вкладок`
   },
   assistant: {
     thread: {
