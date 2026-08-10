@@ -228,7 +228,7 @@ if exist "%PYTHON_EXE%" (
 if exist "%HERMES_EXE%" if exist "%CONFIG_YAML%" (
     set "CUR_MODEL="
     if exist "%PYTHON_EXE%" (
-        for /f "delims=" %%m in ('"%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_check_main_model.py" "%CONFIG_YAML%" 2^>nul') do set "CUR_MODEL=%%m"
+        for /f "delims=" %%m in ('"%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_check_main_model.py" "%HERMES_EXE%" 2^>nul') do set "CUR_MODEL=%%m"
     )
     if defined CUR_MODEL (
         echo   %ESC%[1;33m. %ESC%[0m Основная модель уже настроена: %ESC%[1m!CUR_MODEL!%ESC%[0m — не трогаю
