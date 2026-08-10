@@ -133,8 +133,8 @@ echo.
 echo %ESC%[1;33m-%ESC%[0m %ESC%[1mKoboldCPP — установка / обновление...%ESC%[0m
 echo.
 echo   %ESC%[2mКуда ставим: %KCPP_DIR%%ESC%[0m
-echo   %ESC%[2mПорт API:   %KCPP_PORT% ^(чтобы не конфликтовать со сторонним KoboldCPP на 5001^)%ESC%[0m
-echo   %ESC%[2mИсточник:   GitHub releases ^(koboldcpp.exe^) + Hugging Face ^(модель, проектор^)%ESC%[0m
+echo   %ESC%[2mПорт API:   %KCPP_PORT% (чтобы не конфликтовать со сторонним KoboldCPP на 5001)%ESC%[0m
+echo   %ESC%[2mИсточник:   GitHub releases (koboldcpp.exe) + Hugging Face (модель, проектор)%ESC%[0m
 echo.
 
 
@@ -218,14 +218,14 @@ if exist "%HERMES_EXE%" if exist "%CONFIG_YAML%" (
     )
     if defined CUR_MODEL (
         echo   %ESC%[1;33m. %ESC%[0m Основная модель уже настроена: %ESC%[1m!CUR_MODEL!%ESC%[0m — не трогаю
-        echo   %ESC%[2m    Vision → KoboldCPP (локальная мультимодальная модель)%ESC%[0m
+        echo   %ESC%[2m    Vision → KoboldCPP ^(локальная мультимодальная модель^)%ESC%[0m
         "%HERMES_EXE%" config set auxiliary.vision.model "%MODEL_ID%" >nul 2>&1
         "%HERMES_EXE%" config set auxiliary.vision.base_url "http://127.0.0.1:%KCPP_PORT%/v1" >nul 2>&1
         echo   %ESC%[1;32m+ %ESC%[0m Hermes: vision = %MODEL_ID% ^(порт %KCPP_PORT%^)
     ) else (
         echo   %ESC%[1;33m. %ESC%[0m Основная модель не настроена.
         set "use_kobold="
-        set /p "use_kobold=%ESC%[33mСделать KoboldCPP основной моделью (включая vision) [Y/n]? %ESC%[0m"
+        set /p "use_kobold=%ESC%[33mСделать KoboldCPP основной моделью ^(включая vision^) [Y/n]? %ESC%[0m"
         if /i not "!use_kobold!"=="n" (
             set "MODEL_KEY=model.default"
             findstr /c:"^model.default:" "%CONFIG_YAML%" >nul 2>&1 || set "MODEL_KEY=model.name"
