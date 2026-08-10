@@ -1,12 +1,15 @@
 # memos-fix.ps1 - FALLBACK: доводит установку MemOS до идеала (самодостаточный фиксер)
-# Не является частью установщика: запускается ПОСЛЕ install-memos.ps1 (или отдельно),
-# проверяет каждый критичный узел и чинит недостающее:
-#   1. native bindings (better-sqlite3) - approve-scripts + npm rebuild + повторная проверка
-#   2. config.yaml - endpoint kobold :5101, telemetry OFF
-#   3. MEMOS_HOME в Start.bat (портабельный runtime home - БД не уходит в %LOCALAPPDATA%)
-#   4. memory.provider = memtensor (hermes config set)
-#   5. junction plugins\memtensor
-#   6. тестовый запуск bridge -> БД в <MEMOS_HOME>\data\memos.db + viewer :18800 health
+# Не является частью установщика: запускается ПОСЛЕ install-memos.ps1 (или отдельно).
+# Правило: скрипты вендора НЕ трогаем - проверяем недостающее и ДОУСТАНАВЛИВАЕМ.
+#  1. native bindings (better-sqlite3) - approve-scripts (поштучно!) + npm rebuild
+#  2. config.yaml - через ШТАТНЫЙ API bridge (GET/PATCH /api/v1/config):
+#     endpoint kobold :5101, lightweightMemory=false, llmFilterEnabled=false,
+#     embedding.model -> локальная модель (не HF из РФ!)
+#  3. MEMOS_HOME в Start.bat (портабельный runtime home)
+#  4. memory.provider = memtensor (hermes config set)
+#  5. junction plugins\memtensor
+#  6. embedding-модель Xenova/all-MiniLM-L6-v2 (hf download + локальный прокси)
+#  7. тестовый bridge: БД + viewer + реальный поиск (UTF-8) через API
 # Использование:  powershell -ExecutionPolicy Bypass -File memos-fix.ps1 -RootDir <root>
 param(
     [string]$RootDir = ""
@@ -20,9 +23,11 @@ $RuntimeHome  = Join-Path $HermesHome "memos-plugin"
 $PluginDir    = Join-Path $HermesHome "plugins\memtensor"
 $AdapterDir   = Join-Path $RuntimeHome "adapters\hermes\memos_provider"
 $HermesExe    = Join-Path $HermesHome "hermes-agent\venv\Scripts\hermes.exe"
+$HfExe        = Join-Path $HermesHome "hermes-agent\venv\Scripts\hf.exe"
 $StartBat     = Join-Path $RootDir "Start.bat"
 $NodeBin      = (Get-Command node -ErrorAction SilentlyContinue)
 $NativePkgs   = @("better-sqlite3", "onnxruntime-node", "sharp", "protobufjs", "esbuild")
+$EmbedModelDir = Join-Path $RuntimeHome "models\all-MiniLM-L6-v2"
 
 $fixed = @()
 
@@ -51,14 +56,14 @@ Push-Location $RuntimeHome
 try {
     $dbTest = & $NodeBin.Source -e $dbTestExpr 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "[1/6] better-sqlite3 bindings: OK"
+        Write-Host "[1/7] better-sqlite3 bindings: OK"
     } else {
-        Write-Host "[1/6] bindings missing - approve-scripts + npm rebuild ..."
-        & $NodeBin.Source (Join-Path (Split-Path -Parent $NodeBin.Source) "..\node_modules\npm\bin\npm-cli.js") approve-scripts --allow-scripts-pending 2>&1 | Out-Null
+        Write-Host "[1/7] bindings missing - approve-scripts (per-package) + npm rebuild ..."
+        & $NodeBin.Source (Join-Path (Split-Path -Parent $NodeBin.Source) "..\node_modules\npm\bin\npm-cli.js") approve-scripts $NativePkgs 2>&1 | Out-Null
         $code = Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $NativePkgs)
         $dbTest = & $NodeBin.Source -e $dbTestExpr 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "[1/6] bindings fixed via approve-scripts + rebuild"
+            Write-Host "[1/7] bindings fixed via approve-scripts + rebuild"
             $fixed += "bindings"
         } else {
             Write-Host "ERROR: better-sqlite3 still broken after rebuild - check network to github.com (prebuilds)."
@@ -70,28 +75,84 @@ try {
     Pop-Location
 }
 
-# --- 2. config.yaml: endpoint kobold :5101 + telemetry OFF ---
-$pluginCfg = Join-Path $RuntimeHome "config.yaml"
-$cfgChanged = $false
-if (Test-Path $pluginCfg) {
-    $cfg = Get-Content $pluginCfg -Raw
-    if ($cfg -notmatch "endpoint: http://127\.0\.0\.1:5101/v1") {
-        $cfg = $cfg -replace "endpoint: http://127\.0\.0\.1:\d+/v1", "endpoint: http://127.0.0.1:5101/v1"
-        $cfgChanged = $true
+# --- 6. embedding-модель (проверяем ДО конфига: путь в PATCH зависит от неё) ---
+if (-not (Test-Path (Join-Path $EmbedModelDir "onnx\model.onnx"))) {
+    Write-Host "[6/7] embedding model missing - downloading Xenova/all-MiniLM-L6-v2 (~329 MB) ..."
+    if (Test-Path $HfExe) {
+        $env:HTTPS_PROXY = "http://127.0.0.1:10809"
+        $env:HTTP_PROXY  = "http://127.0.0.1:10809"
+        & $HfExe download Xenova/all-MiniLM-L6-v2 --local-dir $EmbedModelDir 2>&1 | Out-Null
+        Remove-Item Env:HTTPS_PROXY -ErrorAction SilentlyContinue
+        Remove-Item Env:HTTP_PROXY -ErrorAction SilentlyContinue
     }
-    if ($cfg -match "telemetry:\r?\n\s+enabled: true") {
-        $cfg = $cfg -replace "telemetry:\r?\n\s+enabled: true", "telemetry:`n  enabled: false"
-        $cfgChanged = $true
-    }
-    if ($cfgChanged) {
-        [System.IO.File]::WriteAllText($pluginCfg, $cfg, (New-Object System.Text.UTF8Encoding $false))
-        Write-Host "[2/6] config.yaml fixed (endpoint :5101, telemetry OFF)"
-        $fixed += "config"
+    if (Test-Path (Join-Path $EmbedModelDir "onnx\model.onnx")) {
+        Write-Host "[6/7] embedding model downloaded: $EmbedModelDir"
+        $fixed += "embedding-model"
     } else {
-        Write-Host "[2/6] config.yaml: OK (kobold :5101, telemetry OFF)"
+        Write-Host "WARNING: embedding model download failed (hf.exe missing or no network)."
     }
 } else {
-    Write-Host "WARNING: config.yaml missing - will be created by the bridge on first run (check endpoint after)."
+    Write-Host "[6/7] embedding model: OK"
+}
+
+# --- 2. config.yaml через штатный API bridge (GET/PATCH /api/v1/config) ---
+$testBridge = $null
+try {
+    $testBridge = Start-Process -FilePath $NodeBin.Source `
+        -ArgumentList @("dist\bridge.mjs", "--agent=hermes", "--home=$RuntimeHome", "--daemon") `
+        -WorkingDirectory $RuntimeHome -PassThru -WindowStyle Hidden
+    Start-Sleep -Seconds 15
+} catch {
+    Write-Host "WARNING: bridge start failed - config check skipped (will retry on next Hermes session)."
+}
+$viewerOk = $false
+try {
+    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:18800/" -UseBasicParsing -TimeoutSec 5
+    $viewerOk = ($resp.StatusCode -eq 200)
+} catch { }
+
+if ($viewerOk) {
+    # 2a. Читаем текущий resolved конфиг
+    $cfg = $null
+    try {
+        $cfg = (Invoke-RestMethod -Uri "http://127.0.0.1:18800/api/v1/config" -Method Get -TimeoutSec 10)
+    } catch { }
+    if ($cfg) {
+        $patch = @{}
+        $endpoint = $cfg.config.llm.endpoint
+        if ($endpoint -notmatch "127\.0\.0\.1:5101") {
+            $patch.llm = @{ endpoint = "http://127.0.0.1:5101/v1" }
+        }
+        $lw = $cfg.config.algorithm.lightweightMemory.enabled
+        if ($lw -ne $false) {
+            if (-not $patch.algorithm) { $patch.algorithm = @{} }
+            $patch.algorithm.lightweightMemory = @{ enabled = $false }
+        }
+        $lf = $cfg.config.retrieval.llmFilterEnabled
+        if ($lf -ne $false) {
+            if (-not $patch.retrieval) { $patch.retrieval = @{} }
+            $patch.retrieval.llmFilterEnabled = $false
+        }
+        $emb = $cfg.config.embedding.model
+        if ($emb -notmatch "all-MiniLM-L6-v2") {
+            if (-not $patch.embedding) { $patch.embedding = @{} }
+            $patch.embedding.model = $EmbedModelDir
+        }
+        if ($patch.Count -gt 0) {
+            $body = $patch | ConvertTo-Json -Depth 6 -Compress
+            try {
+                Invoke-RestMethod -Uri "http://127.0.0.1:18800/api/v1/config" -Method Patch -Body $body -ContentType "application/json" -TimeoutSec 10 | Out-Null
+                Write-Host "[2/7] config.yaml fixed via API (PATCH /api/v1/config): $($patch.Keys -join ', ')"
+                $fixed += "config"
+            } catch {
+                Write-Host "WARNING: config PATCH failed: $($_.Exception.Message)"
+            }
+        } else {
+            Write-Host "[2/7] config.yaml: OK (kobold :5101, lightweight OFF, llmFilter OFF, local embedder)"
+        }
+    }
+} else {
+    Write-Host "WARNING: viewer not reachable - config check skipped."
 }
 
 # --- 3. MEMOS_HOME в Start.bat ---
@@ -100,10 +161,10 @@ if (Test-Path $StartBat) {
     if ($start -notmatch "MEMOS_HOME") {
         $start = $start -replace 'set "HERMES_HOME=.*?\r?\n', "`$0set `"MEMOS_HOME=%HERMES_HOME%\memos-plugin`"`r`n"
         [System.IO.File]::WriteAllText($StartBat, $start, (New-Object System.Text.UTF8Encoding $false))
-        Write-Host "[3/6] MEMOS_HOME added to Start.bat"
+        Write-Host "[3/7] MEMOS_HOME added to Start.bat"
         $fixed += "MEMOS_HOME"
     } else {
-        Write-Host "[3/6] MEMOS_HOME in Start.bat: OK"
+        Write-Host "[3/7] MEMOS_HOME in Start.bat: OK"
     }
 } else {
     Write-Host "WARNING: Start.bat not found at $StartBat"
@@ -113,10 +174,10 @@ if (Test-Path $StartBat) {
 if (Test-Path $HermesExe) {
     $check = & $HermesExe config get memory.provider 2>$null
     if ($check -match "memtensor") {
-        Write-Host "[4/6] memory.provider: OK (memtensor)"
+        Write-Host "[4/7] memory.provider: OK (memtensor)"
     } else {
         & $HermesExe config set memory.provider memtensor | Out-Null
-        Write-Host "[4/6] memory.provider set to memtensor"
+        Write-Host "[4/7] memory.provider set to memtensor"
         $fixed += "provider"
     }
 } else {
@@ -127,32 +188,41 @@ if (Test-Path $HermesExe) {
 if (-not (Test-Path (Join-Path $PluginDir "__init__.py"))) {
     if (Test-Path $PluginDir) { Remove-Item -LiteralPath $PluginDir -Force -Recurse -ErrorAction SilentlyContinue }
     New-Item -ItemType Junction -Path $PluginDir -Value $AdapterDir | Out-Null
-    Write-Host "[5/6] junction recreated: $PluginDir"
+    Write-Host "[5/7] junction recreated: $PluginDir"
     $fixed += "junction"
 } else {
-    Write-Host "[5/6] junction: OK"
+    Write-Host "[5/7] junction: OK"
 }
 
-# --- 6. тестовый запуск bridge -> БД + viewer health ---
+# --- 7. БД + viewer + реальный поиск (UTF-8) через API ---
 $dataDir = Join-Path $RuntimeHome "data"
 if (-not (Test-Path $dataDir)) { New-Item -ItemType Directory -Path $dataDir -Force | Out-Null }
-$viewer = Start-Process -FilePath $NodeBin.Source `
-    -ArgumentList @("dist\bridge.mjs", "--agent=hermes", "--home=$RuntimeHome", "--daemon") `
-    -WorkingDirectory $RuntimeHome -PassThru -WindowStyle Hidden
-Start-Sleep -Seconds 15
 $dbFile = Join-Path $dataDir "memos.db"
 if (Test-Path $dbFile) {
-    Write-Host "[6/6] MemOS DB OK: $dbFile"
+    Write-Host "[7/7] MemOS DB OK: $dbFile"
 } else {
     Write-Host "WARNING: DB not created yet - it will appear on the first Hermes session."
 }
 try {
     $resp = Invoke-WebRequest -Uri "http://127.0.0.1:18800/" -UseBasicParsing -TimeoutSec 5
-    Write-Host "[6/6] viewer :18800 HTTP $($resp.StatusCode)"
+    Write-Host "[7/7] viewer :18800 HTTP $($resp.StatusCode)"
+    # тестовый поиск через API (UTF-8 JSON) - реальная проверка vector search
+    $q = @{ query = "любимая страна для путешествий" } | ConvertTo-Json -Compress
+    try {
+        $sr = Invoke-RestMethod -Uri "http://127.0.0.1:18800/api/v1/memory/search" -Method Post -Body $q -ContentType "application/json" -TimeoutSec 30
+        $n = @($sr.hits).Count
+        if ($n -gt 0) {
+            Write-Host "[7/7] memory search: OK ($n hit(s))"
+        } else {
+            Write-Host "[7/7] memory search: 0 hits (embeddings may still be building - wait 1-3 min and retry)"
+        }
+    } catch {
+        Write-Host "[7/7] memory search: skipped ($($_.Exception.Message))"
+    }
 } catch {
-    Write-Host "[6/6] viewer health check failed - it will start with the next Hermes session"
+    Write-Host "[7/7] viewer health check failed - it will start with the next Hermes session"
 }
-Stop-Process -Id $viewer.Id -Force -ErrorAction SilentlyContinue
+if ($testBridge -and -not $testBridge.HasExited) { Stop-Process -Id $testBridge.Id -Force -ErrorAction SilentlyContinue }
 
 Write-Host ""
 if ($fixed.Count -gt 0) {
