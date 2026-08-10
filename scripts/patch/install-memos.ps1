@@ -122,7 +122,7 @@ Invoke-Npm @("install", "--no-audit", "--no-fund")
 #     better-sqlite3 / onnxruntime / sharp не работают - rebuild скачает prebuilds ---
 $nativePkgs = @("better-sqlite3", "onnxruntime-node", "sharp", "protobufjs", "esbuild")
 try {
-    & $npmPath approve-scripts --allow-scripts-pending 2>&1 | Out-Null
+    & $npmPath approve-scripts $nativePkgs 2>&1 | Out-Null
 } catch {
     Write-Host "npm approve-scripts: skipped (npm < 11.16)"
 }
@@ -214,7 +214,7 @@ while ($LASTEXITCODE -ne 0 -and $attempt -lt 3) {
     $attempt++
     if ($attempt -eq 1) {
         Write-Host "native bindings missing - attempt ${attempt}: approve-scripts + rebuild ..."
-        try { & $npmPath approve-scripts --allow-scripts-pending 2>&1 | Out-Null } catch { }
+        try { & $npmPath approve-scripts $nativePkgs 2>&1 | Out-Null } catch { }
         Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $nativePkgs)
     } else {
         Write-Host "bindings still missing - attempt ${attempt}: npm rebuild again ..."
