@@ -229,7 +229,7 @@ if ($viewerOk) {
             $patch.llm = @{ provider = "local_only" }
         }
         # lightweight=true: только summarize+embed+retrieval, нет фоновых LLM-задач
-        # (с local_only поиск по трассам работает — проверено стресс-тестом 1000 запросов)
+        # (с local_only поиск по трассам работает - проверено стресс-тестом 1000 запросов)
         $lw = $cfg.config.algorithm.lightweightMemory.enabled
         if ($lw -ne $true) {
             if (-not $patch.algorithm) { $patch.algorithm = @{} }
