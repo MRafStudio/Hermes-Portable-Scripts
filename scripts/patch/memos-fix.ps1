@@ -15,7 +15,7 @@ param(
     [string]$RootDir = ""
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 if (-not $RootDir) { $RootDir = Split-Path -Parent $PSScriptRoot | Split-Path -Parent }
 $HermesHome   = Join-Path $RootDir "data\hermes"
@@ -230,7 +230,9 @@ if (-not (Test-Path (Join-Path $PluginDir "__init__.py"))) {
     Write-Host "[5/7] junction: OK"
 }
 
-# --- 7. БД + viewer + реальный поиск (UTF-8) через API ---
+# --- 7. ФИНАЛЬНЫЙ SELF-TEST (после всех фиксов): БД + viewer + реальный поиск ---
+Write-Host ""
+Write-Host "Running self-test ..."
 $dataDir = Join-Path $RuntimeHome "data"
 if (-not (Test-Path $dataDir)) { New-Item -ItemType Directory -Path $dataDir -Force | Out-Null }
 $dbFile = Join-Path $dataDir "memos.db"
