@@ -67,6 +67,13 @@ if not defined CURL for /f "delims=" %%c in ('where curl 2^>nul') do if not defi
 if not defined CURL for /f "delims=" %%c in ('where git 2^>nul') do if not defined CURL set "CURL=%%~dpccurl.exe"
 
 REM ============================================================================
+REM   Определение hf (huggingface_hub CLI — загрузка с прогрессом и докачкой)
+REM ============================================================================
+set "HF_EXE=%HERMES_HOME%\hermes-agent\venv\Scripts\hf.exe"
+if not exist "%HF_EXE%" set "HF_EXE="
+if not defined HF_EXE for /f "delims=" %%h in ('where hf 2^>nul') do if not defined HF_EXE set "HF_EXE=%%h"
+
+REM ============================================================================
 REM   Статус
 REM ============================================================================
 :status
@@ -178,7 +185,7 @@ call :download "%KCPP_URL%" "%KCPP_EXE%" "koboldcpp.exe"
 echo.
 echo %ESC%[1;33m 2/3 Проектор ^(vision^)%ESC%[0m
 if not exist "%MODELS_DIR%\%MMPROJ_FILE%" (
-    call :download "%MMPROJ_URL%" "%MODELS_DIR%\%MMPROJ_FILE%" "%MMPROJ_FILE%"
+    call :download_hf "%MODEL_REPO%" "%MMPROJ_FILE%" "%MODELS_DIR%"
 ) else (
     echo   %ESC%[2m    Проектор уже есть — пропуск.%ESC%[0m
 )
@@ -186,7 +193,7 @@ if not exist "%MODELS_DIR%\%MMPROJ_FILE%" (
 echo.
 echo %ESC%[1;33m 3/3 Модель%ESC%[0m
 if not exist "%MODELS_DIR%\%MODEL_FILE%" (
-    call :download "%MODEL_URL%" "%MODELS_DIR%\%MODEL_FILE%" "%MODEL_FILE%"
+    call :download_hf "%MODEL_REPO%" "%MODEL_FILE%" "%MODELS_DIR%"
 ) else (
     echo   %ESC%[2m    Модель уже есть — пропуск.%ESC%[0m
 )
@@ -259,11 +266,11 @@ set "DL_FILE=%~2"
 set "DL_NAME=%~3"
 echo   %ESC%[2m    Загрузка %DL_NAME% ...%ESC%[0m
 if defined CURL (
-    "%CURL%" -L -C - --retry 5 --retry-delay 5 -o "%DL_FILE%" "%DL_URL%" >nul 2>&1
+    "%CURL%" -L -C - --retry 5 --retry-delay 5 -# -o "%DL_FILE%" "%DL_URL%"
 )
 if not exist "%DL_FILE%" (
     echo   %ESC%[1;33m    curl не справился — переключение на PowerShell ^(TLS12^)...%ESC%[0m
-    powershell -NoProfile -NonInteractive -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; try { Invoke-WebRequest -Uri '%DL_URL%' -OutFile '%DL_FILE%' -UseBasicParsing -TimeoutSec 600 } catch { exit 1 }" >nul 2>&1
+    powershell -NoProfile -NonInteractive -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; try { Invoke-WebRequest -Uri '%DL_URL%' -OutFile '%DL_FILE%' -UseBasicParsing -TimeoutSec 600 } catch { exit 1 }"
 )
 if not exist "%DL_FILE%" (
     echo   %ESC%[1;31m[ОШИБКА] Загрузка не удалась: %DL_NAME%%ESC%[0m
@@ -272,6 +279,25 @@ if not exist "%DL_FILE%" (
     exit /b 1
 )
 echo   %ESC%[1;32m    OK: %DL_NAME%%ESC%[0m
+goto :eof
+
+REM ============================================================================
+REM   :download_hf REPO FILE DIR — hf download (tqdm-прогресс, докачка) → curl fallback
+REM ============================================================================
+:download_hf
+set "DL_REPO=%~1"
+set "DL_FILE=%~2"
+set "DL_DIR=%~3"
+if not defined HF_EXE (
+    call :download "https://huggingface.co/%DL_REPO%/resolve/main/%DL_FILE%" "%DL_DIR%\%DL_FILE%" "%DL_FILE%"
+    goto :eof
+)
+echo   %ESC%[2m    hf download %DL_FILE% ...%ESC%[0m
+"%HF_EXE%" download "%DL_REPO%" "%DL_FILE%" --local-dir "%DL_DIR%"
+if errorlevel 1 (
+    echo   %ESC%[1;33m    hf не справился — переключение на curl...%ESC%[0m
+    call :download "https://huggingface.co/%DL_REPO%/resolve/main/%DL_FILE%" "%DL_DIR%\%DL_FILE%" "%DL_FILE%"
+)
 goto :eof
 
 :exit
