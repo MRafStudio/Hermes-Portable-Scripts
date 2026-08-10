@@ -1,4 +1,4 @@
-# install-memos.ps1
+﻿﻿# install-memos.ps1
 # ============================================================================
 # Установка/обновление MemOS (memos-local-plugin, @memtensor) в Hermes Portable.
 # Универсален: работает для любого корня (дом C:\NEURO\Hermes и полигон D:\NEURO\Hermes).
@@ -8,11 +8,11 @@
 #   1. npm pack @memtensor/memos-local-plugin@latest -> распаковка в %HERMES_HOME%\memos-plugin
 #   2. npm install + сборка bridge и viewer (vite)
 #   3. Junction: %HERMES_HOME%\plugins\memtensor -> ...\memos-plugin\adapters\hermes\memos_provider
-#      (именно plugins\<name> БЕЗ memory\ — upstream discovery Hermes)
+#      (именно plugins\<name> БЕЗ memory\ - upstream discovery Hermes)
 #   4. config.yaml плагина (только при НОВОЙ установке; при обновлении настройки сохраняются)
 #   5. memory.provider: memtensor в config.yaml Hermes (hermes config set)
 #
-# При обновлении поверх работающего Hermes: файлы могут быть залочены службой —
+# При обновлении поверх работающего Hermes: файлы могут быть залочены службой -
 # скрипт остановится с понятным сообщением (пользователь сам остановит службу).
 # ============================================================================
 
@@ -40,7 +40,7 @@ Write-Host "Runtime   : $RuntimeHome"
 # --- Проверка node/npm (PATH, затем системный AppData) ---
 $npmCmd = (Get-Command npm.cmd -ErrorAction SilentlyContinue)
 if (-not $npmCmd) {
-    # .bat-окружение переопределяет APPDATA — берём СИСТЕМНЫЙ Roaming через .NET
+    # .bat-окружение переопределяет APPDATA - берём СИСТЕМНЫЙ Roaming через .NET
     $sysAppData = [Environment]::GetFolderPath('ApplicationData')
     $candidate = Join-Path $sysAppData "npm\npm.cmd"
     if (Test-Path $candidate) { $npmCmd = Get-Item $candidate }
@@ -101,7 +101,7 @@ if (-not $tgz) { Pop-Location; Write-Error "npm pack failed"; exit 1 }
 Pop-Location
 
 Write-Host "Extracting to $RuntimeHome ..."
-# Системный bsdtar (Windows tar.exe) — GNU tar из git-bash не понимает C:\ пути
+# Системный bsdtar (Windows tar.exe) - GNU tar из git-bash не понимает C:\ пути
 $tarExe = Join-Path $env:SystemRoot "System32\tar.exe"
 if (-not (Test-Path $tarExe)) { Write-Error "Windows tar.exe not found: $tarExe"; exit 1 }
 $extractDir = Join-Path $packDir "extract"
@@ -119,8 +119,13 @@ Write-Host "npm install (native modules, may take a while)..."
 Push-Location $RuntimeHome
 Invoke-Npm @("install", "--no-audit", "--no-fund")
 # --- npm 11+ блокирует install-скрипты native-модулей по умолчанию: без prebuild-бинарей
-#     better-sqlite3 / onnxruntime / sharp не работают — rebuild скачает prebuilds ---
+#     better-sqlite3 / onnxruntime / sharp не работают - rebuild скачает prebuilds ---
 $nativePkgs = @("better-sqlite3", "onnxruntime-node", "sharp", "protobufjs", "esbuild")
+try {
+    & $npmPath approve-scripts --allow-scripts-pending 2>&1 | Out-Null
+} catch {
+    Write-Host "npm approve-scripts: skipped (npm < 11.16)"
+}
 try {
     Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $nativePkgs)
 } catch {
@@ -128,10 +133,10 @@ try {
 }
 $bridgeBundled = Test-Path (Join-Path $RuntimeHome "dist\bridge.mjs")
 if (-not $bridgeBundled) {
-    Write-Host "dist not bundled — building bridge + viewer ..."
+    Write-Host "dist not bundled - building bridge + viewer ..."
     Invoke-Npm @("run", "build:package")
 } else {
-    Write-Host "dist already bundled in npm tarball — skipping build"
+    Write-Host "dist already bundled in npm tarball - skipping build"
 }
 Pop-Location
 if (-not (Test-Path (Join-Path $RuntimeHome "dist\bridge.mjs"))) {
@@ -204,9 +209,17 @@ $dbTestExpr = "const D=require('better-sqlite3');const db=new D(':memory:');db.e
 # 6.1 native bindings (better-sqlite3): без prebuild bridge падает на new Database()
 Push-Location $RuntimeHome
 $dbTest = & $nodeExe -e $dbTestExpr 2>&1
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "native bindings missing - npm rebuild (prebuilds)..."
-    Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $nativePkgs)
+$attempt = 0
+while ($LASTEXITCODE -ne 0 -and $attempt -lt 3) {
+    $attempt++
+    if ($attempt -eq 1) {
+        Write-Host "native bindings missing - attempt ${attempt}: approve-scripts + rebuild ..."
+        try { & $npmPath approve-scripts --allow-scripts-pending 2>&1 | Out-Null } catch { }
+        Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $nativePkgs)
+    } else {
+        Write-Host "bindings still missing - attempt ${attempt}: npm rebuild again ..."
+        Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $nativePkgs)
+    }
     $dbTest = & $nodeExe -e $dbTestExpr 2>&1
 }
 if ($LASTEXITCODE -eq 0) {
