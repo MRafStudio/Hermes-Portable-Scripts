@@ -194,6 +194,64 @@ if (Test-Path $HermesExe) {
     Write-Host "WARNING: hermes.exe not found - activate memory.provider manually."
 }
 
+# --- 6. Самотест (self-test) ---
+Write-Host ""
+Write-Host "Running self-test ..."
+$nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+if (-not $nodeCmd) { Write-Error "node not found - bridge runtime requires Node.js >= 20"; exit 1 }
+$nodeExe = $nodeCmd.Source
+$dbTestExpr = "const D=require('better-sqlite3');const db=new D(':memory:');db.exec('CREATE TABLE t(x)');db.prepare('INSERT INTO t VALUES(1)').run();db.close();console.log('OK')"
+# 6.1 native bindings (better-sqlite3): без prebuild bridge падает на new Database()
+Push-Location $RuntimeHome
+$dbTest = & $nodeExe -e $dbTestExpr 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "native bindings missing - npm rebuild (prebuilds)..."
+    Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $nativePkgs)
+    $dbTest = & $nodeExe -e $dbTestExpr 2>&1
+}
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "self-test: better-sqlite3 bindings OK"
+} else {
+    Write-Error "better-sqlite3 broken after rebuild ($($dbTest | Select-Object -Last 1)) - retry installer"
+    Pop-Location; exit 1
+}
+Pop-Location
+# 6.2 MEMOS_HOME должен жить в Start.bat (портабельный runtime home)
+$startBat = Join-Path $RootDir "Start.bat"
+if (Test-Path $startBat) {
+    $startContent = [IO.File]::ReadAllText($startBat)
+    if ($startContent -notmatch "MEMOS_HOME") {
+        $startContent = $startContent -replace 'set "HERMES_HOME=([^\r\n]*)\r?\n', "`$&set `"MEMOS_HOME=%HERMES_HOME%\memos-plugin`"`r`n"
+        [IO.File]::WriteAllText($startBat, $startContent)
+        Write-Host "self-test: MEMOS_HOME added to Start.bat"
+    } else {
+        Write-Host "self-test: MEMOS_HOME already in Start.bat"
+    }
+}
+# 6.3 data dir + тестовый запуск bridge: БД должна создаться В runtime home (портабельно)
+$dataDir = Join-Path $RuntimeHome "data"
+if (-not (Test-Path $dataDir)) { New-Item -ItemType Directory -Path $dataDir -Force | Out-Null }
+$testBridge = $null
+try {
+    $testBridge = Start-Process -FilePath $nodeExe -ArgumentList @("dist\bridge.mjs", "--agent=hermes", "--home=$RuntimeHome", "--daemon") -WorkingDirectory $RuntimeHome -PassThru -WindowStyle Hidden
+    Start-Sleep -Seconds 12
+} catch {
+    Write-Host "WARNING: test bridge start failed - will start with the next Hermes session"
+}
+try {
+    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:18800/" -UseBasicParsing -TimeoutSec 5
+    Write-Host "self-test: viewer http://127.0.0.1:18800 HTTP $($resp.StatusCode)"
+} catch {
+    Write-Host "WARNING: viewer health check failed - it will start with the next Hermes session"
+}
+$dbFile = Join-Path $dataDir "memos.db"
+if (Test-Path $dbFile) {
+    Write-Host "self-test: MemOS DB OK: $dbFile"
+} else {
+    Write-Host "WARNING: DB not created yet - it will be created on the first Hermes session (ensure MEMOS_HOME is set)"
+}
+if ($testBridge -and -not $testBridge.HasExited) { Stop-Process -Id $testBridge.Id -Force -ErrorAction SilentlyContinue }
+
 Write-Host ""
 Write-Host "=== DONE ==="
 Write-Host "Runtime home : $RuntimeHome"
