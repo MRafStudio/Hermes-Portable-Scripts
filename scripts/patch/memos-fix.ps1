@@ -26,6 +26,28 @@ $HermesExe    = Join-Path $HermesHome "hermes-agent\venv\Scripts\hermes.exe"
 $HfExe        = Join-Path $HermesHome "hermes-agent\venv\Scripts\hf.exe"
 $StartBat     = Join-Path $RootDir "Start.bat"
 $NodeBin      = (Get-Command node -ErrorAction SilentlyContinue)
+# npm: приоритет 1 - портабельный/пользовательский npm из APPDATA (Start.bat: APPDATA=%DATA_DIR%\appdata;
+# там стоит npm 12, а системный npm.cmd в Program Files может вести на сломанный встроенный npm-cli.js ->
+# MODULE_NOT_FOUND). Логика как в InstallOrUpdate-Deps.bat (REAL_NPM_DIR).
+$NpmCmd       = $null
+$appdataNpm   = Join-Path $env:APPDATA "npm\npm.cmd"
+if (Test-Path $appdataNpm) { $NpmCmd = Get-Item $appdataNpm }
+if (-not $NpmCmd) {
+    $realNpmDir   = Join-Path (Join-Path (Join-Path $env:SystemDrive "Users\$env:USERNAME") "AppData\Roaming") "npm"
+    if (Test-Path (Join-Path $realNpmDir "npm.cmd")) { $NpmCmd = Get-Item (Join-Path $realNpmDir "npm.cmd") }
+}
+if (-not $NpmCmd) {
+    foreach ($prof in Get-ChildItem (Join-Path $env:SystemDrive "Users") -Directory -Filter "$env:USERNAME.*" -ErrorAction SilentlyContinue) {
+        $cand = Join-Path (Join-Path (Join-Path $prof.FullName "AppData\Roaming") "npm") "npm.cmd"
+        if (Test-Path $cand) { $NpmCmd = Get-Item $cand; break }
+    }
+}
+if (-not $NpmCmd) { $NpmCmd = Get-Command npm.cmd -ErrorAction SilentlyContinue }
+if (-not $NpmCmd) { $NpmCmd = Get-Command npm -ErrorAction SilentlyContinue }
+# нормализация: Get-Item -> FileInfo (.FullName), Get-Command -> ApplicationInfo (.Source)
+$NpmCmdPath = ""
+if ($NpmCmd -is [System.IO.FileInfo]) { $NpmCmdPath = $NpmCmd.FullName }
+elseif ($NpmCmd) { $NpmCmdPath = $NpmCmd.Source }
 $NativePkgs   = @("better-sqlite3", "onnxruntime-node", "sharp", "protobufjs", "esbuild")
 $EmbedModelDir = Join-Path $RuntimeHome "models\all-MiniLM-L6-v2"
 
@@ -44,7 +66,7 @@ function Invoke-Npm {
     param([string[]]$NpmArgs)
     $prev = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
-    & $NodeBin.Source (Join-Path (Split-Path -Parent $NodeBin.Source) "..\node_modules\npm\bin\npm-cli.js") @NpmArgs 2>&1 | Out-Null
+    & $NpmCmdPath @NpmArgs 2>&1 | Out-Null
     $code = $LASTEXITCODE
     $ErrorActionPreference = $prev
     return $code
@@ -52,7 +74,8 @@ function Invoke-Npm {
 
 # --- 0. Версия пакета: npm latest 2.0.14 содержит БАГ (llmFilterEnabled не передаётся в retrieval,
 #     финальный LLM-фильтр работает всегда и режет все хиты). Фикс - в 2.0.14-beta.1. ---
-$pkgJson = Join-Path $RuntimeHome "package.json"
+$pkgJson = Join-Path (Join-Path $RuntimeHome "node_modules\@memtensor\memos-local-plugin") "package.json"
+if (-not (Test-Path $pkgJson)) { $pkgJson = Join-Path $RuntimeHome "package.json" }
 if (Test-Path $pkgJson) {
     $pkgVer = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version
     if ($pkgVer -eq "2.0.14") {
@@ -60,7 +83,7 @@ if (Test-Path $pkgJson) {
         Push-Location $RuntimeHome
         $code = Invoke-Npm @("install", "@memtensor/memos-local-plugin@2.0.14-beta.1", "--no-audit", "--no-fund")
         if ($code -eq 0) {
-            & $NodeBin.Source (Join-Path (Split-Path -Parent $NodeBin.Source) "..\node_modules\npm\bin\npm-cli.js") approve-scripts $NativePkgs 2>&1 | Out-Null
+            & $NpmCmdPath approve-scripts $NativePkgs 2>&1 | Out-Null
             Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $NativePkgs) | Out-Null
             $fixed += "package-beta"
             Write-Host "[0/7] package upgraded to 2.0.14-beta.1 (llmFilterEnabled fix)"
@@ -94,7 +117,7 @@ try {
         Write-Host "[1/7] better-sqlite3 bindings: OK"
     } else {
         Write-Host "[1/7] bindings missing - approve-scripts (per-package) + npm rebuild ..."
-        & $NodeBin.Source (Join-Path (Split-Path -Parent $NodeBin.Source) "..\node_modules\npm\bin\npm-cli.js") approve-scripts $NativePkgs 2>&1 | Out-Null
+        & $NpmCmdPath approve-scripts $NativePkgs 2>&1 | Out-Null
         $code = Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $NativePkgs)
         $dbTest = & $NodeBin.Source -e $dbTestExpr 2>&1
         if ($LASTEXITCODE -eq 0) {
