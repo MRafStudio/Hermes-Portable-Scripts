@@ -9,7 +9,10 @@ try:
 except ImportError:
     yaml = None
 
-SILENT_DEFAULTS = {"", "z-ai/glm-5.2", "gpt-4o", "gpt-4o-mini", "deepseek-chat", "deepseek-reasoner"}
+SILENT_DEFAULTS = {
+    "", "z-ai/glm-5.2", "gpt-4o", "gpt-4o-mini", "deepseek-chat", "deepseek-reasoner",
+    "anthropic/claude-opus-4.6",  # рекомендуемая модель Hermes (models.py) — не настройка пользователя
+}
 
 cfg_path = sys.argv[1] if len(sys.argv) > 1 else ""
 
