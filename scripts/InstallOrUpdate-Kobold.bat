@@ -181,7 +181,7 @@ if "!LATEST_VERSION_CLEAN:~0,1!"=="v" set "LATEST_VERSION_CLEAN=!LATEST_VERSION_
 REM --- установленная версия ---
 set "CURRENT_VERSION="
 if exist "%KCPP_EXE%" for /f "tokens=1" %%v in ('"%KCPP_EXE%" --version 2^>nul') do set "CURRENT_VERSION=%%v"
-echo   %ESC%[2m    Установленная: %ESC%[1m!CURRENT_VERSION!%ESC%[0m %ESC%[2m| актуальная: %ESC%[0m!LATEST_VERSION!
+echo   %ESC%[2m    Установленная: %ESC%[1m!CURRENT_VERSION!%ESC%[0m %ESC%[2m^| актуальная: %ESC%[0m!LATEST_VERSION!
 set "NEED_DL=1"
 if defined CURRENT_VERSION if defined LATEST_VERSION_CLEAN if "!CURRENT_VERSION!"=="!LATEST_VERSION_CLEAN!" set "NEED_DL=0"
 if "!NEED_DL!"=="0" (
