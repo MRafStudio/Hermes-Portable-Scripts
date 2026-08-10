@@ -47,9 +47,6 @@ set "MODELS_DIR=%KCPP_DIR%\models"
 set "KCPP_PORT=5101"
 
 set "MODEL_REPO=empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF"
-set "MODEL_BF16=Qwythos-9B-Claude-Mythos-5-1M-BF16.gguf"
-set "MODEL_Q8=Qwythos-9B-Claude-Mythos-5-1M-Q8_0.gguf"
-set "MMPROJ_FILE=mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf"
 
 set "KCPP_VER=1.118.1"
 set "KCPP_FALLBACK_URL=https://github.com/LostRuins/koboldcpp/releases/download/v%KCPP_VER%/koboldcpp.exe"
@@ -80,9 +77,6 @@ REM ============================================================================
 set "KCPP_INSTALLED=0"
 if exist "%KCPP_EXE%" set "KCPP_INSTALLED=1"
 
-set "MODEL_FILE="
-if exist "%MODELS_DIR%\%MODEL_BF16%" set "MODEL_FILE=%MODEL_BF16%"
-if exist "%MODELS_DIR%\%MODEL_Q8%" set "MODEL_FILE=%MODEL_Q8%"
 
 REM ============================================================================
 REM   Меню
@@ -101,13 +95,7 @@ if !KCPP_INSTALLED! equ 1 (
 ) else (
     echo   %ESC%[1;33m. %ESC%[0m KoboldCPP — не установлен
 )
-if exist "%MODELS_DIR%\%MODEL_BF16%" (
-    echo   %ESC%[1;32m+ %ESC%[0m Модель: %ESC%[2m[%MODEL_BF16%] ^(BF16, ^>= 24 GB^)%ESC%[0m
-) else if exist "%MODELS_DIR%\%MODEL_Q8%" (
-    echo   %ESC%[1;32m+ %ESC%[0m Модель: %ESC%[2m[%MODEL_Q8%] ^(Q8_0, ^>= 16 GB^)%ESC%[0m
-) else (
-    echo   %ESC%[1;33m. %ESC%[0m Модель: не установлена
-)
+"%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_models.py" status "%MODELS_DIR%"
 echo   %ESC%[2m       Порт: %KCPP_PORT% (отличается от стандартного 5001)%ESC%[0m
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановить / обновить KoboldCPP%ESC%[0m
@@ -138,55 +126,30 @@ echo   %ESC%[2mИсточник:   GitHub releases (koboldcpp.exe) + Hugging Fac
 echo.
 
 
-REM --- Выбор модели (Enter = уже установленная) ---
-set "HAS_BF16=0"
-set "HAS_Q8=0"
-set "BF16_TAG="
-set "Q8_TAG="
-if exist "%MODELS_DIR%\%MODEL_BF16%" (
-    set "HAS_BF16=1"
-    set "BF16_TAG= %ESC%[1;32m[%MODEL_BF16%]%ESC%[0m"
-)
-if exist "%MODELS_DIR%\%MODEL_Q8%" (
-    set "HAS_Q8=1"
-    set "Q8_TAG= %ESC%[1;32m[%MODEL_Q8%]%ESC%[0m"
-)
-echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mQwythos-9B BF16%ESC%[0m %ESC%[2m^(17.9 GB^)%ESC%[0m — для видеокарт с памятью ^(^>= 24 GB^)!BF16_TAG!
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mQwythos-9B Q8_0%ESC%[0m %ESC%[2m^(9.5 GB^)%ESC%[0m — для видеокарт с памятью ^(^>= 16 GB^)!Q8_TAG!
+REM --- Выбор модели (справочник kobold_models.py; Enter = установленная / из config.yaml) ---
+set "MODEL_COUNT=2"
+for /f "delims=" %%c in ('call "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_models.py" count 2^>nul') do set "MODEL_COUNT=%%c"
+"%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_models.py" menu "%MODELS_DIR%"
 echo.
 set "model_choice="
-set /p "model_choice=%ESC%[33mВыберите модель (1-2) %ESC%[2m[Enter = установленная]%ESC%[0m %ESC%[33m: %ESC%[0m"
+set /p "model_choice=%ESC%[33mВыберите модель (1-!MODEL_COUNT!) %ESC%[2m[Enter = установленная]%ESC%[0m %ESC%[33m: %ESC%[0m"
 set "model_choice=%model_choice: =%"
 REM --- настроенная модель из config.yaml (через hermes config get) ---
 set "CFG_MODEL="
 if exist "%HERMES_EXE%" (
-    for /f "delims=" %%m in ('"%HERMES_EXE%" config get model.default 2^>nul') do set "CFG_MODEL=%%m"
+    for /f "delims=" %%m in ('call "%HERMES_EXE%" config get model.default 2^>nul') do set "CFG_MODEL=%%m"
     if "!CFG_MODEL:~0,18!"=="Config key not set" set "CFG_MODEL="
 )
-set "PREF_FILE="
-if defined CFG_MODEL (
-    echo !CFG_MODEL! | findstr /i "BF16" >nul 2>&1
-    if !errorlevel! equ 0 if exist "%MODELS_DIR%\%MODEL_BF16%" set "PREF_FILE=%MODEL_BF16%"
-    echo !CFG_MODEL! | findstr /i "Q8_0" >nul 2>&1
-    if !errorlevel! equ 0 if exist "%MODELS_DIR%\%MODEL_Q8%" set "PREF_FILE=%MODEL_Q8%"
+set "PICK="
+for /f "delims=" %%p in ('call "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_models.py" pick "!model_choice!" "!CFG_MODEL!" "%MODELS_DIR%" 2^>nul') do set "PICK=%%p"
+if not defined PICK (
+    echo   %ESC%[1;31mНекорректный выбор.%ESC%[0m
+    pause
+    goto install_kobold
 )
-if "!model_choice!"=="1" (
-    set "MODEL_FILE=%MODEL_BF16%"
-) else if "!model_choice!"=="2" (
-    set "MODEL_FILE=%MODEL_Q8%"
-) else (
-    REM ввод не 1/2 (Enter/мусор) — предпочтение из config.yaml, затем установленная
-    if defined PREF_FILE (
-        set "MODEL_FILE=!PREF_FILE!"
-    ) else if !HAS_BF16! equ 1 (
-        set "MODEL_FILE=%MODEL_BF16%"
-    ) else if !HAS_Q8! equ 1 (
-        set "MODEL_FILE=%MODEL_Q8%"
-    ) else (
-        echo   %ESC%[1;31mНекорректный выбор.%ESC%[0m
-        pause
-        goto install_kobold
-    )
+for /f "tokens=1-3 delims=|" %%a in ("!PICK!") do (
+    set "MODEL_FILE=%%b"
+    set "MMPROJ_FILE=%%c"
 )
 set "MODEL_ID=koboldcpp/!MODEL_FILE:.gguf=!"
 set "MODEL_URL=https://huggingface.co/%MODEL_REPO%/resolve/main/%MODEL_FILE%"
@@ -262,7 +225,7 @@ if exist "%PYTHON_EXE%" (
 if exist "%HERMES_EXE%" if exist "%CONFIG_YAML%" (
     set "CUR_MODEL="
     if exist "%PYTHON_EXE%" (
-        for /f "delims=" %%m in ('"%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_check_main_model.py" "%HERMES_EXE%" 2^>nul') do set "CUR_MODEL=%%m"
+        for /f "delims=" %%m in ('call "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_check_main_model.py" "%HERMES_EXE%" 2^>nul') do set "CUR_MODEL=%%m"
     )
     if defined CUR_MODEL (
         echo   %ESC%[1;33m. %ESC%[0m Основная модель уже настроена: %ESC%[1m!CUR_MODEL!%ESC%[0m — не трогаю
