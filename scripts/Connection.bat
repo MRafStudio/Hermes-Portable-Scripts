@@ -91,6 +91,7 @@ if defined AUTH_PASS (
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mИзменить параметры подключения%ESC%[0m
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mИзменить логин и пароль ^(локальный сервер^)%ESC%[0m
+echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mСбросить логин и пароль %ESC%[2m^(для сервера^)%ESC%[0m
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад%ESC%[0m
 echo.
 set "choice="
@@ -98,6 +99,7 @@ set /p "choice=%ESC%[33mВыберите действие: %ESC%[0m"
 if not "!choice!"=="" set "choice=!choice: =!"
 if "!choice!"=="1" goto set_connection
 if "!choice!"=="2" goto set_auth
+if "!choice!"=="3" goto reset_auth
 if "!choice!"=="0" exit /b 0
 goto menu
 
@@ -212,12 +214,36 @@ echo.
 if not "!NEW_PASS!"=="" (
     "%HERMES_EXE%" config set dashboard.basic_auth.username "!NEW_USER!"
     "%HERMES_EXE%" config set dashboard.basic_auth.password "!NEW_PASS!"
-    "%REPO_DIR%\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\update_ini_auth.py" "%START_INI%" "!NEW_USER!" "!NEW_PASS!"
-    echo %ESC%[1;32m+ %ESC%[0mЛогин и пароль обновлены в config.yaml и portable_start.ini.
+    echo %ESC%[1;32m+ %ESC%[0mЛогин и пароль обновлены в config.yaml.
 ) else (
     "%HERMES_EXE%" config set dashboard.basic_auth.username "!NEW_USER!"
     echo %ESC%[1;32m+ %ESC%[0mЛогин обновлён в config.yaml ^(пароль без изменений^).
 )
+echo %ESC%[2m      Перезапустите сервер, чтобы изменения вступили в силу.%ESC%[0m
+echo.
+pause
+goto menu
+
+REM ============================================================================
+REM   [3] Сброс логина и пароля (dashboard.basic_auth)
+REM ============================================================================
+:reset_auth
+cls
+echo.
+echo %ESC%[1;33mСброс логина и пароля %ESC%[2m^(dashboard.basic_auth^)%ESC%[0m
+echo.
+if not exist "%HERMES_EXE%" (
+    echo   %ESC%[1;31m[ОШИБКА] Hermes не найден.%ESC%[0m
+    pause
+    goto menu
+)
+set "confirm="
+set /p "confirm=%ESC%[33mУдалить логин и пароль? [Enter = да, N = нет]: %ESC%[0m"
+if /i "!confirm!"=="N" goto menu
+"%HERMES_EXE%" config unset dashboard.basic_auth.username >nul 2>&1
+"%HERMES_EXE%" config unset dashboard.basic_auth.password >nul 2>&1
+echo.
+echo   %ESC%[1;32m+ %ESC%[0mЛогин и пароль сброшены — авторизация отключена.
 echo %ESC%[2m      Перезапустите сервер, чтобы изменения вступили в силу.%ESC%[0m
 echo.
 pause
