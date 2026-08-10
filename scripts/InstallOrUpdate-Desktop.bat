@@ -550,22 +550,7 @@ REM ============================================================================
 REM   Открытие порта в брандмауэре (удалённый доступ)
 REM ============================================================================
 echo.
-netstat -ano | findstr /c:":9119 " | findstr "LISTENING" >nul 2>&1
-if !errorlevel! equ 0 (
-    echo   %ESC%[1;33m. %ESC%[0mПорт 9119 уже занят — другой экземпляр Hermes: пропуск открытия порта.
-) else (
-    echo   %ESC%[1;33m- %ESC%[0mОткрыть порт 9119 в брандмауэре для доступа с других ПК?
-    net session >nul 2>&1
-    if !errorlevel! neq 0 (
-        echo   %ESC%[33m      Установка запущена НЕ от администратора — порт не открыт.%ESC%[0m
-        echo   %ESC%[33m      Сделайте позже: Start.bat -^> [1] -^> [7]%ESC%[0m
-    ) else (
-        set /p "OPEN_PORT=%ESC%[33m      [Enter = да, N = нет]: %ESC%[0m"
-        if /i not "!OPEN_PORT!"=="N" (
-            call "%SCRIPTS_DIR%\Open-Firewall-Port.bat" 9119 "Hermes Desktop 9119"
-        )
-    )
-)
+call "%SCRIPTS_DIR%\Open-Firewall-Port-Auto.bat" 9119 "Hermes Desktop"
 
 if "%AUTOCLOSE%"=="1" (
     call "%SCRIPTS_DIR%\SmartPause.bat" 5
