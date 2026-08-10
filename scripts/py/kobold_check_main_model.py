@@ -1,38 +1,41 @@
 # kobold_check_main_model.py — проверка, настроена ли основная модель Hermes
-# Печатает значение model.default/model.name, если оно НЕ пустое и НЕ молчаливый дефолт.
+# НЕ парсит YAML вручную — использует штатный механизм Hermes:
+# `hermes config get model.default` / `model.name` (config.py Hermes).
 # Пусто/дефолт → exit 0 с пустым выводом (модель НЕ настроена).
-# Использование: python kobold_check_main_model.py <CONFIG_YAML>
+# Использование: python kobold_check_main_model.py <hermes_exe>
+import subprocess
 import sys
 
-try:
-    import yaml
-except ImportError:
-    yaml = None
-
 SILENT_DEFAULTS = {
-    "", "z-ai/glm-5.2", "gpt-4o", "gpt-4o-mini", "deepseek-chat", "deepseek-reasoner",
+    "",
+    "z-ai/glm-5.2",
+    "gpt-4o",
+    "gpt-4o-mini",
+    "deepseek-chat",
+    "deepseek-reasoner",
     "anthropic/claude-opus-4.6",  # рекомендуемая модель Hermes (models.py) — не настройка пользователя
 }
 
-cfg_path = sys.argv[1] if len(sys.argv) > 1 else ""
 
-cur = ""
-try:
-    if yaml is not None:
-        with open(cfg_path, "r", encoding="utf-8") as f:
-            cfg = yaml.safe_load(f) or {}
-        m = cfg.get("model") or {}
-        cur = str(m.get("default") or m.get("name") or "").strip()
-    else:
-        # фолбэк: грубый grep по строкам
-        with open(cfg_path, "r", encoding="utf-8", errors="replace") as f:
-            for line in f:
-                line = line.strip()
-                if line.startswith("model.default:") or line.startswith("model.name:"):
-                    cur = line.split(":", 1)[1].strip().strip("'\"")
-                    break
-except Exception:
+def config_get(key):
+    try:
+        r = subprocess.run(
+            [hermes_exe, "config", "get", key],
+            capture_output=True, text=True, timeout=60)
+        out = (r.stdout or "").strip()
+        if out and not out.startswith("Config key not set"):
+            return out
+    except Exception:
+        pass  # hermes недоступен — считаем не настроенной
+    return ""
+
+
+if len(sys.argv) < 2:
     sys.exit(1)
+hermes_exe = sys.argv[1]
+
+cur = config_get("model.default") or config_get("model.name")
+cur = cur.strip()
 
 if cur.lower() in SILENT_DEFAULTS:
     sys.exit(0)  # не настроена — пустой вывод
