@@ -7,6 +7,8 @@
 #     embedding.model -> локальная модель (не HF из РФ!)
 #  3. MEMOS_HOME в Start.bat (портабельный runtime home)
 #  4. memory.provider = memtensor (hermes config set)
+#  4a. Плагин memtensor = enabled (hermes plugins enable) - без этого memory tool недоступен!
+#  4b. memory.memory_enabled + user_profile_enabled = true (hermes config set)
 #  5. junction plugins\memtensor
 #  6. embedding-модель Xenova/all-MiniLM-L6-v2 (hf download + локальный прокси)
 #  7. тестовый bridge: БД + viewer + реальный поиск (UTF-8) через API
@@ -305,6 +307,50 @@ if (Test-Path $HermesExe) {
     }
 } else {
     Write-Host "WARNING: hermes.exe not found - set memory.provider manually."
+}
+
+# --- 4a. Плагин memtensor: enabled (без этого memory tool недоступен!) ---
+if (Test-Path $HermesExe) {
+    $pluginStatus = & $HermesExe plugins list --json 2>$null | ConvertFrom-Json
+    $mt = @($pluginStatus | Where-Object { $_.name -eq "memtensor" } | Select-Object -First 1)
+    if ($mt.Count -eq 0 -or $mt[0].status -ne "enabled") {
+        Write-Host "[4a/7] memtensor plugin not enabled - enabling (hermes plugins enable memtensor)..."
+        & $HermesExe plugins enable memtensor | Out-Null
+        $after = & $HermesExe plugins list --json 2>$null | ConvertFrom-Json
+        $mtAfter = @($after | Where-Object { $_.name -eq "memtensor" } | Select-Object -First 1)
+        if ($mtAfter.Count -gt 0 -and $mtAfter[0].status -eq "enabled") {
+            Write-Host "[4a/7] memtensor plugin enabled (verified)"
+            $fixed += "plugin-enabled"
+        } else {
+            Write-Host "WARNING: memtensor plugin still not enabled - check 'hermes plugins list'."
+        }
+    } else {
+        Write-Host "[4a/7] memtensor plugin: OK (enabled)"
+    }
+} else {
+    Write-Host "WARNING: hermes.exe not found - enable memtensor manually (hermes plugins enable memtensor)."
+}
+
+# --- 4b. Память Hermes: memory_enabled + user_profile_enabled (штатный hermes config set!) ---
+if (Test-Path $HermesExe) {
+    $memEnabled = & $HermesExe config get memory.memory_enabled 2>$null
+    if ($memEnabled -match "true") {
+        Write-Host "[4b/7] memory.memory_enabled: OK (true)"
+    } else {
+        & $HermesExe config set memory.memory_enabled true | Out-Null
+        Write-Host "[4b/7] memory.memory_enabled set to true"
+        $fixed += "memory-enabled"
+    }
+    $userProfEnabled = & $HermesExe config get memory.user_profile_enabled 2>$null
+    if ($userProfEnabled -match "true") {
+        Write-Host "[4b/7] memory.user_profile_enabled: OK (true)"
+    } else {
+        & $HermesExe config set memory.user_profile_enabled true | Out-Null
+        Write-Host "[4b/7] memory.user_profile_enabled set to true"
+        $fixed += "user-profile-enabled"
+    }
+} else {
+    Write-Host "WARNING: hermes.exe not found - enable memory manually (hermes config set memory.memory_enabled true)."
 }
 
 # --- 5. junction plugins\memtensor ---
