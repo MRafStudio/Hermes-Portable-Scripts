@@ -54,33 +54,19 @@ if !errorlevel! equ 0 (
 )
 
 REM ============================================================================
-REM   Инстанс 2: MTP-Q6_K :5102 (если не отвечает - запускаем)
-REM ============================================================================
-"%CURL_CMD%" -s --noproxy "*" -m 2 "http://127.0.0.1:5102/v1/models" >nul 2>&1
-if !errorlevel! equ 0 (
-    echo   %ESC%[1;32m+ %ESC%[0m KoboldCPP Q6: уже работает %ESC%[2m^(:5102^)%ESC%[0m
-) else (
-    echo   %ESC%[1;33m. %ESC%[0m KoboldCPP Q6: запускаю %ESC%[2m^(MTP-Q6 :5102^)%ESC%[0m...
-    start /min "KoboldCPP Q6 5102" cmd /c ""%KCPP_DIR%\start_kobold.bat" %MODEL_MTP_Q6% 5102"
-)
-
-REM ============================================================================
-REM   Ожидание ответа обоих (до 60 секунд)
+REM   Ожидание ответа (до 60 секунд)
 REM ============================================================================
 set "READY=0"
 for /l %%i in (1,1,60) do (
     "%CURL_CMD%" -s --noproxy "*" -m 2 "http://127.0.0.1:5101/v1/models" >nul 2>&1
     if !errorlevel! equ 0 (
-        "%CURL_CMD%" -s --noproxy "*" -m 2 "http://127.0.0.1:5102/v1/models" >nul 2>&1
-        if !errorlevel! equ 0 (
-            set "READY=1"
-            goto kobold_up
-        )
+        set "READY=1"
+        goto kobold_up
     )
     timeout /t 1 /nobreak >nul
 )
 if "%READY%"=="0" (
-    echo   %ESC%[1;33m. %ESC%[0m KoboldCPP: один из инстансов ещё грузится %ESC%[2m^(загрузка модели до ~1-2 мин^)%ESC%[0m
+    echo   %ESC%[1;33m. %ESC%[0m KoboldCPP: ещё грузится %ESC%[2m^(загрузка модели до ~1-2 мин^)%ESC%[0m
 )
 exit /b 0
 
