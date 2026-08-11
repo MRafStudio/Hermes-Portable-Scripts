@@ -21,6 +21,7 @@ for m in MODELS:
 
 labels = {m[I_FILE]: m[I_LABEL] for m in MODELS}
 label_txt = ' | '.join(labels.get(f, f) for f in files)
+label_txt = label_txt.replace('|', '^|')  # экранируем пайп в echo (cmd оператор!)
 
 model_args = ' '.join('"%KCPP_DIR%\\models\\' + f + '"' for f in files)
 warn_loop = ''.join(
