@@ -29,6 +29,14 @@ MODELS = [
      "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
     (2, "Qwythos-9B Q8_0", "Qwythos-9B-Claude-Mythos-5-1M-Q8_0.gguf", "9.5 GB", 16,
      "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
+    (3, "Qwythos-9B Q4_K_M", "Qwythos-9B-Claude-Mythos-5-1M-Q4_K_M.gguf", "5.6 GB", 12,
+     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
+    (4, "Qwythos-9B Q6_K", "Qwythos-9B-Claude-Mythos-5-1M-Q6_K.gguf", "7.4 GB", 16,
+     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
+    (5, "Qwythos-9B MTP-Q4_K_M", "Qwythos-9B-Claude-Mythos-5-1M-MTP-Q4_K_M.gguf", "5.9 GB", 12,
+     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
+    (6, "Qwythos-9B MTP-Q5_K_M", "Qwythos-9B-Claude-Mythos-5-1M-MTP-Q5_K_M.gguf", "6.7 GB", 14,
+     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
 ]
 
 ESC = "\x1b"
