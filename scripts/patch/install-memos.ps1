@@ -11,6 +11,9 @@
 #      (именно plugins\<name> БЕЗ memory\ - upstream discovery Hermes)
 #   4. config.yaml плагина (только при НОВОЙ установке; при обновлении настройки сохраняются)
 #   5. memory.provider: memtensor в config.yaml Hermes (hermes config set)
+#   5a. Активация плагина: hermes plugins enable memtensor (иначе плагин виден, но не загружается)
+#   5b. Включение памяти: hermes config set memory.memory_enabled true
+#       + memory.user_profile_enabled true (без этого memory tool: "Memory is not available")
 #
 # При обновлении поверх работающего Hermes: файлы могут быть залочены службой -
 # скрипт остановится с понятным сообщением (пользователь сам остановит службу).
@@ -197,6 +200,53 @@ if (Test-Path $HermesExe) {
     }
 } else {
     Write-Host "WARNING: hermes.exe not found - activate memory.provider manually."
+}
+
+# --- 5a. Активация плагина memtensor в Hermes (plugins enable) ---
+# Установщик ставит junction, но НЕ включает плагин: без этого Hermes видит
+# плагин в списке, но не загружает его, и memory tool остаётся недоступным.
+if (Test-Path $HermesExe) {
+    $pluginStatus = & $HermesExe plugins list --json 2>$null | ConvertFrom-Json
+    $mt = @($pluginStatus | Where-Object { $_.name -eq "memtensor" } | Select-Object -First 1)
+    if ($mt.Count -eq 0 -or $mt[0].status -ne "enabled") {
+        Write-Host "Enabling memtensor plugin (hermes plugins enable) ..."
+        & $HermesExe plugins enable memtensor | Out-Null
+        # Верификация (не верим коду на слово)
+        $after = & $HermesExe plugins list --json 2>$null | ConvertFrom-Json
+        $mtAfter = @($after | Where-Object { $_.name -eq "memtensor" } | Select-Object -First 1)
+        if ($mtAfter.Count -gt 0 -and $mtAfter[0].status -eq "enabled") {
+            Write-Host "memtensor plugin enabled (verified)."
+        } else {
+            Write-Host "WARNING: memtensor plugin still not enabled - check 'hermes plugins list'."
+        }
+    } else {
+        Write-Host "memtensor plugin already enabled."
+    }
+} else {
+    Write-Host "WARNING: hermes.exe not found - enable memtensor plugin manually (hermes plugins enable memtensor)."
+}
+
+# --- 5b. Включение памяти Hermes (memory_enabled + user_profile_enabled) ---
+# Без memory_enabled=true память выключена даже при активном провайдере:
+# memory tool отвечает "Memory is not available". Включаем через штатный
+# hermes config set (никаких ручных правок config.yaml!).
+if (Test-Path $HermesExe) {
+    $memEnabled = & $HermesExe config get memory.memory_enabled 2>$null
+    if ($memEnabled -match "true") {
+        Write-Host "memory.memory_enabled already = true."
+    } else {
+        Write-Host "Enabling memory.memory_enabled ..."
+        & $HermesExe config set memory.memory_enabled true | Out-Null
+    }
+    $userProfEnabled = & $HermesExe config get memory.user_profile_enabled 2>$null
+    if ($userProfEnabled -match "true") {
+        Write-Host "memory.user_profile_enabled already = true."
+    } else {
+        Write-Host "Enabling memory.user_profile_enabled ..."
+        & $HermesExe config set memory.user_profile_enabled true | Out-Null
+    }
+} else {
+    Write-Host "WARNING: hermes.exe not found - enable memory manually (hermes config set memory.memory_enabled true)."
 }
 
 # --- 6. Самотест (self-test) ---
