@@ -1,4 +1,4 @@
-@REM scripts\Start-Kobold-IfNeeded.bat - поднять KoboldCPP (2 инстанса: MTP-Q4 :5101, MTP-Q6 :5102) перед запуском Hermes (если установлен)
+@REM scripts\Start-Kobold-IfNeeded.bat - поднять KoboldCPP (1 инстанс: MTP-Q4 :5101) перед запуском Hermes (если установлен)
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -29,7 +29,6 @@ REM   Параметры KoboldCPP (как в InstallOrUpdate-Kobold.bat)
 REM ============================================================================
 set "KCPP_DIR=%DATA_DIR%\kobold"
 set "MODEL_MTP_Q4=Qwythos-9B-Claude-Mythos-5-1M-MTP-Q4_K_M.gguf"
-set "MODEL_MTP_Q6=Qwythos-9B-Claude-Mythos-5-1M-MTP-Q6_K.gguf"
 set "MMPROJ_FILE=mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf"
 
 set "CURL_CMD=curl"
@@ -40,7 +39,7 @@ REM   Проверка: kobold установлен и модели целые?
 REM ============================================================================
 if not exist "%KCPP_DIR%\koboldcpp.exe" goto not_installed
 if not exist "%KCPP_DIR%\models\%MMPROJ_FILE%" goto not_installed
-if not exist "%KCPP_DIR%\models\%MODEL_MTP_Q4%" if not exist "%KCPP_DIR%\models\%MODEL_MTP_Q6%" goto not_installed
+if not exist "%KCPP_DIR%\models\%MODEL_MTP_Q4%" goto not_installed
 
 REM ============================================================================
 REM   Инстанс 1: MTP-Q4_K_M :5101 (если не отвечает - запускаем)
@@ -71,7 +70,7 @@ if "%READY%"=="0" (
 exit /b 0
 
 :kobold_up
-echo   %ESC%[1;32m+ %ESC%[0m KoboldCPP: оба инстанса отвечают %ESC%[2m^(Q4 :5101, Q6 :5102^)%ESC%[0m
+echo   %ESC%[1;32m+ %ESC%[0m KoboldCPP: инстанс отвечает %ESC%[2m^(Q4 :5101^)%ESC%[0m
 exit /b 0
 
 :not_installed
