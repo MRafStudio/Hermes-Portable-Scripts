@@ -9,7 +9,9 @@
 #   2. npm install + сборка bridge и viewer (vite)
 #   3. Junction: %HERMES_HOME%\plugins\memtensor -> ...\memos-plugin\adapters\hermes\memos_provider
 #      (именно plugins\<name> БЕЗ memory\ - upstream discovery Hermes)
-#   4. config.yaml плагина (только при НОВОЙ установке; при обновлении настройки сохраняются)
+#   4. config.yaml плагина (только при НОВОЙ установке; при обновлении настройки сохраняются):
+#      local embedding (all-MiniLM-L6-v2), embedTraces=true (семантический поиск),
+#      llm=local_only (LLM НЕ впихиваем - кристаллизация включается пользователем отдельно)
 #   5. memory.provider: memtensor в config.yaml Hermes (hermes config set)
 #   5a. Активация плагина: hermes plugins enable memtensor (иначе плагин виден, но не загружается)
 #   5b. Включение памяти: hermes config set memory.memory_enabled true
@@ -155,26 +157,41 @@ if (-not (Test-Path $PluginDir)) {
 }
 
 # --- 4. config.yaml плагина (только при новой установке) ---
+# Целевая конфигурация (согласована с memos-fix.ps1):
+#   * embedding.model -> ЛОКАЛЬНАЯ all-MiniLM-L6-v2 (не HF из РФ) - семантический поиск
+#   * capture.embedTraces: true - эмбеддинги пишутся на каждый ход: новый trace
+#     сразу находится по смыслу, ручной rebuild не нужен
+#   * llm.provider: local_only - LLM НЕ настраиваем принудительно (автономный
+#     режим: базовая память работает без LLM). Кристаллизация L2/L3 требует LLM -
+#     включить при желании через viewer (:18800, Config) или вручную:
+#     openai_compatible + внешний endpoint (deepseek и т.п.) либо provider: host
+#     (LLM через сам Hermes). Локальный kobold для этого НЕ используем (медленно).
 $pluginCfg = Join-Path $RuntimeHome "config.yaml"
 if (-not (Test-Path $pluginCfg)) {
-    Write-Host "Writing plugin config.yaml (local embedder, kobold :5101, lightweight, telemetry OFF)..."
+    Write-Host "Writing plugin config.yaml (local embedder, no forced LLM, embedTraces=true, lightweight, telemetry OFF)..."
     @"
 version: 1
 viewer:
   port: 18800
 embedding:
   provider: local
-  apiKey: ""
+  apiKey: ***
+  model: ${RuntimeHome}\models\all-MiniLM-L6-v2
 llm:
-  provider: openai_compatible
-  endpoint: http://127.0.0.1:5101/v1
-  apiKey: ""
+  provider: local_only
+  endpoint: ""
+  apiKey: ***
   model: ""
 storage:
   ftsTokenizer: trigram
 algorithm:
   lightweightMemory:
     enabled: true
+  capture:
+    embedTraces: true
+  retrieval:
+    llmFilterEnabled: false
+    llmFilterMinCandidates: 50
 hub:
   enabled: false
   address: ""
@@ -186,7 +203,7 @@ logging:
   detailedView: false
 "@ | Set-Content -Path $pluginCfg -Encoding UTF8
 } else {
-    Write-Host "Plugin config.yaml exists - keeping user settings."
+    Write-Host "Plugin config.yaml exists - keeping user settings (re-run memos-fix.ps1 to realign)."
 }
 
 # --- 5. Активация провайдера в Hermes ---

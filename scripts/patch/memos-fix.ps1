@@ -3,8 +3,8 @@
 # Правило: скрипты вендора НЕ трогаем - проверяем недостающее и ДОУСТАНАВЛИВАЕМ.
 #  1. native bindings (better-sqlite3) - approve-scripts (поштучно!) + npm rebuild
 #  2. config.yaml - через ШТАТНЫЙ API bridge (GET/PATCH /api/v1/config):
-#     endpoint kobold :5101, lightweightMemory=false, llmFilterEnabled=false,
-#     embedding.model -> локальная модель (не HF из РФ!)
+#     llm local_only (НЕ впихиваем LLM), lightweightMemory=true, llmFilterEnabled=false,
+#     embedTraces=true (семантический поиск), embedding.model -> локальная модель (не HF из РФ!)
 #  3. MEMOS_HOME в Start.bat (портабельный runtime home)
 #  4. memory.provider = memtensor (hermes config set)
 #  4a. Плагин memtensor = enabled (hermes plugins enable) - без этого memory tool недоступен!
@@ -223,9 +223,10 @@ if ($viewerOk) {
     } catch { }
     if ($cfg) {
         $patch = @{}
-        # АВТОНОМНЫЙ режим: MemOS работает БЕЗ LLM (kobold НЕ нужен для памяти!).
-        # provider=local_only: фоновая рефлексия/суммаризация не грузят kobold,
-        # capture ~2мс, поиск ~3-60мс. Агент может вернуть openai_compatible позже.
+        # llm: НЕ впихиваем насильно. local_only = автономный режим: базовая память
+        # (capture/search) работает БЕЗ LLM, фоновые задачи не грузят kobold.
+        # Кристаллизация L2/L3 (требует LLM) включается пользователем отдельно -
+        # через viewer Config (openai_compatible + внешний endpoint, или host).
         $llmProvider = $cfg.config.llm.provider
         if ($llmProvider -ne "local_only") {
             $patch.llm = @{ provider = "local_only" }
@@ -237,13 +238,14 @@ if ($viewerOk) {
             if (-not $patch.algorithm) { $patch.algorithm = @{} }
             $patch.algorithm.lightweightMemory = @{ enabled = $true }
         }
-        # эмбеддинги НЕ на каждый ход (массовая загрузка мгновенная) - пересчёт через
-        # POST /api/v1/embeddings/rebuild (локально, без LLM)
+        # embedTraces=true: эмбеддинги пишутся на каждый ход - новый trace сразу
+        # находится по смыслу (семантический поиск), ручной rebuild не нужен.
+        # Старые трассы (созданные при embedTraces=false) добиваем rebuild'ом в шаге 7b.
         $et = $cfg.config.algorithm.capture.embedTraces
-        if ($et -ne $false) {
+        if ($et -ne $true) {
             if (-not $patch.algorithm) { $patch.algorithm = @{} }
             if (-not $patch.algorithm.capture) { $patch.algorithm.capture = @{} }
-            $patch.algorithm.capture.embedTraces = $false
+            $patch.algorithm.capture.embedTraces = $true
         }
         # финальный LLM-фильтр поиска: выключен + не запускается при <50 кандидатов
         $lf = $cfg.config.algorithm.retrieval.llmFilterEnabled
@@ -273,7 +275,7 @@ if ($viewerOk) {
                 Write-Host "WARNING: config PATCH failed: $($_.Exception.Message)"
             }
         } else {
-            Write-Host "[2/7] config.yaml: OK (kobold :5101, lightweight OFF, llmFilter OFF, local embedder)"
+            Write-Host "[2/7] config.yaml: OK (llm local_only, lightweight ON, llmFilter OFF, embedTraces=true, local embedder)"
         }
     }
 } else {
