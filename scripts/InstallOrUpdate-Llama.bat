@@ -45,13 +45,29 @@ if exist "%LLAMA_DIR%\llama-server.exe" (
 ) else (
     echo %ESC%[1;33m. %ESC%[0m llama.cpp: скачиваю свежий релиз ^(GitHub, CUDA 13.3^)...
     cd /d "%LLAMA_DIR%"
-    curl -L --noproxy "*" -o llama-bin.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/llama-bin-win-cuda-13.3-x64.zip" >nul 2>&1
+    REM актуальное имя ассета через GitHub API (llama.cpp переименовал: llama-<build>-bin-win-...!)
+    set "LLAMA_ASSET="
+    for /f "delims=" %%a in ('"%PY%" "%SCRIPTS_DIR%\py\llama_latest_asset.py"') do set "LLAMA_ASSET=%%a"
+    if "%LLAMA_ASSET%"=="" (
+        echo   %ESC%[31m[ERROR]%ESC%[0m не удалось получить имя ассета llama.cpp ^(API^)
+        pause
+        goto menu
+    )
+    curl -L --noproxy "*" -o llama-bin.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/%LLAMA_ASSET%" >nul 2>&1
+    if errorlevel 1 (
+        echo   %ESC%[1;33m  .   GitHub недоступен - пробуем через прокси ^(фоллбэк^)...%ESC%[0m
+        curl -L -x http://127.0.0.1:10809 -o llama-bin.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/%LLAMA_ASSET%" >nul 2>&1
+    )
     if errorlevel 1 (
         echo   %ESC%[31m[ERROR]%ESC%[0m не удалось скачать llama.cpp
         pause
         goto menu
     )
     curl -L --noproxy "*" -o llama-cudart.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/cudart-llama-bin-win-cuda-13.3-x64.zip" >nul 2>&1
+    if errorlevel 1 (
+        echo   %ESC%[1;33m  .   GitHub недоступен - пробуем через прокси ^(фоллбэк^)...%ESC%[0m
+        curl -L -x http://127.0.0.1:10809 -o llama-cudart.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/cudart-llama-bin-win-cuda-13.3-x64.zip" >nul 2>&1
+    )
     if errorlevel 1 (
         echo   %ESC%[31m[ERROR]%ESC%[0m не удалось скачать CUDA runtime
         pause
