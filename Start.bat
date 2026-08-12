@@ -11,6 +11,16 @@ REM   Пути (относительно Start.bat)
 REM ============================================================================
 for %%F in ("%~dp0") do set "ROOT_DIR=%%~fF"
 set "ROOT_DIR=%ROOT_DIR:~0,-1%"
+REM   Прокси-env (если v2RayTun активен - :10809 слушает!) - чтобы npm/curl/Electron
+REM   ходили через VPN (иначе РКН режет GitHub/Electron - установка падает!)
+curl -s -o nul --max-time 2 http://127.0.0.1:10809 >nul 2>&1
+if not errorlevel 1 (
+    set "HTTP_PROXY=http://127.0.0.1:10809"
+    set "HTTPS_PROXY=http://127.0.0.1:10809"
+    set "http_proxy=http://127.0.0.1:10809"
+    set "https_proxy=http://127.0.0.1:10809"
+    echo   Прокси v2RayTun :10809 активен - npm/curl пойдут через VPN
+)
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 
 REM HERMES_HOME — критично для Hermes!
