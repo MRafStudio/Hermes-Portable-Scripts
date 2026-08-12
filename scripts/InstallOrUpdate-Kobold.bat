@@ -297,7 +297,17 @@ if exist "%SCRIPTS_DIR%\skills" (
     if errorlevel 1 (
         echo   %ESC%[1;33m    Внимание: часть скиллов не скопировалась.%ESC%[0m
     ) else (
-        echo   %ESC%[1;32m+ %ESC%[0m Скиллы установлены (autonomous-execution и др.)
+        echo   %ESC%[1;32m+ %ESC%[0m Скиллы из репозитория установлены
+    )
+)
+
+REM   default_soul.md → %HERMES_HOME%\SOUL.md (только если его ещё нет — не затираем правки!)
+if exist "%SCRIPTS_DIR%\default_soul.md" (
+    if not exist "%HERMES_HOME%\SOUL.md" (
+        copy /y "%SCRIPTS_DIR%\default_soul.md" "%HERMES_HOME%\SOUL.md" >nul 2>&1
+        echo   %ESC%[1;32m+ %ESC%[0m SOUL.md установлен ^(автономный промпт^)
+    ) else (
+        echo   %ESC%[2m    SOUL.md уже есть — пропуск ^(сохраняем правки^)%ESC%[0m
     )
 )
 
