@@ -125,13 +125,22 @@ if not exist "%KCPP_MODELS%\%MMPROJ_FILE%" (
 
 REM ============================================================================
 REM   Генерация start_llama.bat (llama.cpp-флаги)
+REM   НЕ перегенерируем, если файл уже есть (правки пользователя сохраняются!)
 REM ============================================================================
+if exist "%LLAMA_DIR%\start_llama.bat" (
+    echo   %ESC%[2m    start_llama.bat уже есть - правки пользователя сохраняются%ESC%[0m
+    echo   %ESC%[2m    ^(для перегенерации: удали файл или ответь y на вопрос ниже^)%ESC%[0m
+    set "reg="
+    set /p "reg=%ESC%[33mПерегенерировать start_llama.bat (y/N)? %ESC%[0m"
+    if /i not "%reg%"=="y" goto skip_gen
+)
 "%PY%" "%SCRIPTS_DIR%\py\llama_gen_startbat.py" "%LLAMA_DIR%" "%MODEL_FILE%" "%MMPROJ_FILE%" 8080 %MODEL_MAXCTX%
 if errorlevel 1 (
     echo   %ESC%[31m[ERROR]%ESC%[0m генерация start_llama.bat не удалась
     pause
     goto menu
 )
+:skip_gen
 
 REM ============================================================================
 REM   4/4 Настройка Hermes (providers.llama + default + context_length)
