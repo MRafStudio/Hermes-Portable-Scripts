@@ -58,7 +58,7 @@ REM ============================================================================
 if exist "%PY%" (
     "%PY%" "%SCRIPTS_DIR%\py\normalize_crlf.py" "%ROOT_DIR%"
     if !errorlevel! equ 0 (
-        echo %ESC%[1;32m  +   CRLF: все .bat в порядке (Windows-формат)!%ESC%[0m
+        echo %ESC%[1;32m  +   CRLF: все .bat в порядке ^(Windows-формат^)!%ESC%[0m
     ) else (
         echo %ESC%[1;33m  .   CRLF: файлы с LF найдены - исправьте или повторите.%ESC%[0m
     )
@@ -70,7 +70,7 @@ REM   ВАЖНО: без этого после сноса полигона ск�
 REM ============================================================================
 if exist "%SCRIPTS_DIR%\skills" (
     xcopy /y /e /i /q "%SCRIPTS_DIR%\skills" "%DATA_DIR%\hermes\skills" >nul 2>&1
-    echo   %ESC%[2m  Скиллы синхронизированы (%DATA_DIR%\hermes\skills)%ESC%[0m
+    echo   %ESC%[2m  Скиллы синхронизированы ^(%DATA_DIR%\hermes\skills^)%ESC%[0m
 )
 :status
 set "LLAMA_EXE=%DATA_DIR%\llama\llama-server.exe"
