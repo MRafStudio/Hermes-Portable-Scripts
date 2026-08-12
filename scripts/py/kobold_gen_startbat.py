@@ -1,7 +1,7 @@
 # kobold_gen_startbat.py — генерация start_kobold.bat (UTF-8, CRLF, chcp 65001) для data\kobold
 # Использование: python kobold_gen_startbat.py <KCPP_DIR> <MODEL_FILE> <MMPROJ_FILE> [PORT]
 # Генерит ОДИН инстанс (модель + порт из аргументов) — для схемы "2 инстанса" (Q4:5101, Q6:5102).
-# Параметры под Gemma-3-27B: --contextsize 65536 (64K) --defaultgenamt 16384 (БЕЗ quantkv: q4_0 MMQ на Blackwell = 0.3 T/s; f16 = 47 T/s)
+# Параметры под Qwen3.6-35B-A3B: --contextsize 262144 (256K нативный, KV ~12.6GB) --usemtp (MTP-обучена) --flashattention (НЕ SWA)
 import os
 import sys
 
@@ -28,9 +28,9 @@ lines = [
     '    pause',
     '    exit /b 1',
     ')',
-    'echo Запуск KoboldCPP: %MODEL% ^| порт %PORT% ^| контекст 64K (KV f16 - БЕЗ quantkv: 43 T/s!)',
+    'echo Запуск KoboldCPP: %MODEL% ^| порт %PORT% ^| контекст 256K (нативный, KV 12.6GB) + MTP + flash',
     'echo Загрузка модели до ~1-2 мин...',
-    '"%KCPP_DIR%\\koboldcpp.exe" --model "%MODEL_PATH%" --mmproj "%MMPROJ%" --gpulayers 999 --contextsize 65536 --defaultgenamt 16384 --batchsize 4096 --host 0.0.0.0 --port %PORT%',
+    '"%KCPP_DIR%\\koboldcpp.exe" --model "%MODEL_PATH%" --mmproj "%MMPROJ%" --usemtp --gpulayers 999 --contextsize 262144 --defaultgenamt 16384 --batchsize 4096 --flashattention --host 0.0.0.0 --port %PORT%',
     'pause',
 ]
 content = '\r\n'.join(lines) + '\r\n'
