@@ -210,11 +210,11 @@ if exist "%SCRIPTS_DIR%\skills\software-development" (
         "%HERMES_BIN%" skills list >"%TEMP%\hermes_skills_check.txt" 2>&1
         if !errorlevel! equ 0 (
             set "MISSING=0"
-            for %%S in (memos-tool-id-formats windows-gitbash-terminal hermes-portable-maintenance memos-memory-management memos-memory-diagnosis v2raytun-failover autonomous-execution) do (
+            for %%S in (memos-tool-id-formats windows-gitbash-terminal hermes-portable-maintenance memos-memory-management memos-memory-diagnosis v2raytun-failover autonomous-execution llama-cpp-server-management hermes-token-saving sdlc-review research-paper-writing windows-batch-scripting) do (
                 findstr /c:"%%S" "%TEMP%\hermes_skills_check.txt" >nul 2>&1 || set "MISSING=1"
             )
             if "!MISSING!"=="0" (
-                echo %ESC%[1;32m  +   Проверка: ВСЕ 7 кастомных скиллов на месте (hermes skills list)!%ESC%[0m
+                echo %ESC%[1;32m  +   Проверка: ВСЕ 12 кастомных скиллов на месте (hermes skills list)!%ESC%[0m
             ) else (
                 echo %ESC%[1;33m  .   ВНИМАНИЕ: не все скиллы видны (проверьте hermes skills list) — копия выполнена.%ESC%[0m
             )
