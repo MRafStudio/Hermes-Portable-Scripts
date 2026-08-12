@@ -177,7 +177,11 @@ REM ============================================================================
 if defined MODEL_MAXCTX (
     call "%HERMES_EXE%" config set model.context_length "%MODEL_MAXCTX%" >nul 2>&1
     call "%HERMES_EXE%" config set providers.kobold.context_length "%MODEL_MAXCTX%" >nul 2>&1
-    echo   %ESC%[1;32m+ %ESC%[0m Hermes-контекст установлен: %MODEL_MAXCTX% (%MODEL_FILE%)
+    rem model.default — под выбранную модель (koboldcpp/<имя без .gguf>)
+    for %%m in ("!MODEL_FILE!") do (
+        call "%HERMES_EXE%" config set model.default "koboldcpp/%%~nm" >nul 2>&1
+    )
+    echo   %ESC%[1;32m+ %ESC%[0m Hermes-контекст и модель установлены ^(max_ctx=%MODEL_MAXCTX%^)
 )
 
 REM ============================================================================
