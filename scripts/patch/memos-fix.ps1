@@ -223,12 +223,38 @@ if ($viewerOk) {
     } catch { }
     if ($cfg) {
         $patch = @{}
-        # llm: НЕ впихиваем насильно. local_only = автономный режим: базовая память
-        # (capture/search) работает БЕЗ LLM, фоновые задачи не грузят kobold.
-        # Кристаллизация L2/L3 (требует LLM) включается пользователем отдельно -
-        # через viewer Config (openai_compatible + внешний endpoint, или host).
+        # --- 2b. Кристаллизация через deepseek (по желанию пользователя!) ---
+        # (а) ключ из окружения DEEPSEEK_API_KEY (если есть) - без вопросов;
+        # (б) иначе спросить: ввести ключ (кристаллизация через deepseek) или отказаться (local_only).
+        $useDeepSeek = $false
+        $dsKey = ""
+        if ($env:DEEPSEEK_API_KEY -and $env:DEEPSEEK_API_KEY.Trim() -ne "") {
+            $useDeepSeek = $true
+            $dsKey = $env:DEEPSEEK_API_KEY.Trim()
+            Write-Host "  Кристаллизация: deepseek (ключ DEEPSEEK_API_KEY из окружения)"
+        } else {
+            $resp = Read-Host "  Кристаллизация через deepseek? (Y - ввести ключ, N - автономно без LLM) [N]"
+            if ($resp -match "^[yYдД]") {
+                $sec = Read-Host "  Введи deepseek API-ключ (sk-...):" -AsSecureString
+                if ($sec) {
+                    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+                    $dsKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+                    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+                    if ($dsKey.Trim() -ne "") { $useDeepSeek = $true }
+                }
+            }
+        }
+        # llm: deepseek (если пользователь дал ключ) ИЛИ local_only (автономный режим - без LLM).
         $llmProvider = $cfg.config.llm.provider
-        if ($llmProvider -ne "local_only") {
+        if ($useDeepSeek) {
+            $patch.llm = @{
+                provider = "openai_compatible"
+                endpoint = "https://api.deepseek.com/v1"
+                apiKey = $dsKey
+                model = "deepseek-v4-flash"
+            }
+            Write-Host "  Кристаллизация: deepseek (openai_compatible, model=deepseek-v4-flash)"
+        } elseif ($llmProvider -ne "local_only") {
             $patch.llm = @{ provider = "local_only" }
         }
         # fallbackToHost=false: summarizer/кристаллизация НЕ падают в fallback на host-LLM (kobold!)
