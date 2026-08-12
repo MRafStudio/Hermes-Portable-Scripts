@@ -244,8 +244,12 @@ echo.
 echo %ESC%[1;33m Настройка Hermes...%ESC%[0m
 
 if exist "%PYTHON_EXE%" (
-    "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_gen_startbat.py" "%KCPP_DIR%" "%MODEL_FILE%" "%MMPROJ_FILE%" "%KCPP_PORT%"
-    if errorlevel 1 echo   %ESC%[1;31m[ОШИБКА] start_kobold.bat не создан.%ESC%[0m
+    if not exist "%KCPP_DIR%\start_kobold.bat" (
+        "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\kobold_gen_startbat.py" "%KCPP_DIR%" "%MODEL_FILE%" "%MMPROJ_FILE%" "%KCPP_PORT%"
+        if errorlevel 1 echo   %ESC%[1;31m[ОШИБКА] start_kobold.bat не создан.%ESC%[0m
+    ) else (
+        echo   %ESC%[2m    start_kobold.bat уже есть - правки пользователя сохраняются%ESC%[0m
+    )
 ) else (
     echo   %ESC%[1;33m    python не найден — start_kobold.bat пропущен.%ESC%[0m
 )
