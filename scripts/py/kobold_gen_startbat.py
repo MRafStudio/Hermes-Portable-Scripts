@@ -32,7 +32,7 @@ lines = [
     ')',
     'echo Запуск KoboldCPP: %MODEL% ^| порт %PORT% ^| контекст 256K (нативный, KV 12.6GB) + MTP + flash',
     'echo Загрузка модели до ~1-2 мин...',
-    '"%KCPP_DIR%\\koboldcpp.exe" --model "%MODEL_PATH%" --mmproj "%MMPROJ%" --usemtp --gpulayers 999 --contextsize 262144 --defaultgenamt 16384 --batchsize 4096 --flashattention --reasoningeffort none --smartcache 0 --chatcompletionsadapter ChatML-NoThink --host 0.0.0.0 --port %PORT%',
+    '"%KCPP_DIR%\\koboldcpp.exe" --model "%MODEL_PATH%" --mmproj "%MMPROJ%" --usemtp --gpulayers 999 --contextsize 262144 --defaultgenamt 16384 --batchsize 4096 --flashattention --reasoningeffort none --smartcache 0 --host 0.0.0.0 --port %PORT%',
     'pause',
 ]
 content = '\r\n'.join(lines) + '\r\n'
