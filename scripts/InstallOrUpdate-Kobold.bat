@@ -301,10 +301,10 @@ if exist "%SCRIPTS_DIR%\skills" (
     )
 )
 
-REM   default_soul.md → %HERMES_HOME%\SOUL.md (только если его ещё нет — не затираем правки!)
-if exist "%SCRIPTS_DIR%\default_soul.md" (
+REM   default_soul.md (из scripts\patch) → %HERMES_HOME%\SOUL.md (только если его ещё нет — не затираем правки!)
+if exist "%SCRIPTS_DIR%\patch\default_soul.md" (
     if not exist "%HERMES_HOME%\SOUL.md" (
-        copy /y "%SCRIPTS_DIR%\default_soul.md" "%HERMES_HOME%\SOUL.md" >nul 2>&1
+        copy /y "%SCRIPTS_DIR%\patch\default_soul.md" "%HERMES_HOME%\SOUL.md" >nul 2>&1
         echo   %ESC%[1;32m+ %ESC%[0m SOUL.md установлен ^(автономный промпт^)
     ) else (
         echo   %ESC%[2m    SOUL.md уже есть — пропуск ^(сохраняем правки^)%ESC%[0m
