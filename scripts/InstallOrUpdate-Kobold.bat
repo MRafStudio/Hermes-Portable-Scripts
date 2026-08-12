@@ -278,6 +278,20 @@ if exist "%HERMES_EXE%" if exist "%CONFIG_YAML%" (
     echo   %ESC%[1;33m    Hermes не установлен — настройка конфигурации пропущена.%ESC%[0m
 )
 
+REM ============================================================================
+REM   Скиллы из репозитория (scripts\skills\...) → %HERMES_HOME%\skills\
+REM   Каждый скилл — в своей папке (структура сохраняется через xcopy /e)
+REM ============================================================================
+if exist "%SCRIPTS_DIR%\skills" (
+    echo   %ESC%[1;33m. %ESC%[0m Скиллы: копирую из репозитория в Hermes...
+    xcopy "%SCRIPTS_DIR%\skills" "%HERMES_HOME%\skills" /e /i /y /q >nul 2>&1
+    if errorlevel 1 (
+        echo   %ESC%[1;33m    Внимание: часть скиллов не скопировалась.%ESC%[0m
+    ) else (
+        echo   %ESC%[1;32m+ %ESC%[0m Скиллы установлены (autonomous-execution и др.)
+    )
+)
+
 echo.
 echo %ESC%[1;32m Готово!%ESC%[0m
 echo.
