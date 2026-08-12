@@ -187,7 +187,28 @@ if ($viewerOk) {
         # (б) иначе спросить: ввести ключ (кристаллизация через deepseek) или отказаться (local_only).
         $useDeepSeek = $false
         $dsKey = ""
-        if ($env:DEEPSEEK_API_KEY -and $env:DEEPSEEK_API_KEY.Trim() -ne "") {
+        # Ключ уже настроен в config.yaml? (реальный, не маскировка '***')
+        $existingKey = ""
+        $cfgPath2 = Join-Path $RuntimeHome "config.yaml"
+        if (Test-Path $cfgPath2) {
+            $rawCfg = Get-Content -Path $cfgPath2 -Raw -Encoding UTF8
+            if ($rawCfg -match 'apiKey:\s*"?(sk-[^"
+\n]+)"?') { $existingKey = $Matches[1].Trim() }
+        }
+        if ($existingKey.Length -gt 10) {
+            $useDeepSeek = $true
+            $dsKey = $existingKey
+            $tail = $existingKey.Substring([Math]::Max(0, $existingKey.Length - 4))
+            Write-Host "  Crystallization: deepseek key already configured (sk-...$tail) - keeping it"
+            $resp2 = Read-Host "  Replace deepseek key? (Y - enter new, N - keep existing) [N]"
+            if ($resp2 -match "^[yY]") {
+                $sec = Read-Host "  Enter new deepseek API key (sk-...):" -AsSecureString
+                $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+                $dsKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+                [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+                if ($dsKey.Trim() -eq "") { $dsKey = $existingKey; Write-Host "  Empty input - keeping existing key." }
+            }
+        } elseif ($env:DEEPSEEK_API_KEY -and $env:DEEPSEEK_API_KEY.Trim() -ne "") {
             $useDeepSeek = $true
             $dsKey = $env:DEEPSEEK_API_KEY.Trim()
             Write-Host "  Crystallization: deepseek (DEEPSEEK_API_KEY from env)"
@@ -195,12 +216,10 @@ if ($viewerOk) {
             $resp = Read-Host "  Crystallization via deepseek? (Y - enter key, N - autonomous without LLM) [N]"
             if ($resp -match "^[yY]") {
                 $sec = Read-Host "  Enter deepseek API key (sk-...):" -AsSecureString
-                if ($sec) {
-                    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
-                    $dsKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
-                    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
-                    if ($dsKey.Trim() -ne "") { $useDeepSeek = $true }
-                }
+                $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+                $dsKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
+                [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+                if ($dsKey.Trim() -ne "") { $useDeepSeek = $true }
             }
         }
         # llm: deepseek (если пользователь дал ключ) ИЛИ local_only (автономный режим - без LLM).
