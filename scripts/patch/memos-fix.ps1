@@ -209,7 +209,8 @@ if ($viewerOk) {
             $patch.llm = @{
                 provider = "openai_compatible"
                 endpoint = "https://api.deepseek.com/v1"
-                apiKey = $dsKey
+                # apiKey НЕ шлём в PATCH: writer плагина МАСКИРУЕТ его (пишет '***' -
+                # невалидный YAML для 2.0.15 - daemon падает!). Ключ пишем НАПРЯМУЮ после PATCH.
                 model = "deepseek-v4-flash"
             }
             Write-Host "  Crystallization: deepseek (openai_compatible, model=deepseek-v4-flash)"
@@ -255,6 +256,8 @@ if ($viewerOk) {
         }
         if ($patch.Count -gt 0) {
             $body = $patch | ConvertTo-Json -Depth 6 -Compress
+            # БЭКАП config.yaml перед правкой (минное поле - откат при поломке!)
+            Copy-Item -Path (Join-Path $RuntimeHome "config.yaml") -Destination (Join-Path $RuntimeHome "config.yaml.bak") -Force
             try {
                 Invoke-RestMethod -Uri "http://127.0.0.1:18800/api/v1/config" -Method Patch -Body $body -ContentType "application/json" -TimeoutSec 10 | Out-Null
                 Write-Host "[2/7] config.yaml fixed via API (PATCH /api/v1/config): $($patch.Keys -join ', ')"
@@ -264,6 +267,25 @@ if ($viewerOk) {
             }
         } else {
             Write-Host "[2/7] config.yaml: OK (llm local_only, lightweight ON, llmFilter OFF, embedTraces=true, local embedder)"
+        }
+        # apiKey ПИШЕМ НАПРЯМУЮ (writer маскирует -> '***' ломает YAML 2.0.15!):
+        # строка apiKey: "реальный" - в кавычках (YAML-строка, не alias!)
+        if ($useDeepSeek -and $dsKey) {
+            $cfgPath = Join-Path $RuntimeHome "config.yaml"
+            $raw = Get-Content -Path $cfgPath -Raw -Encoding UTF8
+            $raw = [regex]::Replace($raw, 'apiKey:\s*"?[^"
+\n]*"?', ('apiKey: "' + $dsKey + '"'))
+            Set-Content -Path $cfgPath -Value $raw -Encoding UTF8 -NoNewline
+            Write-Host "  apiKey: written directly (bypass writer masking)"
+            $fixed += "apikey"
+        }
+        # ВАЛИДАЦИЯ YAML после любых правок (минное поле!): node + js-yaml (модуль плагина)
+        & node -e "const y=require('js-yaml');const fs=require('fs');try{y.load(fs.readFileSync(process.argv[1],'utf8'));process.exit(0)}catch(e){console.error(e.message);process.exit(1)}" (Join-Path $RuntimeHome "config.yaml")
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  config.yaml: YAML valid"
+        } else {
+            Write-Host "  ERROR: config.yaml INVALID after fix - restoring backup!"
+            Copy-Item -Path (Join-Path $RuntimeHome "config.yaml.bak") -Destination (Join-Path $RuntimeHome "config.yaml") -Force
         }
     }
 } else {
