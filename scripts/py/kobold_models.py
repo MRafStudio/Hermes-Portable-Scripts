@@ -1,7 +1,7 @@
 # kobold_models.py — справочник разрешённых моделей KoboldCPP и их проекторов (mmproj)
 # Каждая запись: (id, КОРОТКОЕ имя, ПОЛНОЕ имя с расширением, размер, мин. VRAM GB, mmproj, repo)
-#   Пример: (1, "Qwythos-9B BF16", "Qwythos-9B-Claude-Mythos-5-1M-BF16.gguf", "17.9 GB", 24,
-#            "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", "empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF")
+#   Пример: (1, "Gemma-3-27B Q4_K_M", "gemma-3-27b-it.Q4_K_M.gguf", "16.6 GB", 20,
+#            "mmproj-gemma3-q8_0.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF")
 # ВАЖНО: полное имя ОБЯЗАТЕЛЬНО с расширением .gguf (имя файла на диске; в model.default оно без
 # расширения — сопоставление в pick/label учитывает это). repo — путь для скачивания с Hugging Face.
 # Несколько моделей могут делить один mmproj; у каждой модели может быть свой mmproj и repo.
@@ -21,7 +21,7 @@
 import os
 import sys
 
-REPO_DEFAULT = "empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF"
+REPO_DEFAULT = "MaziyarPanahi/gemma-3-27b-it-GGUF"
 
 MODELS = [
     # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj, repo для скачивания с HF)
