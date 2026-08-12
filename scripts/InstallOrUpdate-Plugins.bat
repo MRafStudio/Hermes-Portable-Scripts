@@ -51,6 +51,13 @@ set "SERVICE_NAME=LlamaCPP"
 REM ============================================================================
 REM   Статусы плагинов
 REM ============================================================================
+REM   Синхронизация наработанных скиллов (scripts\skills -> data\hermes\skills!)
+REM   ВАЖНО: без этого после сноса полигона скиллы не восстановятся!
+REM ============================================================================
+if exist "%SCRIPTS_DIR%\skills" (
+    xcopy /y /e /i /q "%SCRIPTS_DIR%\skills" "%DATA_DIR%\hermes\skills" >nul 2>&1
+    echo   %ESC%[2m  Скиллы синхронизированы (%DATA_DIR%\hermes\skills)%ESC%[0m
+)
 :status
 set "LLAMA_EXE=%DATA_DIR%\llama\llama-server.exe"
 set "LLM_INSTALLED=0"
