@@ -46,6 +46,11 @@ Use this skill when the user asks for:
 - ✗ One tool call, then a final answer — when 5 more are obviously needed.
 - ✗ Describing what you WOULD do instead of doing it.
 - ✗ Stopping after a confirmation ("Готово!") without showing evidence.
+- ✗ **Repeating the SAME failing call 2+ times** (same error, same params) — that is a stuck loop, not persistence. CHANGE the approach: correct endpoint/path/format, check docs, try a variant (e.g. `/health` 404 → try `/api/v1/health`).
+
+## Stuck-loop escape rule (CRITICAL)
+
+If the SAME tool call fails with the SAME error 2+ times: STOP repeating it. Change ONE thing — the path, the parameter, the format, or the tool itself — then retry. Never hammer an identical failing call: that is HALT too. Example: `GET /health` → 404 → switch to `GET /api/v1/health` (worked: 200).
 
 ## Positive pattern
 
