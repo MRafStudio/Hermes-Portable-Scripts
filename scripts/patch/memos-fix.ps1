@@ -231,6 +231,9 @@ if ($viewerOk) {
         if ($llmProvider -ne "local_only") {
             $patch.llm = @{ provider = "local_only" }
         }
+        # fallbackToHost=false: summarizer/кристаллизация НЕ падают в fallback на host-LLM (kobold!)
+        # (иначе local_only всё равно мучает kobold через Hermes-bridge - проверено 12.08)
+        $patch.llm.fallbackToHost = $false
         # lightweight=true: только summarize+embed+retrieval, нет фоновых LLM-задач
         # (с local_only поиск по трассам работает - проверено стресс-тестом 1000 запросов)
         $lw = $cfg.config.algorithm.lightweightMemory.enabled
