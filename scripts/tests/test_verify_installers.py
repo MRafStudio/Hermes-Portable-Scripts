@@ -1,4 +1,4 @@
-# verify_installers.py — канонический тест скриптов установки (KoboldCPP + Llama.cpp)
+# verify_installers.py — канонический тест скриптов установки (Llama.cpp + Llama.cpp)
 # Запуск: python scripts/tests/verify_installers.py  (или pytest — функции test_*)
 # Проверяет целостность репозитория: генераторы, установщики, меню, Start.bat, базу моделей.
 import os
@@ -25,15 +25,15 @@ def _read(rel):
 
 # --- генераторы start-скриптов (должны быть в репо!) ---
 def test_generators_in_repo():
-    chk('kobold_gen_startbat.py', os.path.exists(os.path.join(SCRIPTS, 'py', 'kobold_gen_startbat.py')))
+    chk('llama_gen_startbat.py', os.path.exists(os.path.join(SCRIPTS, 'py', 'llama_gen_startbat.py')))
     chk('llama_gen_startbat.py', os.path.exists(os.path.join(SCRIPTS, 'py', 'llama_gen_startbat.py')))
 
 
 # --- установщики: не затирают пользовательские правки (if-not-exist-защита!) ---
 def test_installers_preserve_user_edits():
-    kobold = _read('InstallOrUpdate-Kobold.bat')
-    chk('kobold: if-not-exist start_kobold.bat', 'if not exist "%KCPP_DIR%\\start_kobold.bat"' in kobold)
-    chk('kobold: сообщение о сохранении правок', 'правки пользователя сохраняются' in kobold)
+    llm = _read('InstallOrUpdate-Llama.bat')
+    chk('llm: if-exist start_llama.bat (правки сохраняются)', 'if exist "%LLAMA_DIR%\\start_llama.bat"' in llm)
+    chk('llm: сообщение о сохранении правок', 'правки пользователя сохраняются' in llm)
     llama = _read('InstallOrUpdate-Llama.bat')
     chk('llama: if-exist start_llama.bat', 'if exist "%LLAMA_DIR%\\start_llama.bat"' in llama)
     chk('llama: вопрос перегенерации', 'Перегенерировать start_llama.bat' in llama)
@@ -41,13 +41,13 @@ def test_installers_preserve_user_edits():
 
 # --- установщики: вызывают генераторы (генерируют start-скрипт при установке!) ---
 def test_installers_call_generators():
-    kobold = _read('InstallOrUpdate-Kobold.bat')
-    chk('kobold: вызов kobold_gen_startbat', 'kobold_gen_startbat.py' in kobold)
+    llm = _read('InstallOrUpdate-Llama.bat')
+    chk('llm: вызов llama_gen_startbat', 'llama_gen_startbat.py' in llm)
     llama = _read('InstallOrUpdate-Llama.bat')
     chk('llama: вызов llama_gen_startbat', 'llama_gen_startbat.py' in llama)
 
 
-# --- меню плагинов: llama (не kobold/Qwythos!) ---
+# --- меню плагинов: llama (не llm/Qwythos!) ---
 def test_plugins_menu_llama():
     menu = _read('InstallOrUpdate-Plugins.bat')
     chk('меню: пункт [1] Llama.cpp', 'Llama.cpp — установка/обновление' in menu)
@@ -56,15 +56,15 @@ def test_plugins_menu_llama():
     chk('меню: вызов InstallOrUpdate-Llama', 'InstallOrUpdate-Llama.bat' in menu)
 
 
-# --- Start.bat: автозапуск llama (не kobold!) ---
+# --- Start.bat: автозапуск llama (не llm!) ---
 def test_start_bat_llama():
     start = _read(os.path.join('..', 'Start.bat'))
     chk('Start.bat: Start-Llama-IfNeeded', 'Start-Llama-IfNeeded.bat' in start)
 
 
-# --- база моделей (kobold_models.py): Qwen-основная, Gemma-резерв, без Qwythos ---
+# --- база моделей (llama_models.py): Qwen-основная, Gemma-резерв, без Qwythos ---
 def test_models_db():
-    src = _read(os.path.join('py', 'kobold_models.py'))
+    src = _read(os.path.join('py', 'llama_models.py'))
     chk('база: Qwen3.6-35B', 'Qwen3.6-35B' in src)
     chk('база: Gemma-3-27B осталась', 'Gemma-3-27B' in src)
     chk('база: Qwythos убрана', 'Qwythos' not in src)
