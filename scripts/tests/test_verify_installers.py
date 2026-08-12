@@ -25,8 +25,8 @@ def _read(rel):
 
 # --- генераторы start-скриптов (должны быть в репо!) ---
 def test_generators_in_repo():
-    chk('llama_gen_startbat.py', os.path.exists(os.path.join(SCRIPTS, 'py', 'llama_gen_startbat.py')))
-    chk('llama_gen_startbat.py', os.path.exists(os.path.join(SCRIPTS, 'py', 'llama_gen_startbat.py')))
+    chk('start_llama.bat в репо (готовый, без генератора!)', os.path.exists(os.path.join(SCRIPTS, 'start_llama.bat')))
+    chk('генератор llama_gen_startbat.py удалён', not os.path.exists(os.path.join(SCRIPTS, 'py', 'llama_gen_startbat.py')))
 
 
 # --- установщики: не затирают пользовательские правки (if-not-exist-защита!) ---
@@ -34,20 +34,20 @@ def test_installers_preserve_user_edits():
     llm = _read('InstallOrUpdate-Llama.bat')
     chk('llm: if-exist start_llama.bat (правки сохраняются)', 'if exist "%LLAMA_DIR%\\start_llama.bat"' in llm)
 
-    # --- Синхронизация флагов: генератор == сгенерированный bat == служба! ---
+    # --- Синхронизация флагов: репо-скрипт == служба (+ копия в data, если есть!) ---
     import os as _os
     _base = _os.path.dirname(_os.path.dirname(_os.path.dirname(__file__)))  # scripts/tests/ -> корень репо
-    gen = open(_os.path.join(_base, 'scripts', 'py', 'llama_gen_startbat.py'), encoding='utf-8').read()
+    gen = open(_os.path.join(_base, 'scripts', 'start_llama.bat'), encoding='utf-8').read()
     svc = open(_os.path.join(_base, 'scripts', 'Llama-Service.bat'), encoding='utf-8').read()
     flags = ['--parallel 1', '--image-min-tokens 1024', '--alias llama']
     for fl in flags:
-        chk(f'синхрон флагов: {fl} (генератор+служба)', fl in gen and fl in svc)
-    # сгенерированный start_llama.bat (data) — если есть — тоже сверяем
+        chk(f'синхрон флагов: {fl} (репо-скрипт+служба)', fl in gen and fl in svc)
+    # копия start_llama.bat в data (установленная) — если есть — тоже сверяем
     gen_bat = _os.path.join(_base, 'data', 'llama', 'start_llama.bat')
     if _os.path.exists(gen_bat):
         bat = open(gen_bat, encoding='utf-8', errors='ignore').read()
         for fl in flags:
-            chk(f'синхрон флагов: {fl} (сгенерированный start_llama.bat)', fl in bat)
+            chk(f'синхрон флагов: {fl} (data-копия start_llama.bat)', fl in bat)
     chk('llm: сообщение о сохранении правок', 'правки пользователя сохраняются' in llm)
     llama = _read('InstallOrUpdate-Llama.bat')
     chk('llama: if-exist start_llama.bat', 'if exist "%LLAMA_DIR%\\start_llama.bat"' in llama)
@@ -57,7 +57,7 @@ def test_installers_preserve_user_edits():
 # --- установщики: вызывают генераторы (генерируют start-скрипт при установке!) ---
 def test_installers_call_generators():
     llm = _read('InstallOrUpdate-Llama.bat')
-    chk('llm: вызов llama_gen_startbat', 'llama_gen_startbat.py' in llm)
+    chk('llm: копирование start_llama.bat из репо', 'copy /y "%SCRIPTS_DIR%\\start_llama.bat"' in llm)
     llama = _read('InstallOrUpdate-Llama.bat')
     chk('llama: вызов llama_gen_startbat', 'llama_gen_startbat.py' in llama)
 
