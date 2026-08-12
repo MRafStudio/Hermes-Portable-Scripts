@@ -51,7 +51,7 @@ def test_installers_preserve_user_edits():
     chk('llm: сообщение о сохранении правок', 'правки пользователя сохраняются' in llm)
     llama = _read('InstallOrUpdate-Llama.bat')
     chk('llama: if-exist start_llama.bat', 'if exist "%LLAMA_DIR%\\start_llama.bat"' in llama)
-    chk('llama: вопрос перегенерации', 'Перегенерировать start_llama.bat' in llama)
+    chk('llama: вопрос перегенерации', 'удали файл или ответь y' in llama)
 
 
 # --- установщики: вызывают генераторы (генерируют start-скрипт при установке!) ---
@@ -59,7 +59,7 @@ def test_installers_call_generators():
     llm = _read('InstallOrUpdate-Llama.bat')
     chk('llm: копирование start_llama.bat из репо', 'copy /y "%SCRIPTS_DIR%\\start_llama.bat"' in llm)
     llama = _read('InstallOrUpdate-Llama.bat')
-    chk('llama: вызов llama_gen_startbat', 'llama_gen_startbat.py' in llama)
+    chk('llama: генератор удалён (готовый скрипт)', 'llama_gen_startbat.py' not in llama)
 
 
 # --- меню плагинов: llama (не llm/Qwythos!) ---
