@@ -28,9 +28,9 @@ lines = [
     '    pause',
     '    exit /b 1',
     ')',
-    'echo Запуск KoboldCPP: %MODEL% ^| порт %PORT% ^| контекст 512K (quantkv q4_0)',
+    'echo Запуск KoboldCPP: %MODEL% ^| порт %PORT% ^| контекст 128K (quantkv q4_0)',
     'echo Загрузка модели до ~1-2 мин...',
-    '"%KCPP_DIR%\\koboldcpp.exe" --model "%MODEL_PATH%" --mmproj "%MMPROJ%" --usemtp --gpulayers 999 --contextsize 524288 --defaultgenamt 16384 --batchsize 4096 --flashattention --quantkv q4_0 --host 0.0.0.0 --port %PORT%',
+    '"%KCPP_DIR%\\koboldcpp.exe" --model "%MODEL_PATH%" --mmproj "%MMPROJ%" --gpulayers 999 --contextsize 131072 --defaultgenamt 16384 --batchsize 4096 --flashattention --quantkv q4_0 --host 0.0.0.0 --port %PORT%',
     'pause',
 ]
 content = '\r\n'.join(lines) + '\r\n'
