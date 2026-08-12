@@ -29,7 +29,7 @@ REM   Параметры KoboldCPP (как в InstallOrUpdate-Kobold.bat)
 REM ============================================================================
 set "KCPP_DIR=%DATA_DIR%\kobold"
 set "MODEL_QWEN=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
-set "MMPROJ_FILE=mmproj-F16.gguf"
+set "MMPROJ_FILE=mmproj-35B-F16.gguf"
 
 set "CURL_CMD=curl"
 if exist "%SYSTEMROOT%\System32\curl.exe" set "CURL_CMD=%SYSTEMROOT%\System32\curl.exe"

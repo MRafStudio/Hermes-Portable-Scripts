@@ -1,7 +1,9 @@
 # kobold_models.py — справочник разрешённых моделей KoboldCPP и их проекторов (mmproj)
-# Каждая запись: (id, КОРОТКОЕ имя, ПОЛНОЕ имя с .gguf, размер, мин. VRAM GB, mmproj, repo, max_ctx)
+# Каждая запись: (id, КОРОТКОЕ имя, ПОЛНОЕ имя с .gguf, размер, мин. VRAM GB,
+#                 mmproj_ЛОКАЛЬНОЕ (после переименования), repo, max_ctx, mmproj_ИСТИННОЕ (в репо — для скачивания))
+# Правило: скачивать по ИСТИННОМУ имени → переименовывать в ЛОКАЛЬНОЕ (mmproj-<модель>…) — единое место истины!
 #   Пример: (1, "Gemma-3-27B Q4_K_M", "gemma-3-27b-it.Q4_K_M.gguf", "16.6 GB", 20,
-#            "mmproj-gemma3-q8_0.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536)
+#            "mmproj-gemma3-q8_0.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536, "mmproj-gemma3-q8_0.gguf")
 # ВАЖНО: полное имя ОБЯЗАТЕЛЬНО с расширением .gguf (имя файла на диске; в model.default оно без
 # расширения — сопоставление в pick/label учитывает это). repo — путь для скачивания с Hugging Face.
 # max_ctx — рекомендуемый контекст koboldcpp для этой модели (KV-кэш должен влезать в VRAM).
@@ -25,29 +27,35 @@ import sys
 REPO_DEFAULT = "MaziyarPanahi/gemma-3-27b-it-GGUF"
 
 MODELS = [
-    # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj, repo для скачивания с HF, max_ctx)
+    # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj_ЛОКАЛЬНОЕ, repo, max_ctx, mmproj_ИСТИННОЕ)
     # ДОМ (RTX 5090 32GB)
     (1, "Gemma-3-27B Q4_K_M", "gemma-3-27b-it.Q4_K_M.gguf", "16.6 GB", 20,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536),
-    (2, "Gemma-3-27B Q5_K_M", "gemma-3-27b-it.Q5_K_M.gguf", "19.3 GB", 24,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536),
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536,
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf"),
+    (2, "Gemma-3-27B Q5_K_M", "gemma-3-27b-it.Q5_K_M.gguf", "18.3 GB", 22,
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536,
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf"),
     # РАБОТА (AMD 16GB)
-    (3, "Gemma-3-12B Q4_K_M", "gemma-3-12b-it-Q4_K_M.gguf", "7.3 GB", 12,
-     "mmproj-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768),
+    (3, "Gemma-3-12B Q4_K_M", "gemma-3-12b-it-Q4_K_M.gguf", "7.3 GB", 10,
+     "mmproj-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768,
+     "mmproj-F16.gguf"),
     (4, "Gemma-3-12B Q5_K_M", "gemma-3-12b-it-Q5_K_M.gguf", "8.4 GB", 14,
-     "mmproj-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768),
+     "mmproj-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768,
+     "mmproj-F16.gguf"),
     # ОСНОВНАЯ (2026, MoE — активных 3B — быстро как 9B, ум как 35B)
     (5, "Qwen3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "16.8 GB", 24,
-     "mmproj-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144),
+     "mmproj-35B-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144,
+     "mmproj-F16.gguf"),
     # 27B ПОЛНАЯ (не MoE) — тест «дожимает» ли лучше; на 32GB VRAM 128K (KV больше!)
     (6, "Qwen3.6-27B Q4_K_M", "Qwen3.6-27B-Q4_K_M.gguf", "15.7 GB", 20,
-     "mmproj-27B-F16.gguf", "unsloth/Qwen3.6-27B-GGUF", 131072),
+     "mmproj-27B-F16.gguf", "unsloth/Qwen3.6-27B-GGUF", 131072,
+     "mmproj-F16.gguf"),
 ]
 
 ESC = "\x1b"
 
 # индексы полей
-I_ID, I_LABEL, I_FILE, I_SIZE, I_VRAM, I_MMPROJ, I_REPO, I_MAXCTX = range(8)
+I_ID, I_LABEL, I_FILE, I_SIZE, I_VRAM, I_MMPROJ, I_REPO, I_MAXCTX, I_MMPROJ_SRC = range(9)
 
 
 def out(s):
@@ -78,7 +86,8 @@ def main():
         mid = int(sys.argv[2])
         key = sys.argv[3] if len(sys.argv) > 3 else "file"
         idx = {"label": I_LABEL, "file": I_FILE, "size": I_SIZE, "vram": I_VRAM,
-               "mmproj": I_MMPROJ, "repo": I_REPO, "maxctx": I_MAXCTX}[key]
+               "mmproj": I_MMPROJ, "repo": I_REPO, "maxctx": I_MAXCTX,
+               "mmprojsrc": I_MMPROJ_SRC}[key]
         for m in MODELS:
             if m[I_ID] == mid:
                 out(str(m[idx]))
@@ -106,7 +115,7 @@ def main():
                         picked = m
                         break
         if picked:
-            out(f"{picked[I_ID]}|{picked[I_FILE]}|{picked[I_MMPROJ]}|{picked[I_REPO]}|{picked[I_MAXCTX]}")
+            out(f"{picked[I_ID]}|{picked[I_FILE]}|{picked[I_MMPROJ]}|{picked[I_REPO]}|{picked[I_MAXCTX]}|{picked[I_MMPROJ_SRC]}")
     elif cmd == "label":
         cfg_model = sys.argv[2] if len(sys.argv) > 2 else ""
         m = find_by_cfg(cfg_model)

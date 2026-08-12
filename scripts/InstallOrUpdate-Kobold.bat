@@ -153,15 +153,16 @@ if not defined PICK (
     pause
     goto install_kobold
 )
-for /f "tokens=1-5 delims=|" %%a in ("!PICK!") do (
+for /f "tokens=1-6 delims=|" %%a in ("!PICK!") do (
     set "MODEL_FILE=%%b"
     set "MMPROJ_FILE=%%c"
     set "MODEL_REPO=%%d"
     set "MODEL_MAXCTX=%%e"
+    set "MMPROJ_SRC=%%f"
 )
 set "MODEL_ID=koboldcpp/!MODEL_FILE:.gguf=!"
 set "MODEL_URL=https://huggingface.co/%MODEL_REPO%/resolve/main/%MODEL_FILE%"
-set "MMPROJ_URL=https://huggingface.co/%MODEL_REPO%/resolve/main/%MMPROJ_FILE%"
+set "MMPROJ_URL=https://huggingface.co/%MODEL_REPO%/resolve/main/%MMPROJ_SRC%"
 
 echo.
 echo %ESC%[33m  Основная модель: %ESC%[1m%MODEL_FILE%%ESC%[0m
@@ -219,7 +220,11 @@ if "!NEED_DL!"=="0" (
 echo.
 echo %ESC%[1;33m 2/3 Проектор ^(vision^)%ESC%[0m
 if not exist "%MODELS_DIR%\%MMPROJ_FILE%" (
-    call :download_hf "%MODEL_REPO%" "%MMPROJ_FILE%" "%MODELS_DIR%"
+    call :download_hf "%MODEL_REPO%" "%MMPROJ_SRC%" "%MODELS_DIR%"
+    if not "%MMPROJ_SRC%"=="%MMPROJ_FILE%" (
+        move /y "%MODELS_DIR%\%MMPROJ_SRC%" "%MODELS_DIR%\%MMPROJ_FILE%" >nul 2>&1
+        echo   %ESC%[2m    переименован: %MMPROJ_SRC% → %MMPROJ_FILE%%ESC%[0m
+    )
 ) else (
     echo   %ESC%[2m    Проектор уже есть — пропуск.%ESC%[0m
 )
