@@ -23,10 +23,10 @@ Maintenance of the portable Hermes installation on the user's machine: understan
 ## Repo layout (portable install — important quirks)
 - `D:\NEURO\Hermes` is the git repo `Hermes-Portable-Scripts` (origin: `https://github.com/MRafStudio/Hermes-Portable-Scripts`), branch `main`.
 - **`data/` is the entire `$HERMES_HOME` and is fully `.gitignore`d** — nothing inside survives a wipe; `git clone` does NOT restore it.
-- `scripts/*.bat` — user-facing launchers/installers (`Start.bat`, `InstallOrUpdate*.bat`, `Start-Kobold-IfNeeded.bat`).
+- `scripts/*.bat` — user-facing launchers/installers (`Start.bat`, `InstallOrUpdate*.bat`, `Start-Llama-IfNeeded.bat`).
 - `scripts/ps/*.ps1` — installer/utility PowerShell (`hermes_install_portable.ps1`, `install_ffmpeg.ps1`, `patch_*.ps1`).
 - **`scripts/patch/*.ps1` — patch/activation scripts** (e.g. `install-memos.ps1`, `memos-fix.ps1`). Do NOT search only `scripts/ps/` when looking for a ps1.
-- `data/kobold/` — `koboldcpp.exe` + model files (≈39 GB on this machine).
+- `data/llm/models/` — shared GGUF model files (≈40 GB on this machine).
 
 ## Wipe-readiness check (run before telling the user "you're good to wipe")
 ```bash
@@ -45,11 +45,11 @@ git ls-files | grep -i <script-name>    # confirm the script is actually tracked
 | `data/hermes/memories/` | `USER.md` / `MEMORY.md` user profile |
 | `data/hermes/state.db` | Session history (used by session_search) |
 | `data/hermes/memos-plugin/data/memos.db` | MemOS memory (traces, policies) |
-| `data/kobold/` | 39 GB of models — don't delete, rename to `*.bak` instead of re-downloading |
+| `data/llm/models/` | 40 GB of models — do not delete, rename to `*.bak` instead of re-downloading |
 
 ## Procedure
 1. Run the wipe-readiness check above; report clean state + last commits.
-2. Show the backup table; ask the user where to back up (or propose renaming `data/kobold` to `D:\NEURO\kobold-models.bak`).
+2. Show the backup table; ask the user where to back up (or propose renaming `data/llm` to `D:\NEURO\llm-models.bak`).
 3. Copy `.env`, `auth.json`, `memories/`, `state.db`, `memos.db` to the chosen destination; verify sizes match (`ls -la` both sides).
 4. Only after backup: user wipes; next step is `git clone <origin>` + run `InstallOrUpdate*.bat` scripts — they recreate structure and config, but NOT keys/models.
 

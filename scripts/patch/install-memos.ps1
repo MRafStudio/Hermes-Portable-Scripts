@@ -165,7 +165,7 @@ if (-not (Test-Path $PluginDir)) {
 #     режим: базовая память работает без LLM). Кристаллизация L2/L3 требует LLM -
 #     включить при желании через viewer (:18800, Config) или вручную:
 #     openai_compatible + внешний endpoint (deepseek и т.п.) либо provider: host
-#     (LLM через сам Hermes). Локальный kobold для этого НЕ используем (медленно).
+#     (LLM через сам Hermes). Локальная LLM для этого НЕ используется (медленно).
 $pluginCfg = Join-Path $RuntimeHome "config.yaml"
 if (-not (Test-Path $pluginCfg)) {
     Write-Host "Writing plugin config.yaml (local embedder, no forced LLM, embedTraces=true, lightweight, telemetry OFF)..."
