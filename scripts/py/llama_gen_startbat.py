@@ -35,7 +35,7 @@ lines = [
     ')',
     'echo Запуск llama.cpp: %MODEL% ^| порт %PORT% ^| контекст ' + max_ctx + ' + flash-attn',
     'echo Загрузка модели до ~1-2 мин...',
-    '"%LLAMA_DIR%\\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" -c ' + max_ctx + ' -ngl 999 --flash-attn 1 --port %PORT% --host 127.0.0.1',
+    '"%LLAMA_DIR%\\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c ' + max_ctx + ' -ngl 999 --flash-attn 1 --port %PORT% --host 127.0.0.1',
     'pause',
 ]
 content = '\r\n'.join(lines) + '\r\n'
