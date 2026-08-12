@@ -22,7 +22,7 @@ MemOS uses **two ID namespaces** — passing the wrong one silently returns empt
 | Tool | Accepts | Format | Example |
 |---|---|---|---|
 | `memos_search` | — | returns hits with `refId` | `tr_4hpk7jhekqdv` |
-| `memos_get` | trace **or** episode id | `tr_*` / `ep_*` | `memos_get(id="tr_...", kind="trace")` |
+| `memos_get` | **TRACE id only** — `ep_*` ВСЕГДА `found:false` (баг/ограничение 12.08!) | `tr_*` | `memos_get(id="tr_...", kind="trace")` |
 | `memos_timeline` | **EPISODE id only** | `ep_*` | `memos_timeline(episodeId="ep_011c84gdkfkx")` |
 
 ## The classic bug
