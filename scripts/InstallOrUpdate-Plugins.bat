@@ -41,8 +41,8 @@ for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do 
 REM ============================================================================
 REM   Параметры плагинов
 REM ============================================================================
-set "LLM_DIR=%DATA_DIR%llm"
-set "LLM_EXE=%LLM_DIR%llama-server.exe"
+set "LLM_DIR=%DATA_DIR%\llm"
+set "LLM_EXE=%LLM_DIR%\llama-server.exe"
 set "MODELS_DIR=%LLM_DIR%\models"
 set "MODEL_QWEN=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
 set "MMPROJ_FILE=mmproj-35B-F16.gguf"
