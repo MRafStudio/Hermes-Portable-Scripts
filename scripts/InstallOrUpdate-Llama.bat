@@ -44,43 +44,59 @@ if exist "%LLAMA_DIR%\llama-server.exe" (
     set "LLAMA_NEED=0"
 ) else (
     echo %ESC%[1;33m. %ESC%[0m llama.cpp: скачиваю свежий релиз ^(GitHub, CUDA 13.3^)...
-    cd /d "%LLAMA_DIR%"
+    REM Правило: загрузки в %TEMP% - там разворачиваем - при успехе move - очистка ошмётков!
+    set "LLAMA_TMP=%TEMP%\llama_setup"
+    if exist "%LLAMA_TMP%" rmdir /s /q "%LLAMA_TMP%" 2>nul
+    mkdir "%LLAMA_TMP%" 2>nul
+    cd /d "%LLAMA_TMP%"
     REM актуальное имя ассета через GitHub API (llama.cpp переименовал: llama-<build>-bin-win-...!)
     set "LLAMA_ASSET="
     for /f "delims=" %%a in ('""%PY%" "%SCRIPTS_DIR%\py\llama_latest_asset.py""') do set "LLAMA_ASSET=%%a"
-    if "%LLAMA_ASSET%"=="" (
+    if "!LLAMA_ASSET!"=="" (
         echo   %ESC%[31m[ERROR]%ESC%[0m не удалось получить имя ассета llama.cpp ^(API^)
         pause
         goto menu
     )
-    curl -L --noproxy "*" -o llama-bin.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/%LLAMA_ASSET%" >nul 2>&1
+    curl -L --noproxy "*" -# -o llama-bin.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/!LLAMA_ASSET!"
     if errorlevel 1 (
         echo   %ESC%[1;33m  .   GitHub недоступен - пробуем через прокси ^(фоллбэк^)...%ESC%[0m
-        curl -L -x http://127.0.0.1:10809 -o llama-bin.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/%LLAMA_ASSET%" >nul 2>&1
+        curl -L -x http://127.0.0.1:10809 -# -o llama-bin.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/!LLAMA_ASSET!"
     )
     if errorlevel 1 (
         echo   %ESC%[31m[ERROR]%ESC%[0m не удалось скачать llama.cpp
+        rmdir /s /q "%LLAMA_TMP%" 2>nul
         pause
         goto menu
     )
-    curl -L --noproxy "*" -o llama-cudart.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/cudart-llama-bin-win-cuda-13.3-x64.zip" >nul 2>&1
+    curl -L --noproxy "*" -# -o llama-cudart.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/cudart-llama-bin-win-cuda-13.3-x64.zip"
     if errorlevel 1 (
         echo   %ESC%[1;33m  .   GitHub недоступен - пробуем через прокси ^(фоллбэк^)...%ESC%[0m
-        curl -L -x http://127.0.0.1:10809 -o llama-cudart.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/cudart-llama-bin-win-cuda-13.3-x64.zip" >nul 2>&1
+        curl -L -x http://127.0.0.1:10809 -# -o llama-cudart.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/cudart-llama-bin-win-cuda-13.3-x64.zip"
     )
     if errorlevel 1 (
         echo   %ESC%[31m[ERROR]%ESC%[0m не удалось скачать CUDA runtime
+        rmdir /s /q "%LLAMA_TMP%" 2>nul
         pause
         goto menu
     )
-    unzip -q -o llama-bin.zip 2>nul
-    unzip -q -o llama-cudart.zip 2>nul
+    REM распаковка: tar (bsdtar - встроен в Win10+!) - unzip в cmd НЕТ (только MSYS!)
+    tar -xf llama-bin.zip 2>nul
+    tar -xf llama-cudart.zip 2>nul
     del llama-bin.zip llama-cudart.zip 2>nul
-    if not exist "%LLAMA_DIR%\llama-server.exe" (
+    REM архив с вложенной папкой (llama-<build>-bin-win-...) - сдвигаем содержимое в корень!
+    for /d %%D in ("%LLAMA_TMP%\llama-*-bin-*") do (
+        move /y "%%D\*" "%LLAMA_TMP%\" >nul 2>&1
+        rmdir /q "%%D" 2>nul
+    )
+    if not exist "%LLAMA_TMP%\llama-server.exe" (
         echo   %ESC%[31m[ERROR]%ESC%[0m llama-server.exe не найден после распаковки
+        rmdir /s /q "%LLAMA_TMP%" 2>nul
         pause
         goto menu
     )
+    REM при успехе - переносим в целевой каталог и чистим ошмётки!
+    move /y "%LLAMA_TMP%\*" "%LLAMA_DIR%\" >nul 2>&1
+    rmdir /s /q "%LLAMA_TMP%" 2>nul
     echo %ESC%[1;32m+ %ESC%[0m llama.cpp: установлен
 )
 
