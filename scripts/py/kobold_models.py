@@ -35,6 +35,9 @@ MODELS = [
      "mmproj-F16.gguf", "unsloth/gemma-3-12b-it-GGUF"),
     (4, "Gemma-3-12B Q5_K_M", "gemma-3-12b-it-Q5_K_M.gguf", "8.4 GB", 14,
      "mmproj-F16.gguf", "unsloth/gemma-3-12b-it-GGUF"),
+    # ОСНОВНАЯ (2026, MoE — активных 3B — быстро как 9B, ум как 35B)
+    (5, "Qwen3.6-35B-A3B IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "16.8 GB", 22,
+     "mmproj-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF"),
 ]
 
 ESC = "\x1b"

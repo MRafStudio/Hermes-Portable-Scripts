@@ -1,4 +1,4 @@
-@REM scripts\Start-Kobold-IfNeeded.bat - поднять KoboldCPP (1 инстанс: Gemma-3-27B :5101) перед запуском Hermes (если установлен)
+@REM scripts\Start-Kobold-IfNeeded.bat - поднять KoboldCPP (1 инстанс: Qwen3.6-35B-A3B :5101) перед запуском Hermes (если установлен)
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -28,8 +28,8 @@ REM ============================================================================
 REM   Параметры KoboldCPP (как в InstallOrUpdate-Kobold.bat)
 REM ============================================================================
 set "KCPP_DIR=%DATA_DIR%\kobold"
-set "MODEL_GEMMA=gemma-3-27b-it.Q4_K_M.gguf"
-set "MMPROJ_FILE=mmproj-bggpt-gemma3-27b-it-BF16.gguf"
+set "MODEL_QWEN=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
+set "MMPROJ_FILE=mmproj-F16.gguf"
 
 set "CURL_CMD=curl"
 if exist "%SYSTEMROOT%\System32\curl.exe" set "CURL_CMD=%SYSTEMROOT%\System32\curl.exe"
@@ -39,17 +39,17 @@ REM   Проверка: kobold установлен и модели целые?
 REM ============================================================================
 if not exist "%KCPP_DIR%\koboldcpp.exe" goto not_installed
 if not exist "%KCPP_DIR%\models\%MMPROJ_FILE%" goto not_installed
-if not exist "%KCPP_DIR%\models\%MODEL_GEMMA%" goto not_installed
+if not exist "%KCPP_DIR%\models\%MODEL_QWEN%" goto not_installed
 
 REM ============================================================================
-REM   Инстанс 1: Gemma-3-27B :5101 (если не отвечает - запускаем)
+REM   Инстанс 1: Qwen3.6-35B-A3B :5101 (если не отвечает - запускаем)
 REM ============================================================================
 "%CURL_CMD%" -s --noproxy "*" -m 2 "http://127.0.0.1:5101/v1/models" >nul 2>&1
 if !errorlevel! equ 0 (
-    echo   %ESC%[1;32m+ %ESC%[0m KoboldCPP Gemma: уже работает %ESC%[2m^(:5101^)%ESC%[0m
+    echo   %ESC%[1;32m+ %ESC%[0m KoboldCPP Qwen3.6: уже работает %ESC%[2m^(:5101^)%ESC%[0m
 ) else (
-    echo   %ESC%[1;33m. %ESC%[0m KoboldCPP Gemma: запускаю %ESC%[2m^(Gemma-3-27B :5101^)%ESC%[0m...
-    start /min "KoboldCPP Gemma 5101" cmd /c ""%KCPP_DIR%\start_kobold.bat" %MODEL_GEMMA% 5101"
+    echo   %ESC%[1;33m. %ESC%[0m KoboldCPP Qwen3.6: запускаю %ESC%[2m^(Qwen3.6-35B :5101^)%ESC%[0m...
+    start /min "KoboldCPP Qwen 5101" cmd /c ""%KCPP_DIR%\start_kobold.bat" %MODEL_QWEN% 5101"
 )
 
 REM ============================================================================
