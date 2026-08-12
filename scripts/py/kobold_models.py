@@ -27,9 +27,9 @@ MODELS = [
     # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj, repo для скачивания с HF)
     # ДОМ (RTX 5090 32GB)
     (1, "Gemma-3-27B Q4_K_M", "gemma-3-27b-it.Q4_K_M.gguf", "16.6 GB", 20,
-     "mmproj-q8_0.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF"),
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF"),
     (2, "Gemma-3-27B Q5_K_M", "gemma-3-27b-it.Q5_K_M.gguf", "19.3 GB", 24,
-     "mmproj-q8_0.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF"),
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF"),
     # РАБОТА (AMD 16GB)
     (3, "Gemma-3-12B Q4_K_M", "gemma-3-12b-it-Q4_K_M.gguf", "7.3 GB", 12,
      "mmproj-F16.gguf", "unsloth/gemma-3-12b-it-GGUF"),
