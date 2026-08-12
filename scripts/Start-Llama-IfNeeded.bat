@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-REM scripts\Start-Llama-IfNeeded.bat - поднять Llama.cpp (1 инстанс: Qwen3.6-35B :8080) перед запуском Hermes (если установлен)
+REM scripts\Start-Llama-IfNeeded.bat - поднять Llama.cpp (1 инстанс: Qwen3.6-35B :5505) перед запуском Hermes (если установлен)
 setlocal enabledelayedexpansion
 
 set "SCRIPTS_DIR=%~dp0"
@@ -16,35 +16,35 @@ if not exist "%LLAMA_DIR%\llama-server.exe" goto not_installed
 if not exist "%LLM_MODELS%\%MODEL_QWEN%" goto not_installed
 if not exist "%LLM_MODELS%\%MMPROJ_FILE%" goto not_installed
 
-REM   Порт-логика: база :8080 (дом). Если 8080 занят ДРУГИМ процессом (не llama) -
-REM   используем :8081 (свой инстанс) и перенастраиваем Hermes-провайдер.
-set "LLAMA_PORT=8080"
+REM   Порт-логика: база :5505 (дом). Если 5505 занят ДРУГИМ процессом (не llama) -
+REM   используем :5506 (свой инстанс) и перенастраиваем Hermes-провайдер.
+set "LLAMA_PORT=5505"
 set "HERMES_BIN=%DATA_DIR%\hermes\hermes-agent\venv\Scripts\hermes.exe"
 
-REM 1) Уже работает на 8080? (llama — отвечает на /health!)
-curl -s -o nul --max-time 2 http://127.0.0.1:8080/health >nul 2>&1
+REM 1) Уже работает на 5505? (llama — отвечает на /health!)
+curl -s -o nul --max-time 2 http://127.0.0.1:5505/health >nul 2>&1
 if not errorlevel 1 (
-    echo   Llama.cpp: уже работает ^(:8080^)
+    echo   Llama.cpp: уже работает ^(:5505^)
     goto llama_done
 )
 
-REM 2) Уже работает на 8081? (второй инстанс — полигон!)
-curl -s -o nul --max-time 2 http://127.0.0.1:8081/health >nul 2>&1
+REM 2) Уже работает на 5506? (второй инстанс — полигон!)
+curl -s -o nul --max-time 2 http://127.0.0.1:5506/health >nul 2>&1
 if not errorlevel 1 (
-    echo   Llama.cpp: уже работает ^(:8081^)
-    set "LLAMA_PORT=8081"
+    echo   Llama.cpp: уже работает ^(:5506^)
+    set "LLAMA_PORT=5506"
     goto configure_hermes
 )
 
-REM 3) 8080 занят ДРУГИМ процессом? (LISTENING — но не llama!)
-netstat -ano | findstr ":8080 " | findstr "LISTENING" >nul 2>&1
+REM 3) 5505 занят ДРУГИМ процессом? (LISTENING — но не llama!)
+netstat -ano | findstr ":5505 " | findstr "LISTENING" >nul 2>&1
 if not errorlevel 1 (
-    echo   [WARN] :8080 занят другим процессом - запускаю :8081 (свой инстанс)
-    set "LLAMA_PORT=8081"
+    echo   [WARN] :5505 занят другим процессом - запускаю :5506 (свой инстанс)
+    set "LLAMA_PORT=5506"
     goto start_llama
 )
 
-REM 4) Порт свободен - запускаем базу :8080
+REM 4) Порт свободен - запускаем базу :5505
 :start_llama
 echo   Llama.cpp: запускаю ^(Qwen3.6-35B :!LLAMA_PORT!^)...
 start /min "LlamaCPP Qwen !LLAMA_PORT!" cmd /c ""%LLAMA_DIR%\start_llama.bat" %MODEL_QWEN% !LLAMA_PORT!"
@@ -61,21 +61,21 @@ goto llama_done
 :llama_ready
 echo   Llama.cpp готов ^(:!LLAMA_PORT!^)
 
-REM 5) Hermes-провайдер на фактический порт (если не 8080 — переконфигурируем!)
+REM 5) Hermes-провайдер на фактический порт (если не 5505 — переконфигурируем!)
 :configure_hermes
-if not "!LLAMA_PORT!"=="8080" (
+if not "!LLAMA_PORT!"=="5505" (
     if exist "%HERMES_BIN%" (
         "%HERMES_BIN%" config set providers.llama.base_url "http://127.0.0.1:!LLAMA_PORT!/v1" >nul 2>&1
         echo   Hermes: providers.llama.base_url -> :!LLAMA_PORT! (переконфигурировано)
     )
 ) else (
-    REM база на 8080 - дефолт (убеждаемся, что конфиг правильный - если отличается)
+    REM база на 5505 - дефолт (убеждаемся, что конфиг правильный - если отличается)
     if exist "%HERMES_BIN%" (
         set "CUR_URL="
         for /f "usebackq delims=" %%u in (`"%HERMES_BIN%" config get providers.llama.base_url 2^>nul`) do set "CUR_URL=%%u"
-        if not "!CUR_URL!"=="" if not "!CUR_URL:8080=!"=="!CUR_URL!" goto llama_done
-        "%HERMES_BIN%" config set providers.llama.base_url "http://127.0.0.1:8080/v1" >nul 2>&1
-        echo   Hermes: providers.llama.base_url -> :8080
+        if not "!CUR_URL!"=="" if not "!CUR_URL:5505=!"=="!CUR_URL!" goto llama_done
+        "%HERMES_BIN%" config set providers.llama.base_url "http://127.0.0.1:5505/v1" >nul 2>&1
+        echo   Hermes: providers.llama.base_url -> :5505
     )
 )
 :llama_done

@@ -66,7 +66,7 @@ def test_installers_call_generators():
 def test_plugins_menu_llama():
     menu = _read('InstallOrUpdate-Plugins.bat')
     chk('меню: пункт [1] Llama.cpp', 'Llama.cpp — установка/обновление' in menu)
-    chk('меню: порт 8080', 'порт 8080' in menu)
+    chk('меню: порт 5505', 'порт 5505' in menu)
     chk('меню: Qwythos убран', 'Qwythos' not in menu)
     chk('меню: вызов InstallOrUpdate-Llama', 'InstallOrUpdate-Llama.bat' in menu)
 
