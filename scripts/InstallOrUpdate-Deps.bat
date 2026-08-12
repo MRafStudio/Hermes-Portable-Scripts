@@ -453,6 +453,15 @@ if !errorlevel! equ 0 (
     goto playwright_done
 )
 
+REM --- Установка pytest (канонический тест репозитория: scripts\tests) ---
+echo   %ESC%[1;33m  -   uv pip install pytest...%ESC%[0m
+"%UV_EXE%" pip install --python "%REPO_DIR%\venv\Scripts\python.exe" pytest
+if !errorlevel! equ 0 (
+    echo   %ESC%[1;32m  +   Пакет pytest установлен — канонический тест доступен.%ESC%[0m
+) else (
+    echo   %ESC%[1;33m  .   Пакет pytest не установлен — тест запускается простым python.%ESC%[0m
+)
+
 REM --- Установка браузера Chromium через python -m playwright ---
 cd /d "%REPO_DIR%"
 
