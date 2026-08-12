@@ -13,7 +13,7 @@ port = sys.argv[4] if len(sys.argv) > 4 else '5101'
 lines = [
     '@echo off',
     'chcp 65001 >nul',
-    'rem Инстанс koboldcpp: start_kobold.bat [МОДЕЛЬ.gguf] [ПОРТ]  (2 инстанса: Q4:5101, Q6:5102!)',
+    'rem Инстанс koboldcpp: start_kobold.bat [МОДЕЛЬ.gguf] [ПОРТ]  (Gemma-3-27B :5101!)',
     'set "KCPP_DIR=%~dp0"',
     'set "MODEL=%~1"',
     'if "%MODEL%"=="" set "MODEL=' + model + '"',

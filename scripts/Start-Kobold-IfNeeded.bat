@@ -28,8 +28,8 @@ REM ============================================================================
 REM   Параметры KoboldCPP (как в InstallOrUpdate-Kobold.bat)
 REM ============================================================================
 set "KCPP_DIR=%DATA_DIR%\kobold"
-set "MODEL_MTP_Q4=Qwythos-9B-Claude-Mythos-5-1M-MTP-Q4_K_M.gguf"
-set "MMPROJ_FILE=mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf"
+set "MODEL_GEMMA=gemma-3-27b-it.Q4_K_M.gguf"
+set "MMPROJ_FILE=mmproj-q8_0.gguf"
 
 set "CURL_CMD=curl"
 if exist "%SYSTEMROOT%\System32\curl.exe" set "CURL_CMD=%SYSTEMROOT%\System32\curl.exe"
@@ -39,17 +39,17 @@ REM   Проверка: kobold установлен и модели целые?
 REM ============================================================================
 if not exist "%KCPP_DIR%\koboldcpp.exe" goto not_installed
 if not exist "%KCPP_DIR%\models\%MMPROJ_FILE%" goto not_installed
-if not exist "%KCPP_DIR%\models\%MODEL_MTP_Q4%" goto not_installed
+if not exist "%KCPP_DIR%\models\%MODEL_GEMMA%" goto not_installed
 
 REM ============================================================================
 REM   Инстанс 1: MTP-Q4_K_M :5101 (если не отвечает - запускаем)
 REM ============================================================================
 "%CURL_CMD%" -s --noproxy "*" -m 2 "http://127.0.0.1:5101/v1/models" >nul 2>&1
 if !errorlevel! equ 0 (
-    echo   %ESC%[1;32m+ %ESC%[0m KoboldCPP Q4: уже работает %ESC%[2m^(:5101^)%ESC%[0m
+    echo   %ESC%[1;32m+ %ESC%[0m KoboldCPP Gemma: уже работает %ESC%[2m^(:5101^)%ESC%[0m
 ) else (
-    echo   %ESC%[1;33m. %ESC%[0m KoboldCPP Q4: запускаю %ESC%[2m^(MTP-Q4 :5101^)%ESC%[0m...
-    start /min "KoboldCPP Q4 5101" cmd /c ""%KCPP_DIR%\start_kobold.bat" %MODEL_MTP_Q4% 5101"
+    echo   %ESC%[1;33m. %ESC%[0m KoboldCPP Gemma: запускаю %ESC%[2m^(Gemma-3-27B :5101^)%ESC%[0m...
+    start /min "KoboldCPP Gemma 5101" cmd /c ""%KCPP_DIR%\start_kobold.bat" %MODEL_GEMMA% 5101"
 )
 
 REM ============================================================================
