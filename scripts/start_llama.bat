@@ -1,6 +1,6 @@
 @echo off
 REM scripts\start_llama.bat — запуск llama-server (EDINственный скрипт запуска — в репозитории!)
-REM Использование: start_llama.bat [MODEL] [PORT] [MMPROJ]  (дефолты: Qwen3.6-35B / 8080 / mmproj-35B-F16)
+REM Использование: start_llama.bat [MODEL] [PORT] [MMPROJ]  (дефолты: Qwen3.6-35B / 5505 / mmproj-35B-F16)
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
@@ -11,7 +11,7 @@ set "LLM_MODELS=%ROOT_DIR%\data\llm\models"
 set "MODEL=%~1"
 if "%MODEL%"=="" set "MODEL=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
 set "PORT=%~2"
-if "%PORT%"=="" set "PORT=8080"
+if "%PORT%"=="" set "PORT=5505"
 set "MMPROJ=%~3"
 if "%MMPROJ%"=="" set "MMPROJ=%LLM_MODELS%\mmproj-35B-F16.gguf"
 if not exist "%MMPROJ%" set "MMPROJ=%LLM_MODELS%\mmproj-35B-F16.gguf"

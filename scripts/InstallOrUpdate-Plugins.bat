@@ -109,7 +109,7 @@ if !MEMOS_INSTALLED! equ 1 (
 )
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlama.cpp — установка/обновление%ESC%[0m
-echo       %ESC%[2mЛокальная LLM ^(Qwen3.6-35B^): скачивание, настройка Hermes, порт 8080%ESC%[0m
+echo       %ESC%[2mЛокальная LLM ^(Qwen3.6-35B^): скачивание, настройка Hermes, порт 5505%ESC%[0m
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mСлужба Llama.cpp%ESC%[0m
 if !SERVICE_INSTALLED! equ 1 (
     echo       %ESC%[2mУдалить службу ^(файлы сохраняются^)%ESC%[0m
@@ -158,7 +158,7 @@ echo.
 echo %ESC%[1;33m-%ESC%[0m %ESC%[1mMemOS — память агента: установка / обновление...%ESC%[0m
 echo.
 echo %ESC%[2m  Источник: npm (@memtensor/memos-local-plugin, latest).%ESC%[0m
-echo %ESC%[2m  Рефлексия LLM: кристаллизация через DeepSeek API, локально llama.cpp :8080.%ESC%[0m
+echo %ESC%[2m  Рефлексия LLM: кристаллизация через DeepSeek API, локально llama.cpp :5505.%ESC%[0m
 echo %ESC%[2m  Телеметрия отключена, 100%% локально.%ESC%[0m
 echo.
 echo %ESC%[33m  Убедитесь, что Hermes (служба/сессии) остановлен, иначе файлы залочены.%ESC%[0m

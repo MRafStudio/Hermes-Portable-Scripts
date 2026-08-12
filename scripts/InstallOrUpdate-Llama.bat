@@ -149,7 +149,7 @@ REM ============================================================================
 set "HERMES_EXE=%REPO_DIR%\venv\Scripts\hermes.exe"
 set "MODEL_DEF=llama/%MODEL_FILE:~0,-5%"
 call "%HERMES_EXE%" config set providers.llama.model "%MODEL_DEF%" >nul 2>&1
-call "%HERMES_EXE%" config set providers.llama.base_url "http://127.0.0.1:8080/v1" >nul 2>&1
+call "%HERMES_EXE%" config set providers.llama.base_url "http://127.0.0.1:5505/v1" >nul 2>&1
 call "%HERMES_EXE%" config set providers.llama.api_mode "openai" >nul 2>&1
 call "%HERMES_EXE%" config set model.default "%MODEL_DEF%" >nul 2>&1
 if defined MODEL_MAXCTX (
@@ -157,7 +157,7 @@ if defined MODEL_MAXCTX (
     call "%HERMES_EXE%" config set providers.llama.context_length "%MODEL_MAXCTX%" >nul 2>&1
 )
 echo.
-echo %ESC%[1;32m+ %ESC%[0m Hermes настроен: llama.cpp :8080, модель %MODEL_FILE%
+echo %ESC%[1;32m+ %ESC%[0m Hermes настроен: llama.cpp :5505, модель %MODEL_FILE%
 echo   Контекст %MODEL_MAXCTX% ^| запуск: %LLAMA_DIR%\start_llama.bat
 echo.
 echo %ESC%[1;32m Готово!%ESC%[0m

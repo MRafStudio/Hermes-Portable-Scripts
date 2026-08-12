@@ -19,7 +19,7 @@ set "LLAMA_DIR=%DATA_DIR%\llama"
 set "LLAMA_EXE=%LLAMA_DIR%\llama-server.exe"
 set "MODELS_DIR=%DATA_DIR%\llm\models"
 set "SERVICE_NAME=LlamaCPP"
-set "LLAMA_PORT=8080"
+set "LLAMA_PORT=5505"
 
 REM ============================================================================
 REM   Изоляция данных
