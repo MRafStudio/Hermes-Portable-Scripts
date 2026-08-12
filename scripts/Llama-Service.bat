@@ -89,7 +89,7 @@ echo   %ESC%[2m  Проектор:    mmproj-35B-F16.gguf%ESC%[0m
 echo   %ESC%[2m  Порт:        %LLAMA_PORT%%ESC%[0m
 echo.
 
-"%NSSM_EXE%" install "%SERVICE_NAME%" "%LLAMA_EXE%" -m "%MODELS_DIR%\Qwen3.6-35B-A3B-UD-IQ4_NL.gguf" --mmproj "%MODELS_DIR%\mmproj-35B-F16.gguf" -c 262144 -ngl 999 --flash-attn 1 --port %LLAMA_PORT% --host 127.0.0.1
+"%NSSM_EXE%" install "%SERVICE_NAME%" "%LLAMA_EXE%" -m "%MODELS_DIR%\Qwen3.6-35B-A3B-UD-IQ4_NL.gguf" --mmproj "%MODELS_DIR%\mmproj-35B-F16.gguf" --alias llama/Qwen3.6-35B-A3B-UD-IQ4_NL -c 262144 -ngl 999 --flash-attn 1 --port %LLAMA_PORT% --host 127.0.0.1
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] nssm install не удался.%ESC%[0m
     pause
