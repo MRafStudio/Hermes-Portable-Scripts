@@ -53,20 +53,10 @@ if not exist "%DESKTOP_PACKAGE%" (
     goto :version_parsed
 )
 
-echo   %ESC%[2mПарсим версию Electron из apps\desktop\package.json...%ESC%[0m
-
-set "ELECTRON_VERSION="
-for /f "tokens=*" %%a in ('type "%DESKTOP_PACKAGE%" ^| findstr /C:"\"electron\":"') do (
-    set "LINE=%%a"
-    set "LINE=!LINE:*"electron":=!"
-    if not "!LINE!"=="" set "LINE=!LINE: =!"
-    set "LINE=!LINE:"=!"
-    set "LINE=!LINE:,=!"
-    set "LINE=!LINE:^=!"
-    set "LINE=!LINE:~=!"
-    set "ELECTRON_VERSION=!LINE!"
+REM   Парсим версию Electron из apps/desktop/package.json (python - надёжно, не findstr-танцы!)
+if exist "%DESKTOP_PACKAGE%" (
+    for /f "delims=" %%a in ('"%PYTHON_EXE%" -c "import json,sys;d=json.load(open(sys.argv[1]));print((d.get('devDependencies') or {}).get('electron',''))" "%DESKTOP_PACKAGE%"') do set "ELECTRON_VERSION=%%a"
 )
-
 if not defined ELECTRON_VERSION (
     echo   %ESC%[1;33m  .   Не удалось распарсить версию. Используем fallback 40.10.2%ESC%[0m
     set "ELECTRON_VERSION=40.10.2"
@@ -120,7 +110,17 @@ if !errorlevel! neq 0 (
 )
 
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось скачать Electron ни с GitHub, ни с зеркала.%ESC%[0m
+    echo   %ESC%[1;33m  .   Прямые не вышли. Пробуем GitHub через прокси v2RayTun :10809...%ESC%[0m
+    curl -fSL --proxy http://127.0.0.1:10809 -o "%ELECTRON_ZIP_PATH%" "%ELECTRON_URL%" --progress-bar
+)
+
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;33m  .   И зеркало через прокси...%ESC%[0m
+    curl -fSL --proxy http://127.0.0.1:10809 -o "%ELECTRON_ZIP_PATH%" "%ELECTRON_MIRROR_URL%" --progress-bar
+)
+
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось скачать Electron ни с GitHub, ни с зеркала, ни через прокси.%ESC%[0m
     echo   %ESC%[33m       Проверьте соединение ^(возможно, нужен VPN^).%ESC%[0m
     if "%AUTOCLOSE%"=="0" pause
     exit /b 1
