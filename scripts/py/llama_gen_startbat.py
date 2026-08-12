@@ -34,9 +34,9 @@ lines = [
     '    exit /b 1',
     ')',
     'echo Запуск llama.cpp: %MODEL% ^| порт %PORT% ^| контекст ' + max_ctx + ' + flash-attn',
-    'echo Загрузка модели до ~1-2 мин...',
     'start "LlamaCPP %MODEL%" /min "%LLAMA_DIR%\\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c ' + max_ctx + ' -ngl 999 --flash-attn 1 --parallel 1 --image-min-tokens 1024 --port %PORT% --host 127.0.0.1',
-    'pause',
+    'echo Сервер запущен в отдельном окне ^(свернуто^).',
+    'exit /b 0',
 ]
 content = '\r\n'.join(lines) + '\r\n'
 with open(llama_dir + '\\start_llama.bat', 'wb') as f:
