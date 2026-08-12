@@ -41,9 +41,9 @@ for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do 
 REM ============================================================================
 REM   Параметры плагинов
 REM ============================================================================
-set "KCPP_DIR=%DATA_DIR%\kobold"
-set "KCPP_EXE=%KCPP_DIR%\koboldcpp.exe"
-set "MODELS_DIR=%KCPP_DIR%\models"
+set "LLM_DIR=%DATA_DIR%llm"
+set "LLM_EXE=%LLM_DIR%llama-server.exe"
+set "MODELS_DIR=%LLM_DIR%\models"
 set "MODEL_QWEN=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
 set "MMPROJ_FILE=mmproj-35B-F16.gguf"
 set "SERVICE_NAME=LlamaCPP"
@@ -53,11 +53,11 @@ REM   Статусы плагинов
 REM ============================================================================
 :status
 set "LLAMA_EXE=%DATA_DIR%\llama\llama-server.exe"
-set "KCPP_INSTALLED=0"
-if exist "%LLAMA_EXE%" set "KCPP_INSTALLED=1"
+set "LLM_INSTALLED=0"
+if exist "%LLAMA_EXE%" set "LLM_INSTALLED=1"
 
-set "KCPP_MODEL="
-if exist "%MODELS_DIR%\%MODEL_QWEN%" set "KCPP_MODEL=Qwen3.6-35B"
+set "LLM_MODEL="
+if exist "%MODELS_DIR%\%MODEL_QWEN%" set "LLM_MODEL=Qwen3.6-35B"
 
 set "SERVICE_INSTALLED=0"
 sc query "%SERVICE_NAME%" >nul 2>&1
@@ -85,8 +85,8 @@ echo  %ESC%[1;36m##%ESC%[0m %ESC%[1;37m                         Hermes%ESC%[0m �
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
-if !KCPP_INSTALLED! equ 1 (
-    echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модель %KCPP_MODEL%^)%ESC%[0m
+if !LLM_INSTALLED! equ 1 (
+    echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модель %LLM_MODEL%^)%ESC%[0m
 ) else (
     echo   %ESC%[1;33m. %ESC%[0m Llama.cpp — не установлен
 )
@@ -123,22 +123,22 @@ set /p "choice=%ESC%[33mВыберите действие (0-3): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
-if "%choice%"=="1" goto install_kobold
-if "%choice%"=="2" goto kobold_service
+if "%choice%"=="1" goto install_llama
+if "%choice%"=="2" goto llama_service
 if "%choice%"=="3" goto install_memos
 goto menu
 
 REM ============================================================================
 REM   [1] Llama.cpp — установка / обновление
 REM ============================================================================
-:install_kobold
+:install_llama
 call "%SCRIPTS_DIR%\InstallOrUpdate-Llama.bat"
 goto status
 
 REM ============================================================================
 REM   [2] Служба Llama.cpp — установка / удаление
 REM ============================================================================
-:kobold_service
+:llama_service
 call "%SCRIPTS_DIR%\Llama-Service.bat"
 goto status
 

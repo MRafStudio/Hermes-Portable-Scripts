@@ -1,4 +1,4 @@
-# kobold_models.py — справочник разрешённых моделей KoboldCPP и их проекторов (mmproj)
+# llama_models.py — справочник разрешённых моделей Llama.cpp и их проекторов (mmproj)
 # Каждая запись: (id, КОРОТКОЕ имя, ПОЛНОЕ имя с .gguf, размер, мин. VRAM GB,
 #                 mmproj_ЛОКАЛЬНОЕ (после переименования), repo, max_ctx, mmproj_ИСТИННОЕ (в репо — для скачивания))
 # Правило: скачивать по ИСТИННОМУ имени → переименовывать в ЛОКАЛЬНОЕ (mmproj-<модель>…) — единое место истины!
@@ -6,10 +6,10 @@
 #            "mmproj-gemma3-q8_0.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536, "mmproj-gemma3-q8_0.gguf")
 # ВАЖНО: полное имя ОБЯЗАТЕЛЬНО с расширением .gguf (имя файла на диске; в model.default оно без
 # расширения — сопоставление в pick/label учитывает это). repo — путь для скачивания с Hugging Face.
-# max_ctx — рекомендуемый контекст koboldcpp для этой модели (KV-кэш должен влезать в VRAM).
+# max_ctx — рекомендуемый контекст llmcpp для этой модели (KV-кэш должен влезать в VRAM).
 # Несколько моделей могут делить один mmproj; у каждой модели может быть свой mmproj и repo.
 # При добавлении новой модели ДОБАВЬ строку в MODELS — меню, статусы и загрузка
-# в InstallOrUpdate-Kobold.bat обновятся автоматически (скрипт читает этот справочник).
+# в InstallOrUpdate-Llama.bat обновятся автоматически (скрипт читает этот справочник).
 #
 # CLI:
 #   list                 — все записи: id|label|file|size|vram|mmproj|repo|maxctx
@@ -67,7 +67,7 @@ def out(s):
 
 
 def find_by_cfg(cfg_model):
-    """model.default (koboldcpp/имя-без-.gguf) → запись или None."""
+    """model.default (llmcpp/имя-без-.gguf) → запись или None."""
     if not cfg_model:
         return None
     c = cfg_model.strip()

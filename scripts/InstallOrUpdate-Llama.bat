@@ -17,7 +17,7 @@ set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"
 set "DATA_DIR=%ROOT_DIR%\data"
 set "LLAMA_DIR=%DATA_DIR%\llama"
-set "KCPP_MODELS=%DATA_DIR%\kobold\models"
+set "LLM_MODELS=%DATA_DIR%\llm\models"
 set "PY=%REPO_DIR%\venv\Scripts\python.exe"
 
 REM ============================================================================
@@ -29,7 +29,7 @@ set "APPDATA=%DATA_DIR%\appdata"
 set "HOME=%DATA_DIR%\home"
 
 if not exist "%LLAMA_DIR%" mkdir "%LLAMA_DIR%" 2>nul
-if not exist "%KCPP_MODELS%" mkdir "%KCPP_MODELS%" 2>nul
+if not exist "%LLM_MODELS%" mkdir "%LLM_MODELS%" 2>nul
 
 REM ============================================================================
 REM   Получение ESC (стандартный трюк, без PowerShell)
@@ -69,19 +69,19 @@ if exist "%LLAMA_DIR%\llama-server.exe" (
 )
 
 REM ============================================================================
-REM   2/4 Выбор модели (общая база kobold_models.py — модели общие!)
+REM   2/4 Выбор модели (общая база llama_models.py — модели общие!)
 REM ============================================================================
 :pick_model
 echo.
-echo %ESC%[1;37mДоступные модели%ESC%[0m ^(общая библиотека kobold_models.py^):
-"%PY%" "%SCRIPTS_DIR%\py\kobold_models.py" list
+echo %ESC%[1;37mДоступные модели%ESC%[0m ^(общая библиотека llama_models.py^):
+"%PY%" "%SCRIPTS_DIR%\py\llama_models.py" list
 echo.
 set "MID="
 set /p "MID=%ESC%[33mВыбери ID модели или Enter для отмены: %ESC%[0m"
 if "%MID%"=="" goto menu
 
 set "PICK="
-for /f "delims=" %%p in ('""%PY%" "%SCRIPTS_DIR%\py\kobold_models.py" pick "%MID%" "koboldcpp/x" "%KCPP_MODELS%""') do set "PICK=%%p"
+for /f "delims=" %%p in ('""%PY%" "%SCRIPTS_DIR%\py\llama_models.py" pick "%MID%" "llama/x" "%LLM_MODELS%""') do set "PICK=%%p"
 if not defined PICK (
     echo   %ESC%[31m[ERROR]%ESC%[0m неверный ID модели
     goto pick_model
@@ -108,16 +108,16 @@ REM   3/4 Скачивание модели + проектора (если не�
 REM ============================================================================
 echo.
 echo %ESC%[1;33m 1/2 Модель%ESC%[0m
-if not exist "%KCPP_MODELS%\%MODEL_FILE%" (
-    call :download_hf "%MODEL_REPO%" "%MODEL_FILE%" "%KCPP_MODELS%"
+if not exist "%LLM_MODELS%\%MODEL_FILE%" (
+    call :download_hf "%MODEL_REPO%" "%MODEL_FILE%" "%LLM_MODELS%"
 ) else (
     echo   %ESC%[2m    уже есть - пропускаю%ESC%[0m
 )
 echo %ESC%[1;33m 2/2 Проектор ^(vision^)%ESC%[0m
-if not exist "%KCPP_MODELS%\%MMPROJ_FILE%" (
-    call :download_hf "%MODEL_REPO%" "%MMPROJ_SRC%" "%KCPP_MODELS%"
+if not exist "%LLM_MODELS%\%MMPROJ_FILE%" (
+    call :download_hf "%MODEL_REPO%" "%MMPROJ_SRC%" "%LLM_MODELS%"
     if not "%MMPROJ_SRC%"=="%MMPROJ_FILE%" (
-        move /y "%KCPP_MODELS%\%MMPROJ_SRC%" "%KCPP_MODELS%\%MMPROJ_FILE%" >nul 2>&1
+        move /y "%LLM_MODELS%\%MMPROJ_SRC%" "%LLM_MODELS%\%MMPROJ_FILE%" >nul 2>&1
     )
 ) else (
     echo   %ESC%[2m    уже есть - пропускаю%ESC%[0m

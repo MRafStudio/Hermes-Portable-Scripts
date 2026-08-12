@@ -7,14 +7,14 @@ set "SCRIPTS_DIR=%~dp0"
 for %%i in ("%SCRIPTS_DIR%..") do set "ROOT_DIR=%%~fi"
 set "DATA_DIR=%ROOT_DIR%\data"
 set "LLAMA_DIR=%DATA_DIR%\llama"
-set "KCPP_MODELS=%DATA_DIR%\kobold\models"
+set "LLM_MODELS=%DATA_DIR%\llm\models"
 set "MODEL_QWEN=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
 set "MMPROJ_FILE=mmproj-35B-F16.gguf"
 
 REM Проверки: есть ли llama.cpp + модель (иначе - тихо выходим)
 if not exist "%LLAMA_DIR%\llama-server.exe" goto not_installed
-if not exist "%KCPP_MODELS%\%MODEL_QWEN%" goto not_installed
-if not exist "%KCPP_MODELS%\%MMPROJ_FILE%" goto not_installed
+if not exist "%LLM_MODELS%\%MODEL_QWEN%" goto not_installed
+if not exist "%LLM_MODELS%\%MMPROJ_FILE%" goto not_installed
 
 REM   Инстанс 1: Qwen3.6-35B :8080 (если не отвечает - запускаем)
 curl -s -o nul --max-time 2 http://127.0.0.1:8080/health >nul 2>&1

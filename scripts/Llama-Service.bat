@@ -17,7 +17,7 @@ set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "DATA_DIR=%ROOT_DIR%\data"
 set "LLAMA_DIR=%DATA_DIR%\llama"
 set "LLAMA_EXE=%LLAMA_DIR%\llama-server.exe"
-set "MODELS_DIR=%DATA_DIR%\kobold\models"
+set "MODELS_DIR=%DATA_DIR%\llm\models"
 set "SERVICE_NAME=LlamaCPP"
 set "LLAMA_PORT=8080"
 
