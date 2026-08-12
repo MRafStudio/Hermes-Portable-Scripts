@@ -37,8 +37,11 @@ MODELS = [
     (4, "Gemma-3-12B Q5_K_M", "gemma-3-12b-it-Q5_K_M.gguf", "8.4 GB", 14,
      "mmproj-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768),
     # ОСНОВНАЯ (2026, MoE — активных 3B — быстро как 9B, ум как 35B)
-    (5, "Qwen3.6-35B-A3B IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "16.8 GB", 22,
+    (5, "Qwen3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "16.8 GB", 24,
      "mmproj-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144),
+    # 27B ПОЛНАЯ (не MoE) — тест «дожимает» ли лучше; на 32GB VRAM 128K (KV больше!)
+    (6, "Qwen3.6-27B Q4_K_M", "Qwen3.6-27B-Q4_K_M.gguf", "15.7 GB", 20,
+     "mmproj-27B-F16.gguf", "unsloth/Qwen3.6-27B-GGUF", 131072),
 ]
 
 ESC = "\x1b"
