@@ -79,7 +79,7 @@ function Invoke-Npm {
 #     Фикс - в 2.0.14-beta.1 (последняя опубликованная; 2.0.15 в npm НЕТ - только dev-репа).
 #     Проверяем ФАКТИЧЕСКУЮ версию в node_modules (НЕ корневой package.json - он может не
 #     обновиться при npm install поверх!) + наличие фикса в dist. ---
-$ExpectedPkgVer = "2.0.14-beta.1"
+$ExpectedPkgVer = "2.0.15"
 $pkgJson = Join-Path (Join-Path $RuntimeHome "node_modules\@memtensor\memos-local-plugin") "package.json"
 if (Test-Path $pkgJson) {
     $pkgVer = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version
@@ -90,10 +90,10 @@ $distFix = Test-Path (Join-Path $RuntimeHome "dist\core\pipeline\deps.js")
 if ($distFix) {
     $distFix = (Select-String -Path (Join-Path $RuntimeHome "dist\core\pipeline\deps.js") -Pattern "llmFilterEnabled: alg.lightweightMemory.enabled" -Quiet)
 }
-if ($pkgVer -eq $ExpectedPkgVer -and $distFix) {
+if ($pkgVer -match "^2\.0\.1[5-9]" -and $distFix) {
     Write-Host "[0/7] package version OK ($pkgVer, llmFilterEnabled fix present)"
 } else {
-    Write-Host "[0/7] package v'$pkgVer' (fix=$distFix) - need $ExpectedPkgVer (llmFilterEnabled bug in 2.0.14). Upgrading ..."
+    Write-Host "[0/7] package v'$pkgVer' (fix=$distFix) - updating to $ExpectedPkgVer+ (NO downgrades). Upgrading ..."
     Push-Location $RuntimeHome
     $code = Invoke-Npm @("install", "@memtensor/memos-local-plugin@$ExpectedPkgVer", "--force", "--no-audit", "--no-fund")
     if ($code -eq 0) {
