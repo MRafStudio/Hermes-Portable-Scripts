@@ -25,18 +25,10 @@ REPO_DEFAULT = "empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF"
 
 MODELS = [
     # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj, repo для скачивания с HF)
-    (1, "Qwythos-9B Q4_K_M", "Qwythos-9B-Claude-Mythos-5-1M-Q4_K_M.gguf", "5.6 GB", 12,
-     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
-    (2, "Qwythos-9B Q5_K_M", "Qwythos-9B-Claude-Mythos-5-1M-Q5_K_M.gguf", "6.5 GB", 14,
-     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
-    (3, "Qwythos-9B Q6_K", "Qwythos-9B-Claude-Mythos-5-1M-Q6_K.gguf", "7.4 GB", 16,
-     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
-    (4, "Qwythos-9B MTP-Q4_K_M", "Qwythos-9B-Claude-Mythos-5-1M-MTP-Q4_K_M.gguf", "5.9 GB", 12,
-     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
-    (5, "Qwythos-9B MTP-Q5_K_M", "Qwythos-9B-Claude-Mythos-5-1M-MTP-Q5_K_M.gguf", "6.7 GB", 14,
-     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
-    (6, "Qwythos-9B MTP-Q6_K", "Qwythos-9B-Claude-Mythos-5-1M-MTP-Q6_K.gguf", "7.6 GB", 16,
-     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", REPO_DEFAULT),
+    (1, "Gemma-3-27B Q4_K_M", "gemma-3-27b-it.Q4_K_M.gguf", "16.6 GB", 20,
+     "mmproj-gemma3-q8_0.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF"),
+    (2, "Gemma-3-27B Q5_K_M", "gemma-3-27b-it.Q5_K_M.gguf", "19.3 GB", 24,
+     "mmproj-gemma3-q8_0.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF"),
 ]
 
 ESC = "\x1b"
