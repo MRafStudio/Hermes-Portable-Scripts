@@ -47,7 +47,7 @@ if exist "%LLAMA_DIR%\llama-server.exe" (
     cd /d "%LLAMA_DIR%"
     REM актуальное имя ассета через GitHub API (llama.cpp переименовал: llama-<build>-bin-win-...!)
     set "LLAMA_ASSET="
-    for /f "delims=" %%a in ('"%PY%" "%SCRIPTS_DIR%\py\llama_latest_asset.py"') do set "LLAMA_ASSET=%%a"
+    for /f "delims=" %%a in ('""%PY%" "%SCRIPTS_DIR%\py\llama_latest_asset.py""') do set "LLAMA_ASSET=%%a"
     if "%LLAMA_ASSET%"=="" (
         echo   %ESC%[31m[ERROR]%ESC%[0m не удалось получить имя ассета llama.cpp ^(API^)
         pause
