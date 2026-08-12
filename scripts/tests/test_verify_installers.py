@@ -36,13 +36,14 @@ def test_installers_preserve_user_edits():
 
     # --- Синхронизация флагов: генератор == сгенерированный bat == служба! ---
     import os as _os
-    gen = open(_os.path.join(base, 'scripts', 'py', 'llama_gen_startbat.py'), encoding='utf-8').read()
-    svc = open(_os.path.join(base, 'scripts', 'Llama-Service.bat'), encoding='utf-8').read()
+    _base = _os.path.dirname(_os.path.dirname(_os.path.dirname(__file__)))  # scripts/tests/ -> корень репо
+    gen = open(_os.path.join(_base, 'scripts', 'py', 'llama_gen_startbat.py'), encoding='utf-8').read()
+    svc = open(_os.path.join(_base, 'scripts', 'Llama-Service.bat'), encoding='utf-8').read()
     flags = ['--parallel 1', '--image-min-tokens 1024', '--alias llama']
     for fl in flags:
         ok &= chk(f'синхрон флагов: {fl} (генератор+служба)', fl in gen and fl in svc)
     # сгенерированный start_llama.bat (data) — если есть — тоже сверяем
-    gen_bat = _os.path.join(base, 'data', 'llama', 'start_llama.bat')
+    gen_bat = _os.path.join(_base, 'data', 'llama', 'start_llama.bat')
     if _os.path.exists(gen_bat):
         bat = open(gen_bat, encoding='utf-8', errors='ignore').read()
         for fl in flags:
