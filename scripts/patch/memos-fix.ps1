@@ -231,11 +231,11 @@ if ($viewerOk) {
         if ($env:DEEPSEEK_API_KEY -and $env:DEEPSEEK_API_KEY.Trim() -ne "") {
             $useDeepSeek = $true
             $dsKey = $env:DEEPSEEK_API_KEY.Trim()
-            Write-Host "  Кристаллизация: deepseek (ключ DEEPSEEK_API_KEY из окружения)"
+            Write-Host "  Crystallization: deepseek (DEEPSEEK_API_KEY from env)"
         } else {
-            $resp = Read-Host "  Кристаллизация через deepseek? (Y - ввести ключ, N - автономно без LLM) [N]"
-            if ($resp -match "^[yYдД]") {
-                $sec = Read-Host "  Введи deepseek API-ключ (sk-...):" -AsSecureString
+            $resp = Read-Host "  Crystallization via deepseek? (Y - enter key, N - autonomous without LLM) [N]"
+            if ($resp -match "^[yY]") {
+                $sec = Read-Host "  Enter deepseek API key (sk-...):" -AsSecureString
                 if ($sec) {
                     $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
                     $dsKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
@@ -253,7 +253,7 @@ if ($viewerOk) {
                 apiKey = $dsKey
                 model = "deepseek-v4-flash"
             }
-            Write-Host "  Кристаллизация: deepseek (openai_compatible, model=deepseek-v4-flash)"
+            Write-Host "  Crystallization: deepseek (openai_compatible, model=deepseek-v4-flash)"
         } elseif ($llmProvider -ne "local_only") {
             $patch.llm = @{ provider = "local_only" }
         }
