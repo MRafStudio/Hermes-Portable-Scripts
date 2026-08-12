@@ -44,21 +44,20 @@ REM ============================================================================
 set "KCPP_DIR=%DATA_DIR%\kobold"
 set "KCPP_EXE=%KCPP_DIR%\koboldcpp.exe"
 set "MODELS_DIR=%KCPP_DIR%\models"
-set "MODEL_BF16=Qwythos-9B-Claude-Mythos-5-1M-BF16.gguf"
-set "MODEL_Q8=Qwythos-9B-Claude-Mythos-5-1M-Q8_0.gguf"
-set "MMPROJ_FILE=mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf"
-set "SERVICE_NAME=KoboldCPP"
+set "MODEL_QWEN=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
+set "MMPROJ_FILE=mmproj-35B-F16.gguf"
+set "SERVICE_NAME=LlamaCPP"
 
 REM ============================================================================
 REM   Статусы плагинов
 REM ============================================================================
 :status
+set "LLAMA_EXE=%DATA_DIR%\llama\llama-server.exe"
 set "KCPP_INSTALLED=0"
-if exist "%KCPP_EXE%" set "KCPP_INSTALLED=1"
+if exist "%LLAMA_EXE%" set "KCPP_INSTALLED=1"
 
 set "KCPP_MODEL="
-if exist "%MODELS_DIR%\%MODEL_BF16%" set "KCPP_MODEL=BF16"
-if exist "%MODELS_DIR%\%MODEL_Q8%" set "KCPP_MODEL=Q8_0"
+if exist "%MODELS_DIR%\%MODEL_QWEN%" set "KCPP_MODEL=Qwen3.6-35B"
 
 set "SERVICE_INSTALLED=0"
 sc query "%SERVICE_NAME%" >nul 2>&1
@@ -87,14 +86,14 @@ echo  %ESC%[1;36m##                                                             
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
 if !KCPP_INSTALLED! equ 1 (
-    echo   %ESC%[1;32m+ %ESC%[0m KoboldCPP — установлен %ESC%[2m^(модель %KCPP_MODEL%^)%ESC%[0m
+    echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модель %KCPP_MODEL%^)%ESC%[0m
 ) else (
-    echo   %ESC%[1;33m. %ESC%[0m KoboldCPP — не установлен
+    echo   %ESC%[1;33m. %ESC%[0m Llama.cpp — не установлен
 )
 if !SERVICE_INSTALLED! equ 1 (
-    echo   %ESC%[1;32m+ %ESC%[0m Служба KoboldCPP — установлена
+    echo   %ESC%[1;32m+ %ESC%[0m Служба Llama.cpp — установлена
 ) else (
-    echo   %ESC%[1;33m. %ESC%[0m Служба KoboldCPP — не установлена
+    echo   %ESC%[1;33m. %ESC%[0m Служба Llama.cpp — не установлена
 )
 if !MEMOS_INSTALLED! equ 1 (
     echo   %ESC%[1;32m+ %ESC%[0m MemOS %ESC%[2m^(v!MEMOS_VERSION!^)%ESC%[0m — память агента: установлен
@@ -102,13 +101,13 @@ if !MEMOS_INSTALLED! equ 1 (
     echo   %ESC%[1;33m. %ESC%[0m MemOS — память агента: не установлен
 )
 echo.
-echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mKoboldCPP — установка/обновление%ESC%[0m
-echo       %ESC%[2mЛокальная LLM ^(Qwythos BF16/Q8_0^): скачивание, настройка Hermes, порт 5101%ESC%[0m
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mСлужба KoboldCPP%ESC%[0m
+echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlama.cpp — установка/обновление%ESC%[0m
+echo       %ESC%[2mЛокальная LLM ^(Qwen3.6-35B^): скачивание, настройка Hermes, порт 8080%ESC%[0m
+echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mСлужба Llama.cpp%ESC%[0m
 if !SERVICE_INSTALLED! equ 1 (
     echo       %ESC%[2mУдалить службу ^(файлы сохраняются^)%ESC%[0m
 ) else (
-    echo       %ESC%[2mАвтозапуск KoboldCPP при старте Windows%ESC%[0m
+    echo       %ESC%[2mАвтозапуск Llama.cpp при старте Windows%ESC%[0m
 )
 echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mMemOS — память агента%ESC%[0m
 if !MEMOS_INSTALLED! equ 1 (
@@ -130,17 +129,17 @@ if "%choice%"=="3" goto install_memos
 goto menu
 
 REM ============================================================================
-REM   [1] KoboldCPP — установка / обновление
+REM   [1] Llama.cpp — установка / обновление
 REM ============================================================================
 :install_kobold
-call "%SCRIPTS_DIR%\InstallOrUpdate-Kobold.bat"
+call "%SCRIPTS_DIR%\InstallOrUpdate-Llama.bat"
 goto status
 
 REM ============================================================================
-REM   [2] Служба KoboldCPP — установка / удаление
+REM   [2] Служба Llama.cpp — установка / удаление
 REM ============================================================================
 :kobold_service
-call "%SCRIPTS_DIR%\Kobold-Service.bat"
+call "%SCRIPTS_DIR%\Llama-Service.bat"
 goto status
 
 REM ============================================================================
@@ -152,7 +151,7 @@ echo.
 echo %ESC%[1;33m-%ESC%[0m %ESC%[1mMemOS — память агента: установка / обновление...%ESC%[0m
 echo.
 echo %ESC%[2m  Источник: npm (@memtensor/memos-local-plugin, latest).%ESC%[0m
-echo %ESC%[2m  Рефлексия LLM: локальный KoboldCPP http://127.0.0.1:5101/v1.%ESC%[0m
+echo %ESC%[2m  Рефлексия LLM: кристаллизация через DeepSeek API, локально llama.cpp :8080.%ESC%[0m
 echo %ESC%[2m  Телеметрия отключена, 100%% локально.%ESC%[0m
 echo.
 echo %ESC%[33m  Убедитесь, что Hermes (служба/сессии) остановлен, иначе файлы залочены.%ESC%[0m
