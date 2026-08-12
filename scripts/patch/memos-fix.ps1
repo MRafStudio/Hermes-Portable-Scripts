@@ -74,11 +74,8 @@ function Invoke-Npm {
     return $code
 }
 
-# --- 0. ВЕРСИЯ ПАКЕТА (жёсткая проверка!): npm latest 2.0.14 содержит БАГ (llmFilterEnabled не
-#     передаётся в retrieval - финальный LLM-фильтр работает всегда и режет все хиты).
-#     Фикс - в 2.0.14-beta.1 (последняя опубликованная; 2.0.15 в npm НЕТ - только dev-репа).
-#     Проверяем ФАКТИЧЕСКУЮ версию в node_modules (НЕ корневой package.json - он может не
-#     обновиться при npm install поверх!) + наличие фикса в dist. ---
+# --- 0. ВЕРСИЯ ПАКЕТА (без даунгрейдов!): ожидаем 2.0.15+ (npm latest). НИКОГДА не откатываем -
+#     beta.1 имела строгий YAML-парсер (падал на apiKey: *** - Unresolved alias). ---
 $ExpectedPkgVer = "2.0.15"
 $pkgJson = Join-Path (Join-Path $RuntimeHome "node_modules\@memtensor\memos-local-plugin") "package.json"
 if (Test-Path $pkgJson) {
