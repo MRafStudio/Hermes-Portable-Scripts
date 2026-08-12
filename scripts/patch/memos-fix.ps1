@@ -122,7 +122,8 @@ try {
 
 # --- 6. embedding-модель (проверяем ДО конфига: путь в PATCH зависит от неё) ---
 $embedModelOnnx = Join-Path $EmbedModelDir "onnx\model.onnx"
-if (Test-Path $embedModelOnnx) {
+$embedModelTok = Join-Path $EmbedModelDir "tokenizer.json"
+if ((Test-Path $embedModelOnnx) -and (Test-Path $embedModelTok)) {
     Write-Host "[6/7] embedding model: OK"
 } else {
     Write-Host "  -   embedding model (Xenova/all-MiniLM-L6-v2)..."
@@ -147,10 +148,10 @@ if (Test-Path $embedModelOnnx) {
         & $HfExe download Xenova/all-MiniLM-L6-v2 --local-dir $EmbedModelDir 2>&1 | Out-Null
         Remove-Item Env:HF_ENDPOINT -ErrorAction SilentlyContinue
     }
-    if (-not (Test-Path $embedModelOnnx) -and (Test-Path $HfExe)) {
+    if (((-not (Test-Path $embedModelOnnx)) -or (-not (Test-Path $embedModelTok))) -and (Test-Path $HfExe)) {
         & $HfExe download Xenova/all-MiniLM-L6-v2 --local-dir $EmbedModelDir 2>&1 | Out-Null
     }
-    if (Test-Path $embedModelOnnx) {
+    if ((Test-Path $embedModelOnnx) -and (Test-Path $embedModelTok)) {
         Write-Host "  +   embedding model installed: $EmbedModelDir"
         $fixed += "embedding-model"
     } else {
