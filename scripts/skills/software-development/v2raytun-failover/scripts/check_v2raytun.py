@@ -86,10 +86,15 @@ def main():
     if '--select' in sys.argv:
         target = sys.argv[sys.argv.index('--select') + 1]
         if target not in cfgs:
-            print(f'ОШИБКА: конфиг {target} не найден')
-            return 1
+            # поддержка префикса (первые символы ID — уникальные!)
+            matches = [c for c in cfgs if c.startswith(target)]
+            if len(matches) == 1:
+                target = matches[0]
+            else:
+                print(f'ОШИБКА: конфиг {target} не найден' + (' (неоднозначный префикс!)' if matches else ''))
+                return 1
         # проверка: v2RayTun закрыт?
-        procs = subprocess.run(['tasklist'], capture_output=True, text=True).stdout
+        procs = subprocess.run(['tasklist'], capture_output=True, text=True, errors='replace').stdout or ''
         if 'v2RayTun.exe' in procs:
             print('ВНИМАНИЕ: v2RayTun ЗАПУЩЕН - правка затрется при закрытии! Закройте приложение.')
             return 2
