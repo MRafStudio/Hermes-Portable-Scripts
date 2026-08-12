@@ -153,10 +153,11 @@ if not defined PICK (
     pause
     goto install_kobold
 )
-for /f "tokens=1-4 delims=|" %%a in ("!PICK!") do (
+for /f "tokens=1-5 delims=|" %%a in ("!PICK!") do (
     set "MODEL_FILE=%%b"
     set "MMPROJ_FILE=%%c"
     set "MODEL_REPO=%%d"
+    set "MODEL_MAXCTX=%%e"
 )
 set "MODEL_ID=koboldcpp/!MODEL_FILE:.gguf=!"
 set "MODEL_URL=https://huggingface.co/%MODEL_REPO%/resolve/main/%MODEL_FILE%"
@@ -167,6 +168,17 @@ echo %ESC%[33m  Основная модель: %ESC%[1m%MODEL_FILE%%ESC%[0m
 set "confirm="
 set /p "confirm=%ESC%[33m  Продолжить (y/N)? %ESC%[0m"
 if /i not "%confirm%"=="y" goto menu
+
+REM ============================================================================
+REM   Контекст Hermes под модель (из базы kobold_models.py, max_ctx)
+REM   При установке с нуля Hermes-конфиг узнаёт реальный контекст kobold
+REM   (иначе компакция считает по умолчанию 131K и сжимает в 2 раза раньше!)
+REM ============================================================================
+if defined MODEL_MAXCTX (
+    call "%HERMES_EXE%" config set model.context_length "%MODEL_MAXCTX%" >nul 2>&1
+    call "%HERMES_EXE%" config set providers.kobold.context_length "%MODEL_MAXCTX%" >nul 2>&1
+    echo   %ESC%[1;32m+ %ESC%[0m Hermes-контекст установлен: %MODEL_MAXCTX% (%MODEL_FILE%)
+)
 
 REM ============================================================================
 REM   Скачивание
