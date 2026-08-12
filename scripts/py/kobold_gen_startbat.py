@@ -1,7 +1,7 @@
 # kobold_gen_startbat.py — генерация start_kobold.bat (UTF-8, CRLF, chcp 65001) для data\kobold
 # Использование: python kobold_gen_startbat.py <KCPP_DIR> <MODEL_FILE> <MMPROJ_FILE> [PORT]
 # Генерит ОДИН инстанс (модель + порт из аргументов) — для схемы "2 инстанса" (Q4:5101, Q6:5102).
-# Параметры под 1M-модель: --contextsize 262144 (256K) --quantkv q8_0 (KV 8-бит) --defaultgenamt 16384
+# Параметры под Gemma-3-27B: --contextsize 65536 (64K) --defaultgenamt 16384 (БЕЗ quantkv: q4_0 MMQ на Blackwell = 0.3 T/s; f16 = 47 T/s)
 import os
 import sys
 
