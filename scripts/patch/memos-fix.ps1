@@ -1,4 +1,4 @@
-# memos-fix.ps1 - FALLBACK: доводит установку MemOS до идеала (самодостаточный фиксер)
+﻿# memos-fix.ps1 - FALLBACK: доводит установку MemOS до идеала (самодостаточный фиксер)
 # Не является частью установщика: запускается ПОСЛЕ install-memos.ps1 (или отдельно).
 # Правило: скрипты вендора НЕ трогаем - проверяем недостающее и ДОУСТАНАВЛИВАЕМ.
 #  1. native bindings (better-sqlite3) - approve-scripts (поштучно!) + npm rebuild
@@ -74,46 +74,8 @@ function Invoke-Npm {
     return $code
 }
 
-# --- 0. ВЕРСИЯ ПАКЕТА (без даунгрейдов!): ожидаем 2.0.15+ (npm latest). НИКОГДА не откатываем -
-#     beta.1 имела строгий YAML-парсер (падал на apiKey: *** - Unresolved alias). ---
-$ExpectedPkgVer = "2.0.15"
-$pkgJson = Join-Path (Join-Path $RuntimeHome "node_modules\@memtensor\memos-local-plugin") "package.json"
-if (Test-Path $pkgJson) {
-    $pkgVer = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version
-} else {
-    $pkgVer = ""
-}
-$distFix = Test-Path (Join-Path $RuntimeHome "dist\core\pipeline\deps.js")
-if ($distFix) {
-    $distFix = (Select-String -Path (Join-Path $RuntimeHome "dist\core\pipeline\deps.js") -Pattern "llmFilterEnabled: alg.lightweightMemory.enabled" -Quiet)
-}
-if ($pkgVer -match "^2\.0\.1[5-9]" -and $distFix) {
-    Write-Host "[0/7] package version OK ($pkgVer, llmFilterEnabled fix present)"
-} else {
-    Write-Host "[0/7] package v'$pkgVer' (fix=$distFix) - updating to $ExpectedPkgVer+ (NO downgrades). Upgrading ..."
-    Push-Location $RuntimeHome
-    $code = Invoke-Npm @("install", "@memtensor/memos-local-plugin@$ExpectedPkgVer", "--force", "--no-audit", "--no-fund")
-    if ($code -eq 0) {
-        & $NpmCmdPath approve-scripts $NativePkgs 2>&1 | Out-Null
-        Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $NativePkgs) | Out-Null
-        # ВЕРИФИКАЦИЯ ПОСЛЕ (не верим коду на слово!): фактическая версия + фикс в dist
-        $pkgVer2 = (Get-Content $pkgJson -Raw | ConvertFrom-Json).version
-        $distFix2 = Select-String -Path (Join-Path $RuntimeHome "dist\core\pipeline\deps.js") -Pattern "llmFilterEnabled: alg.lightweightMemory.enabled" -Quiet
-        if ($pkgVer2 -eq $ExpectedPkgVer -and $distFix2) {
-            $fixed += "package-beta"
-            Write-Host "[0/7] package upgraded to $ExpectedPkgVer (verified: v$pkgVer2, dist fix present)"
-        } else {
-            Write-Host "ERROR: package still v'$pkgVer2' (fix=$distFix2) after upgrade - MemOS search will stay broken."
-            Pop-Location
-            exit 1
-        }
-    } else {
-        Write-Host "ERROR: npm install $ExpectedPkgVer failed (code $code) - check npm/registry."
-        Pop-Location
-        exit 1
-    }
-    Pop-Location
-}
+# --- 0. ВЕРСИЯ ПАКЕТА: НЕ ПРОВЕРЯЕМ (правило пользователя: какая пришла, такая и пришла!
+#     фикс только докачивает недостающее и настраивает конфиг по умолчанию). ---
 
 # --- 1. node_modules + native bindings (пошагово, как вендорский install.hermes.sh) ---
 Push-Location $RuntimeHome
