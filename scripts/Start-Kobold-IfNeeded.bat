@@ -1,4 +1,4 @@
-@REM scripts\Start-Kobold-IfNeeded.bat - поднять KoboldCPP (1 инстанс: MTP-Q4 :5101) перед запуском Hermes (если установлен)
+@REM scripts\Start-Kobold-IfNeeded.bat - поднять KoboldCPP (1 инстанс: Gemma-3-27B :5101) перед запуском Hermes (если установлен)
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -42,7 +42,7 @@ if not exist "%KCPP_DIR%\models\%MMPROJ_FILE%" goto not_installed
 if not exist "%KCPP_DIR%\models\%MODEL_GEMMA%" goto not_installed
 
 REM ============================================================================
-REM   Инстанс 1: MTP-Q4_K_M :5101 (если не отвечает - запускаем)
+REM   Инстанс 1: Gemma-3-27B :5101 (если не отвечает - запускаем)
 REM ============================================================================
 "%CURL_CMD%" -s --noproxy "*" -m 2 "http://127.0.0.1:5101/v1/models" >nul 2>&1
 if !errorlevel! equ 0 (
