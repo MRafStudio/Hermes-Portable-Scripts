@@ -4,8 +4,10 @@ REM Использование: Start_llama.bat [MODEL] [PORT] [MMPROJ]  (деф
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-set "LLAMA_DIR=%~dp0"
-for %%i in ("%LLAMA_DIR%..\..") do set "ROOT_DIR=%%~fi"
+REM Start_llama.bat живёт в scripts\ (единый источник) - каталоги вычисляем сами
+set "SCRIPTS_DIR=%~dp0"
+for %%i in ("%SCRIPTS_DIR%..") do set "ROOT_DIR=%%~fi"
+set "LLAMA_DIR=%ROOT_DIR%\data\llama"
 set "LLM_MODELS=%ROOT_DIR%\data\llm\models"
 set "CFG_FILE=%ROOT_DIR%\data\llm\default_model.cfg"
 

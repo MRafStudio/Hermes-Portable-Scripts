@@ -266,8 +266,8 @@ if not errorlevel 1 (
         echo   Останавливаю llama-server...
         taskkill /f /im llama-server.exe >nul 2>&1
         timeout /t 2 >nul
-        if exist "%LLAMA_DIR%\Start_llama.bat" (
-            start /min "LlamaCPP" cmd /c ""%LLAMA_DIR%\Start_llama.bat""
+        if exist "%SCRIPTS_DIR%\Start_llama.bat" (
+            start /min "LlamaCPP" cmd /c ""%SCRIPTS_DIR%\Start_llama.bat""
         )
     ) else (
         echo   %ESC%[2m  llama-server не запущен - новая модель подхватится при старте.%ESC%[0m
