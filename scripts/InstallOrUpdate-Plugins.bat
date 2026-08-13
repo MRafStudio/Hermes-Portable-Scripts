@@ -211,43 +211,6 @@ if errorlevel 1 (
     echo %ESC%[1;32mГотово. Проверка: при следующей сессии Hermes viewer откроется на :18800.%ESC%[0m
 )
 
-REM ============================================================================
-REM   Кастомные скиллы (наработанные кровью и потом!): установка + проверка
-REM ============================================================================
-echo.
-echo %ESC%[1;36mУстановка кастомных скиллов (наработанные в процессе обучения)...%ESC%[0m
-if exist "%SCRIPTS_DIR%\skills" (
-    REM Только НОВЫЕ скиллы (robocopy /XC /XN /XO) - существующие улучшения НЕ перезаписываем!
-    robocopy "%SCRIPTS_DIR%\skills" "%HERMES_HOME%\skills" /E /XC /XN /XO /NFL /NDL /NJH /NJS >nul 2>&1
-    if errorlevel 8 (
-        echo   %ESC%[1;33m  .   robocopy: ошибка - скиллы не тронуты.%ESC%[0m
-    ) else (
-        echo %ESC%[1;32m  +   Скиллы: новые установлены, существующие сохранены.%ESC%[0m
-    )
-    REM Проверка: запускаем новый hermes и спрашиваем список скиллов
-    set "HERMES_BIN=%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe"
-    if exist "%HERMES_BIN%" (
-        "%HERMES_BIN%" skills list >"%TEMP%\hermes_skills_check.txt" 2>&1
-        if !errorlevel! equ 0 (
-            set "MISSING=0"
-            for %%S in (memos-tool-id-formats windows-gitbash-terminal hermes-portable-maintenance memos-memory-management memos-memory-diagnosis v2raytun-failover autonomous-execution llama-cpp-server-management hermes-token-saving sdlc-review research-paper-writing windows-batch-scripting) do (
-                findstr /c:"%%S" "%TEMP%\hermes_skills_check.txt" >nul 2>&1 || set "MISSING=1"
-            )
-            if "!MISSING!"=="0" (
-                echo %ESC%[1;32m  +   Проверка: ВСЕ 12 кастомных скиллов на месте (hermes skills list)!%ESC%[0m
-            ) else (
-                echo %ESC%[1;33m  .   ВНИМАНИЕ: не все скиллы видны (проверьте hermes skills list) — копия выполнена.%ESC%[0m
-            )
-        ) else (
-            echo %ESC%[1;33m  .   hermes не запустился — скиллы скопированы, проверка позже.%ESC%[0m
-        )
-        del /q "%TEMP%\hermes_skills_check.txt" 2>nul
-    ) else (
-        echo %ESC%[1;33m  .   hermes.exe не найден — скиллы скопированы, проверка позже.%ESC%[0m
-    )
-) else (
-    echo %ESC%[1;33m  .   scripts\skills не найден — скиллы не копировались.%ESC%[0m
-)
 echo.
 pause
 goto status
