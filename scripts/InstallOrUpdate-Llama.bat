@@ -6,7 +6,7 @@ setlocal enabledelayedexpansion
 title Llama.cpp — Установка / Обновление
 
 REM ============================================================================
-REM   Корректное определение путей
+REM   Пути
 REM ============================================================================
 set "SCRIPTS_DIR=%~dp0"
 if "%SCRIPTS_DIR:~-1%"=="\" set "SCRIPTS_DIR=%SCRIPTS_DIR:~0,-1%"
@@ -17,8 +17,8 @@ set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"
 set "DATA_DIR=%ROOT_DIR%\data"
 set "LLAMA_DIR=%DATA_DIR%\llama"
-set "LLM_MODELS=%DATA_DIR%\llm\models"
-set "PY=%REPO_DIR%\venv\Scripts\python.exe"
+set "LLM_DIR=%DATA_DIR%\llm"
+set "MODELS_DIR=%LLM_DIR%\models"
 
 REM ============================================================================
 REM   Изоляция данных
@@ -28,187 +28,131 @@ set "TMP=%DATA_DIR%\temp"
 set "APPDATA=%DATA_DIR%\appdata"
 set "HOME=%DATA_DIR%\home"
 
+if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" 2>nul
+if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
 if not exist "%LLAMA_DIR%" mkdir "%LLAMA_DIR%" 2>nul
-if not exist "%LLM_MODELS%" mkdir "%LLM_MODELS%" 2>nul
+if not exist "%MODELS_DIR%" mkdir "%MODELS_DIR%" 2>nul
 
 REM ============================================================================
-REM   Получение ESC (стандартный трюк, без PowerShell)
+REM   ESC
 REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
 REM ============================================================================
-REM   1/4 Проверка llama.cpp (если нет - скачиваем свежий релиз с GitHub)
+REM   curl
+REM ============================================================================
+set "CURL="
+if exist "%SYSTEMROOT%\System32\curl.exe" set "CURL=%SYSTEMROOT%\System32\curl.exe"
+if not defined CURL for /f "delims=" %%c in ('where curl 2^>nul') do if not defined CURL set "CURL=%%c"
+
+REM ============================================================================
+REM   Прямые ссылки релиза (b10375, CUDA 13.3) — НЕ через GitHub API!
+REM   github.com напрямую режется (52) — качаем через прокси 10809.
+REM   Прокси нестабилен — на случай обрывов retry-all-errors.
+REM ============================================================================
+set "PROXY=http://127.0.0.1:10809"
+set "LLAMA_URL=https://github.com/ggml-org/llama.cpp/releases/download/b10375/llama-b10375-bin-win-cuda-13.3-x64.zip"
+set "CUDART_URL=https://github.com/ggml-org/llama.cpp/releases/download/b10375/cudart-llama-bin-win-cuda-13.3-x64.zip"
+
+REM ============================================================================
+REM   Установка движка (уже установлен — пропускаем)
 REM ============================================================================
 if exist "%LLAMA_DIR%\llama-server.exe" (
+    echo.
     echo %ESC%[1;32m+ %ESC%[0m llama.cpp: установлен %ESC%[2m^(%LLAMA_DIR%^)%ESC%[0m
-    set "LLAMA_NEED=0"
-) else (
-    echo %ESC%[1;33m. %ESC%[0m llama.cpp: скачиваю свежий релиз ^(GitHub, CUDA 13.3^)...
-    REM Правило: загрузки в %TEMP% - там разворачиваем - при успехе move - очистка ошмётков!
-    set "LLAMA_TMP=%TEMP%\llama_setup"
-    if exist "%LLAMA_TMP%" rmdir /s /q "%LLAMA_TMP%" 2>nul
-    mkdir "%LLAMA_TMP%" 2>nul
-    cd /d "%LLAMA_TMP%"
-    REM актуальное имя ассета через GitHub API (llama.cpp переименовал: llama-<build>-bin-win-...!)
-    set "LLAMA_ASSET="
-    for /f "delims=" %%a in ('""%PY%" "%SCRIPTS_DIR%\py\llama_latest_asset.py""') do set "LLAMA_ASSET=%%a"
-    if "!LLAMA_ASSET!"=="" (
-        echo   %ESC%[31m[ERROR]%ESC%[0m не удалось получить имя ассета llama.cpp ^(API^)
-        pause
-        goto menu
-    )
-    curl -L --noproxy "*" -# -o llama-bin.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/!LLAMA_ASSET!"
-    if errorlevel 1 (
-        echo   %ESC%[1;33m  .   GitHub недоступен - пробуем через прокси ^(фоллбэк^)...%ESC%[0m
-        curl -L -x http://127.0.0.1:10809 -# -o llama-bin.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/!LLAMA_ASSET!"
-    )
-    if errorlevel 1 (
-        echo   %ESC%[31m[ERROR]%ESC%[0m не удалось скачать llama.cpp
-        rmdir /s /q "%LLAMA_TMP%" 2>nul
-        pause
-        goto menu
-    )
-    curl -L --noproxy "*" -# -o llama-cudart.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/cudart-llama-bin-win-cuda-13.3-x64.zip"
-    if errorlevel 1 (
-        echo   %ESC%[1;33m  .   GitHub недоступен - пробуем через прокси ^(фоллбэк^)...%ESC%[0m
-        curl -L -x http://127.0.0.1:10809 -# -o llama-cudart.zip "https://github.com/ggml-org/llama.cpp/releases/latest/download/cudart-llama-bin-win-cuda-13.3-x64.zip"
-    )
-    if errorlevel 1 (
-        echo   %ESC%[31m[ERROR]%ESC%[0m не удалось скачать CUDA runtime
-        rmdir /s /q "%LLAMA_TMP%" 2>nul
-        pause
-        goto menu
-    )
-    REM распаковка: tar (bsdtar - встроен в Win10+!) - unzip в cmd НЕТ (только MSYS!)
-    tar -xf llama-bin.zip 2>nul
-    tar -xf llama-cudart.zip 2>nul
-    del llama-bin.zip llama-cudart.zip 2>nul
-    REM архив с вложенной папкой (llama-<build>-bin-win-...) - сдвигаем содержимое в корень!
-    for /d %%D in ("%LLAMA_TMP%\llama-*-bin-*") do (
-        move /y "%%D\*" "%LLAMA_TMP%\" >nul 2>&1
-        rmdir /q "%%D" 2>nul
-    )
-    if not exist "%LLAMA_TMP%\llama-server.exe" (
-        echo   %ESC%[31m[ERROR]%ESC%[0m llama-server.exe не найден после распаковки
-        rmdir /s /q "%LLAMA_TMP%" 2>nul
-        pause
-        goto menu
-    )
-    REM при успехе - переносим в целевой каталог и чистим ошмётки!
-    move /y "%LLAMA_TMP%\*" "%LLAMA_DIR%\" >nul 2>&1
-    rmdir /s /q "%LLAMA_TMP%" 2>nul
-    echo %ESC%[1;32m+ %ESC%[0m llama.cpp: установлен
+    goto run_info
 )
 
-REM ============================================================================
-REM   2/4 Выбор модели (общая база llama_models.py — модели общие!)
-REM ============================================================================
-:pick_model
 echo.
-echo %ESC%[1;37mДоступные модели%ESC%[0m ^(общая библиотека llama_models.py^):
-"%PY%" "%SCRIPTS_DIR%\py\llama_models.py" list
-echo.
-set "MID="
-set /p "MID=%ESC%[33mВыбери ID модели или Enter для отмены: %ESC%[0m"
-if "%MID%"=="" goto menu
+echo %ESC%[1;33m llama.cpp: скачиваю релиз ^(b10375, CUDA 13.3^)...%ESC%[0m
+set "LLAMA_TMP=%TEMP%\llama_setup"
+if exist "%LLAMA_TMP%" rmdir /s /q "%LLAMA_TMP%" 2>nul
+mkdir "%LLAMA_TMP%" 2>nul
 
-set "PICK="
-for /f "delims=" %%p in ('""%PY%" "%SCRIPTS_DIR%\py\llama_models.py" pick "%MID%" "llama/x" "%LLM_MODELS%""') do set "PICK=%%p"
-if not defined PICK (
-    echo   %ESC%[31m[ERROR]%ESC%[0m неверный ID модели
-    goto pick_model
-)
+call :download "%LLAMA_URL%" "%LLAMA_TMP%\llama-bin.zip" "llama.cpp (bin)"
+if errorlevel 1 goto fail
+call :download "%CUDART_URL%" "%LLAMA_TMP%\llama-cudart.zip" "CUDA runtime"
+if errorlevel 1 goto fail
 
-for /f "tokens=1-6 delims=|" %%a in ("!PICK!") do (
-    set "MODEL_FILE=%%b"
-    set "MMPROJ_FILE=%%c"
-    set "MODEL_REPO=%%d"
-    set "MODEL_MAXCTX=%%e"
-    set "MMPROJ_SRC=%%f"
+REM --- распаковка: 7z (если есть) -> иначе PowerShell Expand-Archive ---
+set "SEVENZIP="
+if exist "%ProgramFiles%\7-Zip\7z.exe" set "SEVENZIP=%ProgramFiles%\7-Zip\7z.exe"
+if not defined SEVENZIP if exist "%ProgramFiles(x86)%\7-Zip\7z.exe" set "SEVENZIP=%ProgramFiles(x86)%\7-Zip\7z.exe"
+echo   %ESC%[2m    Распаковка...%ESC%[0m
+call :unzip "%LLAMA_TMP%\llama-bin.zip" "%LLAMA_TMP%"
+if errorlevel 1 goto fail
+call :unzip "%LLAMA_TMP%\llama-cudart.zip" "%LLAMA_TMP%"
+if errorlevel 1 goto fail
+del "%LLAMA_TMP%\llama-bin.zip" "%LLAMA_TMP%\llama-cudart.zip" 2>nul
+REM архив плоский; на всякий случай сдвигаем, если появится вложенная папка
+for /d %%D in ("%LLAMA_TMP%\llama-*-bin-*") do (
+    move /y "%%D\*" "%LLAMA_TMP%\" >nul 2>&1
+    rmdir /q "%%D" 2>nul
 )
-echo.
-echo   Модель:    %MODEL_FILE%
-echo   Проектор:  %MMPROJ_FILE%  ^(источник: %MMPROJ_SRC%^)
-echo   Контекст:  %MODEL_MAXCTX%
-echo   Репозиторий: %MODEL_REPO%
-set "confirm="
-set /p "confirm=%ESC%[33mУстановить эту модель (y/N)? %ESC%[0m"
-if /i not "%confirm%"=="y" goto menu
-
-REM ============================================================================
-REM   3/4 Скачивание модели + проектора (если нет) в общий каталог
-REM ============================================================================
-echo.
-echo %ESC%[1;33m 1/2 Модель%ESC%[0m
-if not exist "%LLM_MODELS%\%MODEL_FILE%" (
-    call :download_hf "%MODEL_REPO%" "%MODEL_FILE%" "%LLM_MODELS%"
-) else (
-    echo   %ESC%[2m    уже есть - пропускаю%ESC%[0m
+if not exist "%LLAMA_TMP%\llama-server.exe" (
+    echo   %ESC%[1;31m[ОШИБКА] llama-server.exe не найден после распаковки%ESC%[0m
+    goto fail
 )
-echo %ESC%[1;33m 2/2 Проектор ^(vision^)%ESC%[0m
-if not exist "%LLM_MODELS%\%MMPROJ_FILE%" (
-    call :download_hf "%MODEL_REPO%" "%MMPROJ_SRC%" "%LLM_MODELS%"
-    if not "%MMPROJ_SRC%"=="%MMPROJ_FILE%" (
-        move /y "%LLM_MODELS%\%MMPROJ_SRC%" "%LLM_MODELS%\%MMPROJ_FILE%" >nul 2>&1
-    )
-) else (
-    echo   %ESC%[2m    уже есть - пропускаю%ESC%[0m
-)
+move /y "%LLAMA_TMP%\*" "%LLAMA_DIR%\" >nul 2>&1
+rmdir /s /q "%LLAMA_TMP%" 2>nul
+echo %ESC%[1;32m+ %ESC%[0m llama.cpp: установлен ^(b10375^)
 
 REM ============================================================================
-REM   Генерация start_llama.bat (llama.cpp-флаги)
-REM   НЕ перегенерируем, если файл уже есть (правки пользователя сохраняются!)
+REM   Инфо о запуске
 REM ============================================================================
-if exist "%LLAMA_DIR%\start_llama.bat" (
-    echo   %ESC%[2m    start_llama.bat уже есть - правки пользователя сохраняются%ESC%[0m
-    echo   %ESC%[2m    ^(для обновления из репозитория: удали файл или ответь y на вопрос ниже^)%ESC%[0m
-    set "reg="
-    set /p "reg=%ESC%[33mОбновить start_llama.bat из репозитория (y/N)? %ESC%[0m"
-    if /i not "%reg%"=="y" goto skip_gen
-)
-copy /y "%SCRIPTS_DIR%\start_llama.bat" "%LLAMA_DIR%\start_llama.bat" >nul 2>&1
-if errorlevel 1 (
-    echo   %ESC%[31m[ERROR]%ESC%[0m копирование start_llama.bat не удалось
-    pause
-    goto menu
-)
-echo   %ESC%[1;32m+ %ESC%[0m start_llama.bat установлен из репозитория
-:skip_gen
-
-REM ============================================================================
-REM   4/4 Настройка Hermes (providers.llama + default + context_length)
-REM ============================================================================
-set "HERMES_EXE=%REPO_DIR%\venv\Scripts\hermes.exe"
-set "MODEL_DEF=llama/%MODEL_FILE:~0,-5%"
-call "%HERMES_EXE%" config set providers.llama.model "%MODEL_DEF%" >nul 2>&1
-call "%HERMES_EXE%" config set providers.llama.base_url "http://127.0.0.1:5505/v1" >nul 2>&1
-call "%HERMES_EXE%" config set providers.llama.api_mode "openai" >nul 2>&1
-call "%HERMES_EXE%" config set model.default "%MODEL_DEF%" >nul 2>&1
-if defined MODEL_MAXCTX (
-    call "%HERMES_EXE%" config set model.context_length "%MODEL_MAXCTX%" >nul 2>&1
-    call "%HERMES_EXE%" config set providers.llama.context_length "%MODEL_MAXCTX%" >nul 2>&1
+:run_info
+if not exist "%LLAMA_DIR%\start_llama.bat" (
+    copy /y "%SCRIPTS_DIR%\start_llama.bat" "%LLAMA_DIR%\start_llama.bat" >nul 2>&1
 )
 echo.
-echo %ESC%[1;32m+ %ESC%[0m Hermes настроен: llama.cpp :5505, модель %MODEL_FILE%
-echo   Контекст %MODEL_MAXCTX% ^| запуск: %LLAMA_DIR%\start_llama.bat
+echo %ESC%[1;33m  Запуск:   %ESC%[0m%LLAMA_DIR%\start_llama.bat
+echo %ESC%[1;33m  Модель:   %ESC%[0mнужна в %MODELS_DIR% - скажи Hermes, какую качать
+echo %ESC%[1;33m  Порт API: %ESC%[0m5505 - Start-Llama-IfNeeded поднимет автоматически
 echo.
-echo %ESC%[1;32m Готово!%ESC%[0m
 pause
-goto menu
-
-REM ============================================================================
-REM   Скачивание с HuggingFace (hf из домовского venv, напрямую без прокси)
-REM ============================================================================
-:download_hf
-set "HF=%REPO_DIR%\venv\Scripts\hf"
-set "HF_REPO=%~1"
-set "HF_FILE=%~2"
-set "HF_DIR=%~3"
-"%HF%" download "%HF_REPO%" "%HF_FILE%" --local-dir "%HF_DIR%" >nul 2>&1
-if errorlevel 1 (
-    echo   %ESC%[31m[ERROR]%ESC%[0m не удалось скачать %HF_FILE%
-)
 exit /b 0
 
-:menu
+:fail
+echo   %ESC%[1;31m[ОШИБКА] Установка llama.cpp прервана.%ESC%[0m
+if exist "%LLAMA_TMP%" rmdir /s /q "%LLAMA_TMP%" 2>nul
+pause
+exit /b 1
+
+REM ============================================================================
+REM   :download URL FILE NAME — скачивание: напрямую -> прокси -> PowerShell
+REM ============================================================================
+:download
+set "DL_URL=%~1"
+set "DL_FILE=%~2"
+set "DL_NAME=%~3"
+if exist "%DL_FILE%" del "%DL_FILE%" 2>nul
+echo   %ESC%[2m    Загрузка %DL_NAME% ...%ESC%[0m
+REM сначала напрямую (90% скриптов ходят напрямую!)
+"%CURL%" -L --fail --noproxy "*" -C - -# -o "%DL_FILE%" "%DL_URL%"
+if not exist "%DL_FILE%" (
+    echo   %ESC%[1;33m    Напрямую не вышло - пробуем через прокси %PROXY%...%ESC%[0m
+    "%CURL%" -L --fail -x "%PROXY%" -C - --retry 8 --retry-delay 3 --retry-all-errors -# -o "%DL_FILE%" "%DL_URL%"
+)
+if not exist "%DL_FILE%" (
+    echo   %ESC%[1;33m    Прокси не помог - переключение на PowerShell...%ESC%[0m
+    powershell -NoProfile -NonInteractive -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; try { Invoke-WebRequest -Uri '%DL_URL%' -OutFile '%DL_FILE%' -UseBasicParsing -TimeoutSec 600 } catch { exit 1 }"
+)
+if not exist "%DL_FILE%" (
+    echo   %ESC%[1;31m[ОШИБКА] Загрузка не удалась[0m
+    echo   %ESC%[33mURL: %DL_URL%%ESC%[0m
+    exit /b 1
+)
+echo   %ESC%[1;32m    OK: %DL_NAME%%ESC%[0m
+exit /b 0
+
+REM ============================================================================
+REM   :unzip FILE DIR — 7z (если найден) -> иначе PowerShell Expand-Archive
+REM ============================================================================
+:unzip
+if defined SEVENZIP (
+    "%SEVENZIP%" x -y -o"%~2" "%~1" >nul 2>&1
+    if not errorlevel 1 exit /b 0
+)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -LiteralPath '%~1' -DestinationPath '%~2' -Force"
+if errorlevel 1 exit /b 1
 exit /b 0
