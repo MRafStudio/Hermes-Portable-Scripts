@@ -245,6 +245,14 @@ REM ============================================================================
 :restart_llama
 sc query "%SERVICE_NAME%" >nul 2>&1
 if not errorlevel 1 (
+    REM служба установлена - обновляем параметры модели (nssm AppParameters) и перезапускаем
+    set "NSSM_EXE=%ROOT_DIR%\scripts\nssm.exe"
+    if exist "%NSSM_EXE%" (
+        "%NSSM_EXE%" set "%SERVICE_NAME%" AppParameters "-m %MODELS_DIR%\%MODEL_FILE% --mmproj %MODELS_DIR%\%MMPROJ_FILE% --alias llama/%MODEL_FILE:~0,-5% -c %MODEL_MAXCTX% -ngl 999 --flash-attn 1 --parallel 1 --image-min-tokens 1024 --port 5505 --host 127.0.0.1" >nul 2>&1
+        echo   %ESC%[1;32m+ %ESC%[0m Параметры службы обновлены: %MODEL_LABEL%
+    ) else (
+        echo   %ESC%[1;33m  nssm не найден - параметры службы НЕ обновлены (останется старая модель)!%ESC%[0m
+    )
     echo   Перезапуск службы %SERVICE_NAME%...
     sc stop "%SERVICE_NAME%" >nul 2>&1
     timeout /t 2 >nul
