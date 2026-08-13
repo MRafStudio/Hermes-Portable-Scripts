@@ -1,4 +1,4 @@
-# scripts\ps\install_rg.ps1
+# scripts\ps1\install_rg.ps1
 # Установка ripgrep (rg.exe) в портабельный каталог HERMES_HOME\bin
 # Приоритет: глобальный rg из реестрового PATH (Machine+User) -> копирование в bin;
 # если глобального нет или он невалиден - скачивание с GitHub (fallback).

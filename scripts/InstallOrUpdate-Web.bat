@@ -296,7 +296,7 @@ REM ============================================================================
 echo.
 echo   %ESC%[1;33m[2/6]%ESC%[0m %ESC%[1mЗапуск install.ps1...%ESC%[0m
 
-set "INSTALL_PS1=%SCRIPTS_DIR%\ps\hermes_install_portable.ps1"
+set "INSTALL_PS1=%SCRIPTS_DIR%\ps1\hermes_install_portable.ps1"
 
 if not exist "%INSTALL_PS1%" (
     echo   %ESC%[1;31m[ОШИБКА] %INSTALL_PS1% не найден!%ESC%[0m
