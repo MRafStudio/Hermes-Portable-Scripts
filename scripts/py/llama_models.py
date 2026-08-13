@@ -30,15 +30,15 @@ MODELS = [
     # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj_ЛОКАЛЬНОЕ, repo, max_ctx, mmproj_ИСТИННОЕ)
     # ==============================================================================================================
     # Базовая модель но для видеокарт начиная с 24Gb
-    (1, "Qwen3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "18.0 GB", 24,
+    (1, "Qwen-3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "18.0 GB", 24,
      "mmproj-Qwen-35B-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144,
      "mmproj-F16.gguf"),
     # Ближайший конкурент Qwen3.6 при меньших потребностях
-    (2, "Gemma-4-26B-A4B UD-IQ4_NL", "gemma-4-26B-A4B-it-UD-IQ4_NL.gguf", "13.6 GB", 20,
+    (2, "Gemma-4-26B-A4B  UD-IQ4_NL", "gemma-4-26B-A4B-it-UD-IQ4_NL.gguf", "13.6 GB", 20,
      "mmproj-Gemma-27B-F16.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 262144,
      "mmproj-F16.gguf"),
     # С натяжкой: 128 контекста это буквально впритык для Hermes
-    (3, "Gemma-3-12B *** UD-Q4_K_XL", "gemma-3-12b-it-UD-Q4_K_XL.gguf", "7.43 GB", 11,
+    (3, "Gemma-3-12B     UD-Q4_K_XL", "gemma-3-12b-it-UD-Q4_K_XL.gguf", "7.43 GB", 11,
      "mmproj-Gemma-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 131072,
      "mmproj-F16.gguf"),
     #
@@ -76,8 +76,9 @@ def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "list"
     if cmd == "list":
         # только короткое имя + размер (меню выбора не должно быть сырым!)
+        w = max(len(m[I_LABEL]) for m in MODELS)
         for m in MODELS:
-            out(f"{m[I_ID]}|{m[I_LABEL]}|{m[I_SIZE]}")
+            out(f"{m[I_ID]}. {m[I_LABEL]:<{w}}  {m[I_SIZE]}")
     elif cmd == "get":
         mid = int(sys.argv[2])
         key = sys.argv[3] if len(sys.argv) > 3 else "file"
