@@ -162,10 +162,10 @@ set "DL_NAME=%~3"
 if exist "%DL_FILE%" del "%DL_FILE%" 2>nul
 echo   %ESC%[2m    Загрузка %DL_NAME% ...%ESC%[0m
 REM сначала напрямую (90% скриптов ходят напрямую!)
-"%CURL%" -L --fail --noproxy "*" -C - -# -o "%DL_FILE%" "%DL_URL%"
+"%CURL%" -L --fail --noproxy "*" -C - -o "%DL_FILE%" "%DL_URL%"
 if not exist "%DL_FILE%" (
     echo   %ESC%[1;33m    Напрямую не вышло - пробуем через прокси %PROXY%...%ESC%[0m
-    "%CURL%" -L --fail -x "%PROXY%" -C - --retry 8 --retry-delay 3 --retry-all-errors -# -o "%DL_FILE%" "%DL_URL%"
+    "%CURL%" -L --fail -x "%PROXY%" -C - --retry 8 --retry-delay 3 --retry-all-errors -o "%DL_FILE%" "%DL_URL%"
 )
 if not exist "%DL_FILE%" (
     echo   %ESC%[1;33m    Прокси не помог - переключение на PowerShell...%ESC%[0m
