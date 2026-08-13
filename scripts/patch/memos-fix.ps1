@@ -395,6 +395,20 @@ Write-Host "Running self-test ..."
 $dataDir = Join-Path $RuntimeHome "data"
 if (-not (Test-Path $dataDir)) { New-Item -ItemType Directory -Path $dataDir -Force | Out-Null }
 $dbFile = Join-Path $dataDir "memos.db"
+# 6b. Если БД ещё нет - создаём схему ДО первого запуска Hermes (иначе self-test ругается)
+if (-not (Test-Path $dbFile)) {
+    $initScript = Join-Path $dataDir "init-db.mjs"
+    [System.IO.File]::WriteAllText($initScript, @'
+import { openDb, runMigrations } from "../dist/core/storage/index.js";
+const dbPath = new URL("./memos.db", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const db = openDb({ filepath: dbPath, agent: "hermes" });
+runMigrations(db);
+db.close();
+console.log("DB init OK");
+'@, (New-Object System.Text.UTF8Encoding $false))
+    & $NodeBin.Source $initScript 2>&1 | Out-Null
+    Remove-Item $initScript -Force -ErrorAction SilentlyContinue
+}
 if (Test-Path $dbFile) {
     Write-Host "[7/7] MemOS DB OK: $dbFile"
 } else {
