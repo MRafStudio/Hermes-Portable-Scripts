@@ -103,7 +103,7 @@ set "LLAMA_TMP=%TEMP%\llama-update"
 if exist "%LLAMA_TMP%" rmdir /s /q "%LLAMA_TMP%" 2>nul
 mkdir "%LLAMA_TMP%" 2>nul
 
-call :download "%LLAMA_URL%" "%LLAMA_TMP%\llama-bin.zip" "llama.cpp (bin)"
+call :download "%LLAMA_URL%" "%LLAMA_TMP%\llama-bin.zip" "llama.cpp"
 if errorlevel 1 goto fail
 call :download "%CUDART_URL%" "%LLAMA_TMP%\llama-cudart.zip" "CUDA runtime"
 if errorlevel 1 goto fail
@@ -215,7 +215,7 @@ if not exist "%DL_FILE%" (
     powershell -NoProfile -NonInteractive -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; try { Invoke-WebRequest -Uri '%DL_URL%' -OutFile '%DL_FILE%' -UseBasicParsing -TimeoutSec 600 } catch { exit 1 }"
 )
 if not exist "%DL_FILE%" (
-    echo   %ESC%[1;31m[ОШИБКА] Загрузка не удалась...%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Загрузка не удалась: %DL_NAME%%ESC%[0m
     echo   %ESC%[33mURL: %DL_URL%%ESC%[0m
     exit /b 1
 )
