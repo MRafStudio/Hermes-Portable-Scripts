@@ -198,11 +198,11 @@ set "confirm="
 set /p "confirm=%ESC%[33mПродолжить (y/N)? %ESC%[0m"
 if /i not "%confirm%"=="y" goto menu
 
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\install-memos.ps1" -RootDir "%ROOT_DIR%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\install-memos.ps1" -RootDir "%ROOT_DIR%"
 
 echo.
 echo %ESC%[1;36mПроверка установки MemOS: memos-fix.ps1 (самопроверка + доустановка недостающего)...%ESC%[0m
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\patch\memos-fix.ps1" -RootDir "%ROOT_DIR%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\memos-fix.ps1" -RootDir "%ROOT_DIR%"
 if errorlevel 1 (
     echo.
     echo %ESC%[1;31m[ОШИБКА] Проблемы после установки MemOS — смотрите сообщения выше.%ESC%[0m

@@ -24,8 +24,8 @@ Maintenance of the portable Hermes installation on the user's machine: understan
 - `D:\NEURO\Hermes` is the git repo `Hermes-Portable-Scripts` (origin: `https://github.com/MRafStudio/Hermes-Portable-Scripts`), branch `main`.
 - **`data/` is the entire `$HERMES_HOME` and is fully `.gitignore`d** — nothing inside survives a wipe; `git clone` does NOT restore it.
 - `scripts/*.bat` — user-facing launchers/installers (`Start.bat`, `InstallOrUpdate*.bat`, `Start-Llama-IfNeeded.bat`).
-- `scripts/ps/*.ps1` — installer/utility PowerShell (`hermes_install_portable.ps1`, `install_ffmpeg.ps1`, `patch_*.ps1`).
-- **`scripts/patch/*.ps1` — patch/activation scripts** (e.g. `install-memos.ps1`, `memos-fix.ps1`). Do NOT search only `scripts/ps/` when looking for a ps1.
+- `scripts/ps1/*.ps1` — installer/utility PowerShell (`hermes_install_portable.ps1`, `install_ffmpeg.ps1`, `patch_*.ps1`).
+- **`scripts/ps1/*.ps1` — patch/activation scripts** (e.g. `install-memos.ps1`, `memos-fix.ps1`). Do NOT search only `scripts/ps1/` when looking for a ps1.
 - `data/llm/models/` — shared GGUF model files (≈40 GB on this machine).
 
 ## Wipe-readiness check (run before telling the user "you're good to wipe")
@@ -57,7 +57,7 @@ git ls-files | grep -i <script-name>    # confirm the script is actually tracked
 - NEVER read or print the contents of `.env` / `auth.json` — list names/sizes only (user's secrets).
 - The portable repo is the git repo itself: don't go looking for a nested repo — `git status` at `D:\NEURO\Hermes` root is the one that matters.
 - `sessions/` may show 0 files while `state.db` holds history — don't conclude "no sessions" from the dir alone.
-- The MemOS activation scripts live in `scripts/patch/`, not `scripts/ps/`.
+- The MemOS activation scripts live in `scripts/ps1/`, not `scripts/ps1/`.
 
 ## Related
 - `memos-memory-management` — MemOS plugin activation, verification, DB maintenance.

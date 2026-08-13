@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""verify_memos_installer.py — verify scripts/patch/install-memos.ps1 + memos-fix.ps1
+"""verify_memos_installer.py — verify scripts/ps1/install-memos.ps1 + memos-fix.ps1
 of the Hermes-Portable-Scripts repo against the MemOS target config.
 
 Usage: python verify_memos_installer.py [repo-root]   (default: D:/NEURO/Hermes)
@@ -29,8 +29,8 @@ from pathlib import Path
 import yaml
 
 REPO = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(r"D:/NEURO/Hermes")
-INSTALL = REPO / "scripts/patch/install-memos.ps1"
-FIXER = REPO / "scripts/patch/memos-fix.ps1"
+INSTALL = REPO / "scripts/ps1/install-memos.ps1"
+FIXER = REPO / "scripts/ps1/memos-fix.ps1"
 LIVE_CFG = REPO / "data/hermes/memos-plugin/config.yaml"
 
 failures = []

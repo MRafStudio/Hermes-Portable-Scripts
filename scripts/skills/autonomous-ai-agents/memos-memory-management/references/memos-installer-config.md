@@ -1,7 +1,7 @@
 # MemOS installer config — target state & editing recipe
 
 Repo: Hermes-Portable-Scripts (`D:\NEURO\Hermes`, origin github.com/MRafStudio/Hermes-Portable-Scripts).
-MemOS installer files: `scripts/patch/install-memos.ps1` (fresh install) + `scripts/patch/memos-fix.ps1`
+MemOS installer files: `scripts/ps1/install-memos.ps1` (fresh install) + `scripts/ps1/memos-fix.ps1`
 (fallback fixer, PATCHes live config via viewer API). Both must agree on the target config.
 
 ## Target config.yaml block (written by install-memos.ps1 step 4 at NEW installs)
