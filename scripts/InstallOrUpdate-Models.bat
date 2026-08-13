@@ -131,7 +131,6 @@ if not exist "%MODELS_DIR%\%MMPROJ_FILE%" (
 echo.
 echo %ESC%[1;32m Готово! Модель в %MODELS_DIR%%ESC%[0m
 echo   %ESC%[2mКонтекст модели: %MODEL_MAXCTX% ^| запуск: start_llama.bat%ESC%[0m
-pause
 
 :exit
 exit /b 0
