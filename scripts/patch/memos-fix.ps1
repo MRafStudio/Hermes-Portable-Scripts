@@ -25,6 +25,7 @@ $RuntimeHome  = Join-Path $HermesHome "memos-plugin"
 $PluginDir    = Join-Path $HermesHome "plugins\memtensor"
 $AdapterDir   = Join-Path $RuntimeHome "adapters\hermes\memos_provider"
 $HermesExe    = Join-Path $HermesHome "hermes-agent\venv\Scripts\hermes.exe"
+$PythonExe    = Join-Path $HermesHome "hermes-agent\venv\Scripts\python.exe"
 $HfExe        = Join-Path $HermesHome "hermes-agent\venv\Scripts\hf.exe"
 $StartBat     = Join-Path $RootDir "Start.bat"
 $NodeBin      = (Get-Command node -ErrorAction SilentlyContinue)
@@ -203,10 +204,7 @@ if ($viewerOk) {
             Write-Host "  Crystallization: deepseek key already configured (sk-...$tail) - keeping it"
             $resp2 = Read-Host "  Replace deepseek key? (Y - enter new, N - keep existing) [N]"
             if ($resp2 -match "^[yY]") {
-                $sec = Read-Host "  Enter new deepseek API key (sk-...):" -AsSecureString
-                $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
-                $dsKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
-                [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+                $dsKey = Read-Host "  Enter new deepseek API key (sk-...):"
                 if ($dsKey.Trim() -eq "") { $dsKey = $existingKey; Write-Host "  Empty input - keeping existing key." }
             }
         } elseif ($env:DEEPSEEK_API_KEY -and $env:DEEPSEEK_API_KEY.Trim() -ne "") {
@@ -216,10 +214,7 @@ if ($viewerOk) {
         } else {
             $resp = Read-Host "  Crystallization via deepseek? (Y - enter key, N - autonomous without LLM) [N]"
             if ($resp -match "^[yY]") {
-                $sec = Read-Host "  Enter deepseek API key (sk-...):" -AsSecureString
-                $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
-                $dsKey = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
-                [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+                $dsKey = Read-Host "  Enter deepseek API key (sk-...):"
                 if ($dsKey.Trim() -ne "") { $useDeepSeek = $true }
             }
         }
@@ -293,14 +288,13 @@ if ($viewerOk) {
         if ($useDeepSeek -and $dsKey) {
             $cfgPath = Join-Path $RuntimeHome "config.yaml"
             $raw = Get-Content -Path $cfgPath -Raw -Encoding UTF8
-            $raw = [regex]::Replace($raw, 'apiKey:\s*"?[^"
-\n]*"?', ('apiKey: "' + $dsKey + '"'))
+            $raw = [regex]::Replace($raw, '(apiKey:[ \t]*)"?\*{3}"?', ('${1}"' + $dsKey + '"'))
             Set-Content -Path $cfgPath -Value $raw -Encoding UTF8 -NoNewline
             Write-Host "  apiKey: written directly (bypass writer masking)"
             $fixed += "apikey"
         }
-        # ВАЛИДАЦИЯ YAML после любых правок (минное поле!): node + js-yaml (модуль плагина)
-        & node -e "const y=require('js-yaml');const fs=require('fs');try{y.load(fs.readFileSync(process.argv[1],'utf8'));process.exit(0)}catch(e){console.error(e.message);process.exit(1)}" (Join-Path $RuntimeHome "config.yaml")
+        # ВАЛИДАЦИЯ YAML после любых правок (минное поле!): python + pyyaml (venv Hermes - js-yaml в node_modules плагина нет)
+        & $PythonExe -c "import yaml,sys; yaml.safe_load(open(sys.argv[1],encoding='utf-8'))" (Join-Path $RuntimeHome "config.yaml")
         if ($LASTEXITCODE -eq 0) {
             Write-Host "  config.yaml: YAML valid"
         } else {
