@@ -154,11 +154,11 @@ REM ============================================================================
 REM   Инфо о запуске
 REM ============================================================================
 :run_info
-if not exist "%LLAMA_DIR%\start_llama.bat" (
-    copy /y "%SCRIPTS_DIR%\start_llama.bat" "%LLAMA_DIR%\start_llama.bat" >nul 2>&1
+if not exist "%LLAMA_DIR%\Start_llama.bat" (
+    copy /y "%SCRIPTS_DIR%\Start_llama.bat" "%LLAMA_DIR%\Start_llama.bat" >nul 2>&1
 )
 echo.
-echo %ESC%[1;33m  Запуск:   %ESC%[0m%LLAMA_DIR%\start_llama.bat
+echo %ESC%[1;33m  Запуск:   %ESC%[0m%LLAMA_DIR%\Start_llama.bat
 echo %ESC%[1;33m  Модель:   %ESC%[0mнужна в %MODELS_DIR% - скажи Hermes, какую качать
 echo %ESC%[1;33m  Порт API: %ESC%[0m5505 - Start-Llama-IfNeeded поднимет автоматически
 echo.

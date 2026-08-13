@@ -21,6 +21,18 @@ set "MODELS_DIR=%DATA_DIR%\llm\models"
 set "SERVICE_NAME=LlamaCPP"
 set "LLAMA_PORT=5505"
 
+REM Дефолтная модель — из default_model.cfg (единый источник правды)
+set "MODEL_FILE=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
+set "MMPROJ_FILE=mmproj-35B-F16.gguf"
+set "MAXCTX=262144"
+if exist "%DATA_DIR%\llm\default_model.cfg" (
+    for /f "tokens=1,* delims==" %%a in ('findstr /b "MODEL_FILE MMPROJ_FILE MAXCTX" "%DATA_DIR%\llm\default_model.cfg"') do (
+        if "%%a"=="MODEL_FILE" set "MODEL_FILE=%%b"
+        if "%%a"=="MMPROJ_FILE" set "MMPROJ_FILE=%%b"
+        if "%%a"=="MAXCTX" set "MAXCTX=%%b"
+    )
+)
+
 REM ============================================================================
 REM   Изоляция данных
 REM ============================================================================
@@ -77,19 +89,19 @@ if not exist "%LLAMA_EXE%" (
     pause
     goto menu
 )
-if not exist "%MODELS_DIR%\Qwen3.6-35B-A3B-UD-IQ4_NL.gguf" (
+if not exist "%MODELS_DIR%\%MODEL_FILE%" (
     echo   %ESC%[1;31m[ОШИБКА] Модель не установлена.%ESC%[0m
     pause
     goto menu
 )
 
 echo   %ESC%[2m  Исполняемый: %LLAMA_EXE%%ESC%[0m
-echo   %ESC%[2m  Модель:      Qwen3.6-35B-A3B-UD-IQ4_NL.gguf%ESC%[0m
-echo   %ESC%[2m  Проектор:    mmproj-35B-F16.gguf%ESC%[0m
+echo   %ESC%[2m  Модель:      %MODEL_FILE%%ESC%[0m
+echo   %ESC%[2m  Проектор:    %MMPROJ_FILE%%ESC%[0m
 echo   %ESC%[2m  Порт:        %LLAMA_PORT%%ESC%[0m
 echo.
 
-"%NSSM_EXE%" install "%SERVICE_NAME%" "%LLAMA_EXE%" -m "%MODELS_DIR%\Qwen3.6-35B-A3B-UD-IQ4_NL.gguf" --mmproj "%MODELS_DIR%\mmproj-35B-F16.gguf" --alias llama/Qwen3.6-35B-A3B-UD-IQ4_NL -c 262144 -ngl 999 --flash-attn 1 --parallel 1 --image-min-tokens 1024 --port %LLAMA_PORT% --host 127.0.0.1
+"%NSSM_EXE%" install "%SERVICE_NAME%" "%LLAMA_EXE%" -m "%MODELS_DIR%\%MODEL_FILE%" --mmproj "%MODELS_DIR%\%MMPROJ_FILE%" --alias llama/%MODEL_FILE:~0,-5% -c %MAXCTX% -ngl 999 --flash-attn 1 --parallel 1 --image-min-tokens 1024 --port %LLAMA_PORT% --host 127.0.0.1
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] nssm install не удался.%ESC%[0m
     pause
