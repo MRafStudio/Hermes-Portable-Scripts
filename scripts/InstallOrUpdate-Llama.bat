@@ -204,11 +204,22 @@ if not errorlevel 1 (
 exit /b 0
 
 REM ============================================================================
-REM   :get_local_version — версия установленного llama-server (число, напр. 10375)
+REM   :get_local_version — версия установленного llama-server (число, напр. 10400)
+REM   b10400+ сменил формат: "version: 0.1.0-dev (build 10400, ...)" — берём build
+REM   ВАЖНО: вывод --version идёт в stderr; пайп в for /f с кавычками НЕ работает —
+REM   идём через временный файл (проверено на практике!)
 REM ============================================================================
 :get_local_version
 set "CUR_VER="
-for /f "tokens=2" %%v in ('"%LLAMA_DIR%\llama-server.exe" --version 2^>^&1') do if not defined CUR_VER set "CUR_VER=%%v"
+"%LLAMA_DIR%\llama-server.exe" --version > "%TEMP%\v_llama.tmp" 2>&1
+for /f "tokens=2" %%v in ('type "%TEMP%\v_llama.tmp"') do if not defined CUR_VER set "CUR_VER=%%v"
+REM старый формат даёт число (10375); новый - "0.1.0-dev" - проверяем, что только цифры
+echo !CUR_VER! | findstr /r "^[0-9][0-9]*$" >nul
+if errorlevel 1 (
+    set "CUR_VER="
+    for /f "tokens=4 delims=, " %%v in ('findstr /i "build" "%TEMP%\v_llama.tmp"') do set "CUR_VER=%%v"
+)
+del "%TEMP%\v_llama.tmp" 2>nul
 exit /b 0
 
 REM ============================================================================
