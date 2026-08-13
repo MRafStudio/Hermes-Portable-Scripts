@@ -45,8 +45,6 @@ REM ============================================================================
 set "LLM_DIR=%DATA_DIR%\llm"
 set "LLM_EXE=%LLM_DIR%\llama-server.exe"
 set "MODELS_DIR=%LLM_DIR%\models"
-set "MODEL_QWEN=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
-set "MMPROJ_FILE=mmproj-35B-F16.gguf"
 set "SERVICE_NAME=LlamaCPP"
 
 REM ============================================================================
@@ -78,7 +76,11 @@ set "LLM_INSTALLED=0"
 if exist "%LLAMA_EXE%" set "LLM_INSTALLED=1"
 
 set "LLM_MODEL="
-if exist "%MODELS_DIR%\%MODEL_QWEN%" set "LLM_MODEL=Qwen3.6-35B"
+set "LLM_ANY=0"
+if exist "%MODELS_DIR%\*.gguf" set "LLM_ANY=1"
+if exist "%LLM_DIR%\default_model.cfg" (
+    for /f "tokens=1,* delims==" %%a in ('findstr /b "MODEL_LABEL" "%LLM_DIR%\default_model.cfg"') do set "LLM_MODEL=%%b"
+)
 
 set "SERVICE_INSTALLED=0"
 sc query "%SERVICE_NAME%" >nul 2>&1
@@ -107,7 +109,13 @@ echo  %ESC%[1;36m##                                                             
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
 if !LLM_INSTALLED! equ 1 (
-    echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модель %LLM_MODEL%^)%ESC%[0m
+    if !LLM_ANY! equ 0 (
+        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модели не установлены^)%ESC%[0m
+    ) else if defined LLM_MODEL (
+        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модель !LLM_MODEL!^)%ESC%[0m
+    ) else (
+        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модели есть - дефолт не назначен^)%ESC%[0m
+    )
 ) else (
     echo   %ESC%[1;33m. %ESC%[0m Llama.cpp — не установлен
 )

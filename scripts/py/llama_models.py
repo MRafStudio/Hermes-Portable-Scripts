@@ -112,7 +112,7 @@ def main():
                         picked = m
                         break
         if picked:
-            out(f"{picked[I_ID]}|{picked[I_FILE]}|{picked[I_MMPROJ]}|{picked[I_REPO]}|{picked[I_MAXCTX]}|{picked[I_MMPROJ_SRC]}")
+            out(f"{picked[I_ID]}|{picked[I_FILE]}|{picked[I_MMPROJ]}|{picked[I_REPO]}|{picked[I_MAXCTX]}|{picked[I_MMPROJ_SRC]}|{picked[I_LABEL]}|llama/{picked[I_FILE][:-5]}")
     elif cmd == "label":
         cfg_model = sys.argv[2] if len(sys.argv) > 2 else ""
         m = find_by_cfg(cfg_model)
@@ -131,6 +131,11 @@ def main():
             if os.path.exists(os.path.join(models_dir, m[I_FILE])):
                 tag = f" {ESC}[1;32m[{m[I_FILE]}]{ESC}[0m"
             out(f"  {ESC}[1;37m[{m[I_ID]}]{ESC}[0m {ESC}[1m{m[I_LABEL]}{ESC}[0m {ESC}[2m({m[I_SIZE]}){ESC}[0m — для видеокарт с памятью (>={m[I_VRAM]} GB){tag}")
+    elif cmd == "installed":
+        models_dir = sys.argv[2] if len(sys.argv) > 2 else ""
+        for m in MODELS:
+            if os.path.exists(os.path.join(models_dir, m[I_FILE])):
+                out(f"{m[I_ID]}|{m[I_LABEL]}")
     elif cmd == "count":
         out(str(len(MODELS)))
     elif cmd == "status":

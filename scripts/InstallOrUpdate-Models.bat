@@ -19,6 +19,10 @@ set "DATA_DIR=%ROOT_DIR%\data"
 set "LLM_DIR=%DATA_DIR%\llm"
 set "MODELS_DIR=%LLM_DIR%\models"
 set "PY=%REPO_DIR%\venv\Scripts\python.exe"
+set "LLAMA_DIR=%DATA_DIR%\llama"
+set "CFG_FILE=%LLM_DIR%\default_model.cfg"
+set "SERVICE_NAME=LlamaCPP"
+set "HERMES_BIN=%REPO_DIR%\venv\Scripts\hermes.exe"
 
 REM ============================================================================
 REM   Изоляция данных
@@ -36,6 +40,7 @@ REM ============================================================================
 REM   ESC
 REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
+
 
 REM ============================================================================
 REM   uv (для установки huggingface_hub в venv)
@@ -83,24 +88,53 @@ echo.
 echo   %ESC%[1;32mДоступные модели (llama_models.py)%ESC%[0m
 "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" list
 echo.
+REM --- какие модели уже установлены ---
+set "INST="
+for /f "delims=" %%m in ('""%PY%" "%SCRIPTS_DIR%\py\llama_models.py" installed "%MODELS_DIR%""') do set "INST=!INST! %%m"
+if defined INST (
+    echo   %ESC%[1;32mУстановлены:%ESC%[0m!INST!
+) else (
+    echo   %ESC%[1;33mМодели не установлены.%ESC%[0m
+)
+REM --- дефолтная модель (из default_model.cfg — единый источник правды) ---
+call :load_default
+set "HAS_DEFAULT=0"
+if defined MODEL_FILE set "HAS_DEFAULT=1"
+if defined MODEL_FILE (
+    echo   %ESC%[1;32mДефолтная: %ESC%[0m%MODEL_LABEL% %ESC%[2m^(%MODEL_FILE%^)%ESC%[0m
+) else (
+    echo   %ESC%[1;33mДефолтная модель не назначена%ESC%[0m %ESC%[2m^(первая установленная станет дефолтной^)%ESC%[0m
+)
+echo.
 set "MID="
 set /p "MID=%ESC%[33mВыбери ID модели или Enter для отмены: %ESC%[0m"
 if "%MID%"=="" goto exit
 
 set "PICK="
-for /f "delims=" %%p in ('""%PY%" "%SCRIPTS_DIR%\py\llama_models.py" pick "%MID%" "llama/x" "%MODELS_DIR%""') do set "PICK=%%p"
+for /f "delims=" %%p in ('""%PY%" "%SCRIPTS_DIR%\py\llama_models.py" pick "%MID%" "%MODELS_DIR%""') do set "PICK=%%p"
 if not defined PICK (
     echo   %ESC%[1;31mНекорректный выбор.%ESC%[0m
     pause
     goto exit
 )
-for /f "tokens=1-6 delims=|" %%a in ("!PICK!") do (
+for /f "tokens=1-8 delims=|" %%a in ("!PICK!") do (
+    set "MODEL_ID=%%a"
     set "MODEL_FILE=%%b"
     set "MMPROJ_FILE=%%c"
     set "MODEL_REPO=%%d"
     set "MODEL_MAXCTX=%%e"
     set "MMPROJ_SRC=%%f"
+    set "MODEL_LABEL=%%g"
+    set "MODEL_ALIAS=%%h"
 )
+
+REM --- если модель уже установлена — сразу к назначению дефолта ---
+if defined MODEL_FILE if exist "%MODELS_DIR%\%MODEL_FILE%" (
+    echo.
+    echo   %ESC%[2m  Модель уже установлена - переходим к назначению дефолта.%ESC%[0m
+    goto ask_default
+)
+
 echo.
 echo   Модель:    %MODEL_FILE%
 echo   Проектор:  %MMPROJ_FILE%  ^(источник: %MMPROJ_SRC%^)
@@ -130,7 +164,126 @@ if not exist "%MODELS_DIR%\%MMPROJ_FILE%" (
 )
 echo.
 echo %ESC%[1;32m Готово! Модель в %MODELS_DIR%%ESC%[0m
-echo   %ESC%[2mКонтекст модели: %MODEL_MAXCTX% ^| запуск: start_llama.bat%ESC%[0m
+
+REM ============================================================================
+REM   Назначение дефолтной модели (первая установленная — автоматически)
+REM ============================================================================
+:ask_default
+echo.
+if "!HAS_DEFAULT!"=="1" (
+    set "dflt_prompt=Сделать дефолтной (y/N)? "
+    set "dflt_default=n"
+) else (
+    set "dflt_prompt=Назначить дефолтной (Y/n)? "
+    set "dflt_default=y"
+)
+set "setdef="
+set /p "setdef=%ESC%[33m!dflt_prompt!%ESC%[0m"
+if "!setdef!"=="" set "setdef=!dflt_default!"
+if /i "!setdef!"=="y" (
+    call :set_default
+) else (
+    echo   %ESC%[2m  Дефолт не менялся.%ESC%[0m
+)
+goto exit
+
+REM ============================================================================
+REM   :load_default — чтение default_model.cfg (единый источник правды)
+REM ============================================================================
+:load_default
+set "MODEL_ID="
+set "MODEL_LABEL="
+set "MODEL_FILE="
+set "MMPROJ_FILE="
+set "MODEL_MAXCTX="
+set "MODEL_ALIAS="
+if exist "%CFG_FILE%" (
+    for /f "tokens=1,* delims==" %%a in ('findstr /b "MODEL_ID MODEL_LABEL MODEL_FILE MMPROJ_FILE MAXCTX MODEL_ALIAS" "%CFG_FILE%"') do (
+        if "%%a"=="MODEL_ID" set "MODEL_ID=%%b"
+        if "%%a"=="MODEL_LABEL" set "MODEL_LABEL=%%b"
+        if "%%a"=="MODEL_FILE" set "MODEL_FILE=%%b"
+        if "%%a"=="MMPROJ_FILE" set "MMPROJ_FILE=%%b"
+        if "%%a"=="MAXCTX" set "MODEL_MAXCTX=%%b"
+        if "%%a"=="MODEL_ALIAS" set "MODEL_ALIAS=%%b"
+    )
+)
+exit /b 0
+
+REM ============================================================================
+REM   :set_default — запись cfg + переключение Hermes + перезапуск llama
+REM ============================================================================
+:set_default
+(
+echo MODEL_ID=%MODEL_ID%
+echo MODEL_LABEL=%MODEL_LABEL%
+echo MODEL_FILE=%MODEL_FILE%
+echo MMPROJ_FILE=%MMPROJ_FILE%
+echo MAXCTX=%MODEL_MAXCTX%
+echo MODEL_ALIAS=%MODEL_ALIAS%
+) > "%CFG_FILE%"
+echo   %ESC%[1;32m+ %ESC%[0m Дефолт записан: %MODEL_LABEL%
+
+REM --- переключение Hermes на llama-провайдер (:5505) ---
+if exist "%HERMES_BIN%" (
+    "%HERMES_BIN%" config set model.default "%MODEL_ALIAS%" >nul 2>&1
+    "%HERMES_BIN%" config set model.provider "llama" >nul 2>&1
+    "%HERMES_BIN%" config set model.base_url "http://127.0.0.1:5505/v1" >nul 2>&1
+    "%HERMES_BIN%" config set providers.llama.model "%MODEL_ALIAS%" >nul 2>&1
+    "%HERMES_BIN%" config set providers.llama.base_url "http://127.0.0.1:5505/v1" >nul 2>&1
+    echo   Hermes: переключён на llama :5505 ^(%MODEL_ALIAS%^)
+) else (
+    echo   %ESC%[1;33m  Hermes CLI не найден - конфиг Hermes не тронут.%ESC%[0m
+)
+
+REM --- перезапуск llama с новой моделью (служба или desktop-процесс) ---
+call :restart_llama
+exit /b 0
+
+REM ============================================================================
+REM   :restart_llama — перезапуск llama-server (служба LlamaCPP или процесс)
+REM ============================================================================
+:restart_llama
+sc query "%SERVICE_NAME%" >nul 2>&1
+if not errorlevel 1 (
+    echo   Перезапуск службы %SERVICE_NAME%...
+    sc stop "%SERVICE_NAME%" >nul 2>&1
+    timeout /t 2 >nul
+    sc start "%SERVICE_NAME%" >nul 2>&1
+    if errorlevel 1 (
+        echo   %ESC%[1;33m  Служба не перезапустилась - нужны права администратора.%ESC%[0m
+    )
+) else (
+    tasklist /fi "imagename eq llama-server.exe" 2>nul | findstr /i "llama-server" >nul 2>&1
+    if not errorlevel 1 (
+        echo   Останавливаю llama-server...
+        taskkill /f /im llama-server.exe >nul 2>&1
+        timeout /t 2 >nul
+        if exist "%LLAMA_DIR%\Start_llama.bat" (
+            start /min "LlamaCPP" cmd /c ""%LLAMA_DIR%\Start_llama.bat""
+        )
+    ) else (
+        echo   %ESC%[2m  llama-server не запущен - новая модель подхватится при старте.%ESC%[0m
+    )
+)
+
+REM --- перезапуск Hermes, если он работает службой ---
+call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_DIR%" <nul
+if defined SERVICE_NAME (
+    set "hsrv="
+    set /p "hsrv=%ESC%[33mПерезапустить службу Hermes ^(!SERVICE_NAME!^) сейчас (y/N)? %ESC%[0m"
+    if /i "!hsrv!"=="y" (
+        echo   Перезапуск службы Hermes...
+        sc stop "!SERVICE_NAME!" >nul 2>&1
+        timeout /t 2 >nul
+        sc start "!SERVICE_NAME!" >nul 2>&1
+        if errorlevel 1 (
+            echo   %ESC%[1;33m  Служба Hermes не перезапустилась - нужны права администратора.%ESC%[0m
+        )
+    )
+) else (
+    echo   %ESC%[2m  Hermes службой не установлен - конфиг применится при следующем запуске.%ESC%[0m
+)
+exit /b 0
 
 :exit
 exit /b 0
@@ -177,3 +330,4 @@ if not exist "%DL_FILE%" (
 )
 echo   %ESC%[1;32m    OK: %DL_NAME%%ESC%[0m
 exit /b 0
+
