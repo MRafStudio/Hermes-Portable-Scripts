@@ -62,14 +62,6 @@ if exist "%PY%" (
     )
 )
 
-REM ============================================================================
-REM   Синхронизация наработанных скиллов (scripts\skills -> data\hermes\skills!)
-REM   ВАЖНО: без этого после сноса полигона скиллы не восстановятся!
-REM ============================================================================
-if exist "%SCRIPTS_DIR%\skills" (
-    xcopy /y /e /i /q "%SCRIPTS_DIR%\skills" "%DATA_DIR%\hermes\skills" >nul 2>&1
-    echo   %ESC%[2m  Скиллы синхронизированы ^(%DATA_DIR%\hermes\skills^)%ESC%[0m
-)
 :status
 set "LLAMA_EXE=%DATA_DIR%\llama\llama-server.exe"
 set "LLM_INSTALLED=0"
@@ -224,11 +216,14 @@ REM   Кастомные скиллы (наработанные кровью и 
 REM ============================================================================
 echo.
 echo %ESC%[1;36mУстановка кастомных скиллов (наработанные в процессе обучения)...%ESC%[0m
-if exist "%SCRIPTS_DIR%\skills\software-development" (
-    xcopy /y /e /i /q "%SCRIPTS_DIR%\skills\software-development" "%HERMES_HOME%\skills\software-development" >nul 2>&1
-    xcopy /y /e /i /q "%SCRIPTS_DIR%\skills\autonomous-ai-agents" "%HERMES_HOME%\skills\autonomous-ai-agents" >nul 2>&1
-    xcopy /y /e /i /q "%SCRIPTS_DIR%\skills\productivity" "%HERMES_HOME%\skills\productivity" >nul 2>&1
-    echo %ESC%[1;32m  +   Скиллы скопированы: %HERMES_HOME%\skills%ESC%[0m
+if exist "%SCRIPTS_DIR%\skills" (
+    REM Только НОВЫЕ скиллы (robocopy /XC /XN /XO) - существующие улучшения НЕ перезаписываем!
+    robocopy "%SCRIPTS_DIR%\skills" "%HERMES_HOME%\skills" /E /XC /XN /XO /NFL /NDL /NJH /NJS >nul 2>&1
+    if errorlevel 8 (
+        echo   %ESC%[1;33m  .   robocopy: ошибка - скиллы не тронуты.%ESC%[0m
+    ) else (
+        echo %ESC%[1;32m  +   Скиллы: новые установлены, существующие сохранены.%ESC%[0m
+    )
     REM Проверка: запускаем новый hermes и спрашиваем список скиллов
     set "HERMES_BIN=%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe"
     if exist "%HERMES_BIN%" (
