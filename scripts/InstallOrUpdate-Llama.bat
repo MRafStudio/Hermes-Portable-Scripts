@@ -169,7 +169,7 @@ if errorlevel 1 (
     set /p "inst_model=%ESC%[33mУстановить модель сейчас (y/N)? %ESC%[0m"
     if /i "!inst_model!"=="y" call "%SCRIPTS_DIR%\InstallOrUpdate-Models.bat"
 )
-pause
+call "%SCRIPTS_DIR%\SmartPause.bat 5"
 exit /b 0
 
 :fail
