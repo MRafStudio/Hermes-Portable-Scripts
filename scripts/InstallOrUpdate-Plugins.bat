@@ -133,8 +133,11 @@ echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlama.cpp — установка/обновление%ESC%[0m
 echo       %ESC%[2mЛокальная LLM: скачивание, настройка Hermes, порт 5505%ESC%[0m
 echo.
+echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mЗагрузка и назначение дефолтных моделей%ESC%[0m
+echo       %ESC%[2mУстановленные модели, назначение дефолтной, переключение Hermes%ESC%[0m
+echo.
 
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mСлужба Llama.cpp%ESC%[0m
+echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mСлужба Llama.cpp%ESC%[0m
 if !SERVICE_INSTALLED! equ 1 (
     echo       %ESC%[2mУдалить службу ^(файлы сохраняются^)%ESC%[0m
 ) else (
@@ -142,7 +145,7 @@ if !SERVICE_INSTALLED! equ 1 (
 )
 echo.
 
-echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mMemOS — память агента%ESC%[0m
+echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mMemOS — память агента%ESC%[0m
 if !MEMOS_INSTALLED! equ 1 (
     echo       %ESC%[2mОбновить до актуальной версии из npm ^(настройки сохраняются^)%ESC%[0m
 ) else (
@@ -153,13 +156,14 @@ echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-3): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-4): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
 if "%choice%"=="1" goto install_llama
-if "%choice%"=="2" goto llama_service
-if "%choice%"=="3" goto install_memos
+if "%choice%"=="2" goto install_models
+if "%choice%"=="3" goto llama_service
+if "%choice%"=="4" goto install_memos
 goto menu
 
 REM ============================================================================
@@ -170,14 +174,21 @@ call "%SCRIPTS_DIR%\InstallOrUpdate-Llama.bat"
 goto status
 
 REM ============================================================================
-REM   [2] Служба Llama.cpp — установка / удаление
+REM   [2] Модели — загрузка и назначение дефолтной
+REM ============================================================================
+:install_models
+call "%SCRIPTS_DIR%\InstallOrUpdate-Models.bat"
+goto status
+
+REM ============================================================================
+REM   [3] Служба Llama.cpp — установка / удаление
 REM ============================================================================
 :llama_service
 call "%SCRIPTS_DIR%\Llama-Service.bat"
 goto status
 
 REM ============================================================================
-REM   [3] MemOS — установка / обновление
+REM   [4] MemOS — установка / обновление
 REM ============================================================================
 :install_memos
 cls
