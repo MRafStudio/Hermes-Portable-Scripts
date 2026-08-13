@@ -2,8 +2,8 @@
 # Каждая запись: (id, КОРОТКОЕ имя, ПОЛНОЕ имя с .gguf, размер, мин. VRAM GB,
 #                 mmproj_ЛОКАЛЬНОЕ (после переименования), repo, max_ctx, mmproj_ИСТИННОЕ (в репо — для скачивания))
 # Правило: скачивать по ИСТИННОМУ имени → переименовывать в ЛОКАЛЬНОЕ (mmproj-<модель>…) — единое место истины!
-#   Пример: (1, "Gemma-3-27B Q4_K_M", "gemma-3-27b-it.Q4_K_M.gguf", "16.6 GB", 20,
-#            "mmproj-gemma3-q8_0.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536, "mmproj-gemma3-q8_0.gguf")
+#   Пример: (1, "Gemma-4-26B-A4B UD-IQ4_NL", "gemma-4-26B-A4B-it-UD-IQ4_NL.gguf", "13.6 GB", 20,
+#            "mmproj-Gemma-27B-F16.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 262144, "mmproj-F16.gguf")
 # ВАЖНО: полное имя ОБЯЗАТЕЛЬНО с расширением .gguf (имя файла на диске; в model.default оно без
 # расширения — сопоставление в pick/label учитывает это). repo — путь для скачивания с Hugging Face.
 # max_ctx — рекомендуемый контекст llmcpp для этой модели (KV-кэш должен влезать в VRAM).
@@ -24,32 +24,27 @@
 import os
 import sys
 
-REPO_DEFAULT = "MaziyarPanahi/gemma-3-27b-it-GGUF"
+REPO_DEFAULT = "unsloth/Qwen3.6-35B-A3B-GGUF"
 
 MODELS = [
     # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj_ЛОКАЛЬНОЕ, repo, max_ctx, mmproj_ИСТИННОЕ)
-    # ОСНОВНАЯ (2026, MoE — активных 3B — быстро как 9B, ум как 35B)
-    (1, "Qwen3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "16.8 GB", 24,
-     "mmproj-35B-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144,
+    # ==============================================================================================================
+    # Базовая модель но для видеокарт начиная с 24Gb
+    (1, "Qwen3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "18.0 GB", 24,
+     "mmproj-Qwen-35B-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144,
      "mmproj-F16.gguf"),
-    # 27B ПОЛНАЯ (не MoE) — тест «дожимает» ли лучше; на 32GB VRAM 128K (KV больше!)
-    (2, "Qwen3.6-27B Q4_K_M", "Qwen3.6-27B-Q4_K_M.gguf", "15.7 GB", 20,
-     "mmproj-27B-F16.gguf", "unsloth/Qwen3.6-27B-GGUF", 131072,
+    # Ближайший конкурент Qwen3.6 при меньших потребностях
+    (2, "Gemma-4-26B-A4B UD-IQ4_NL", "gemma-4-26B-A4B-it-UD-IQ4_NL.gguf", "13.6 GB", 20,
+     "mmproj-Gemma-27B-F16.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 262144,
      "mmproj-F16.gguf"),
-    # ДОМ (RTX 5090 32GB)
-    (3, "Gemma-3-27B Q4_K_M", "gemma-3-27b-it.Q4_K_M.gguf", "16.6 GB", 20,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf"),
-    (4, "Gemma-3-27B Q5_K_M", "gemma-3-27b-it.Q5_K_M.gguf", "18.3 GB", 22,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf"),
-    # РАБОТА (AMD 16GB)
-    (5, "Gemma-3-12B Q4_K_M", "gemma-3-12b-it-Q4_K_M.gguf", "7.3 GB", 10,
-     "mmproj-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768,
+    # С натяжкой: 128 контекста это буквально впритык для Hermes
+    (3, "Gemma-3-12B *** UD-Q4_K_XL", "gemma-3-12b-it-UD-Q4_K_XL.gguf", "7.43 GB", 11,
+     "mmproj-Gemma-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 131072,
      "mmproj-F16.gguf"),
-    (6, "Gemma-3-12B Q5_K_M", "gemma-3-12b-it-Q5_K_M.gguf", "8.4 GB", 14,
-     "mmproj-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768,
-     "mmproj-F16.gguf"),
+    #
+    (4, "Qwythos-9B 5-1M MTP-Q4_K_M", "Qwythos-9B-Claude-Mythos-5-1M-MTP-Q4_K_M.gguf", "5.89 GB", 16,
+     "mmproj-Qwythos-9B-F16.gguf", "empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF", 524288,
+     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf"),
 ]
 
 ESC = "\x1b"
