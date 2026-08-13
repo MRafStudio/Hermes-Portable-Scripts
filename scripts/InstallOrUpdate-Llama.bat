@@ -55,17 +55,51 @@ set "LLAMA_URL=https://github.com/ggml-org/llama.cpp/releases/download/b10375/ll
 set "CUDART_URL=https://github.com/ggml-org/llama.cpp/releases/download/b10375/cudart-llama-bin-win-cuda-13.3-x64.zip"
 
 REM ============================================================================
-REM   Установка движка (уже установлен — пропускаем)
+REM   Установлен ли движок?
 REM ============================================================================
-if exist "%LLAMA_DIR%\llama-server.exe" (
-    echo.
-    echo %ESC%[1;32m+ %ESC%[0m llama.cpp: установлен %ESC%[2m^(%LLAMA_DIR%^)%ESC%[0m
-    goto run_info
-)
+if not exist "%LLAMA_DIR%\llama-server.exe" goto do_install
 
+REM ============================================================================
+REM   Установлен — сравниваем версии (локальная vs GitHub latest)
+REM ============================================================================
+call :get_local_version
+call :get_remote_version
 echo.
-echo %ESC%[1;33m llama.cpp: скачиваю релиз ^(b10375, CUDA 13.3^)...%ESC%[0m
-set "LLAMA_TMP=%TEMP%\llama_setup"
+echo   %ESC%[2m    Установлена: %ESC%[0m!CUR_VER!
+echo   %ESC%[2m    Актуальная:  %ESC%[0m!LAT_VER!
+if defined LAT_VER (
+    if "!CUR_VER!"=="!LAT_VER!" (
+        echo   %ESC%[1;32m+ %ESC%[0m Актуальная версия — обновление не требуется.
+        goto run_info
+    )
+    echo   %ESC%[1;33m  Обнаружена новая версия ^(!LAT_VER!^) — обновляю...%ESC%[0m
+    goto do_update
+)
+echo   %ESC%[1;33m  Не удалось проверить версию на GitHub — пропускаю обновление.%ESC%[0m
+goto run_info
+
+REM ============================================================================
+REM   Установка с нуля
+REM ============================================================================
+:do_install
+echo.
+echo %ESC%[1;33m llama.cpp: установка ^(b10375, CUDA 13.3^)...%ESC%[0m
+goto prepare
+
+REM ============================================================================
+REM   Обновление (переход сюда только при новой версии)
+REM ============================================================================
+:do_update
+echo   %ESC%[1;33m  Останавливаю llama-server...%ESC%[0m
+goto prepare
+
+REM ============================================================================
+REM   Скачивание + распаковка в temp\llama-update, перенос скопом при успехе
+REM ============================================================================
+:prepare
+call :stop_llama_server
+if errorlevel 1 exit /b 1
+set "LLAMA_TMP=%TEMP%\llama-update"
 if exist "%LLAMA_TMP%" rmdir /s /q "%LLAMA_TMP%" 2>nul
 mkdir "%LLAMA_TMP%" 2>nul
 
@@ -74,7 +108,7 @@ if errorlevel 1 goto fail
 call :download "%CUDART_URL%" "%LLAMA_TMP%\llama-cudart.zip" "CUDA runtime"
 if errorlevel 1 goto fail
 
-REM --- распаковка: 7z (если есть) -> иначе PowerShell Expand-Archive ---
+REM --- распаковка в temp\llama-update (не в data\llama!) ---
 set "SEVENZIP="
 if exist "%ProgramFiles%\7-Zip\7z.exe" set "SEVENZIP=%ProgramFiles%\7-Zip\7z.exe"
 if not defined SEVENZIP if exist "%ProgramFiles(x86)%\7-Zip\7z.exe" set "SEVENZIP=%ProgramFiles(x86)%\7-Zip\7z.exe"
@@ -93,6 +127,7 @@ if not exist "%LLAMA_TMP%\llama-server.exe" (
     echo   %ESC%[1;31m[ОШИБКА] llama-server.exe не найден после распаковки%ESC%[0m
     goto fail
 )
+REM --- распаковалось успешно - переносим СКОПОМ в data\llama ---
 move /y "%LLAMA_TMP%\*" "%LLAMA_DIR%\" >nul 2>&1
 rmdir /s /q "%LLAMA_TMP%" 2>nul
 echo %ESC%[1;32m+ %ESC%[0m llama.cpp: установлен ^(b10375^)
@@ -119,6 +154,48 @@ pause
 exit /b 1
 
 REM ============================================================================
+REM   :stop_llama_server — остановка llama-server (процесс / служба)
+REM   Служба LlamaCPP требует прав администратора - иначе выход из установщика
+REM ============================================================================
+:stop_llama_server
+sc query "LlamaCPP" >nul 2>&1
+if not errorlevel 1 (
+    REM служба установлена - для остановки нужен админ
+    net session >nul 2>&1
+    if errorlevel 1 (
+        echo   %ESC%[1;31m[ОШИБКА] Служба LlamaCPP запущена. Остановка требует прав администратора.%ESC%[0m
+        echo   %ESC%[33m  Запусти установщик от имени администратора и повтори.%ESC%[0m
+        pause
+        exit /b 1
+    )
+    echo   %ESC%[2m    Останавливаю службу LlamaCPP...%ESC%[0m
+    net stop "LlamaCPP" >nul 2>&1
+)
+tasklist /FI "IMAGENAME eq llama-server.exe" 2>nul | find /i "llama-server.exe" >nul
+if not errorlevel 1 (
+    echo   %ESC%[2m    Останавливаю процесс llama-server.exe...%ESC%[0m
+    taskkill /IM llama-server.exe /F >nul 2>&1
+)
+exit /b 0
+
+REM ============================================================================
+REM   :get_local_version — версия установленного llama-server (число, напр. 10375)
+REM ============================================================================
+:get_local_version
+set "CUR_VER="
+for /f "tokens=2" %%v in ('"%LLAMA_DIR%\llama-server.exe" --version 2^>^&1') do if not defined CUR_VER set "CUR_VER=%%v"
+exit /b 0
+
+REM ============================================================================
+REM   :get_remote_version — tag_name последнего релиза с GitHub (b10375 -> 10375)
+REM ============================================================================
+:get_remote_version
+set "LAT_VER="
+for /f "delims=" %%v in ('powershell -NoProfile -NonInteractive -Command "$j = Invoke-RestMethod -Uri 'https://api.github.com/repos/ggml-org/llama.cpp/releases/latest' -Headers @{'User-Agent'='HermesPortable'} -TimeoutSec 30; $j.tag_name" 2^>nul') do set "LAT_VER=%%v"
+if defined LAT_VER if "!LAT_VER:~0,1!"=="b" set "LAT_VER=!LAT_VER:~1!"
+exit /b 0
+
+REM ============================================================================
 REM   :download URL FILE NAME — скачивание: напрямую -> прокси -> PowerShell
 REM ============================================================================
 :download
@@ -138,7 +215,7 @@ if not exist "%DL_FILE%" (
     powershell -NoProfile -NonInteractive -Command "[Net.ServicePointManager]::SecurityProtocol = 'Tls12'; try { Invoke-WebRequest -Uri '%DL_URL%' -OutFile '%DL_FILE%' -UseBasicParsing -TimeoutSec 600 } catch { exit 1 }"
 )
 if not exist "%DL_FILE%" (
-    echo   %ESC%[1;31m[ОШИБКА] Загрузка не удалась[0m
+    echo   %ESC%[1;31m[ОШИБКА] Загрузка не удалась...%ESC%[0m
     echo   %ESC%[33mURL: %DL_URL%%ESC%[0m
     exit /b 1
 )
