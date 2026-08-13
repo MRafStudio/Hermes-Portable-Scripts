@@ -144,6 +144,14 @@ echo %ESC%[1;33m  Запуск:   %ESC%[0m%LLAMA_DIR%\start_llama.bat
 echo %ESC%[1;33m  Модель:   %ESC%[0mнужна в %MODELS_DIR% - скажи Hermes, какую качать
 echo %ESC%[1;33m  Порт API: %ESC%[0m5505 - Start-Llama-IfNeeded поднимет автоматически
 echo.
+REM предложить установку модели, если ни одной ещё нет
+dir /b "%MODELS_DIR%\*.gguf" >nul 2>&1
+if errorlevel 1 (
+    echo.
+    set "inst_model="
+    set /p "inst_model=%ESC%[33mУстановить модель сейчас (y/N)? %ESC%[0m"
+    if /i "!inst_model!"=="y" call "%SCRIPTS_DIR%\InstallOrUpdate-Models.bat"
+)
 pause
 exit /b 0
 
