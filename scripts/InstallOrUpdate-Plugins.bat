@@ -123,13 +123,17 @@ if !MEMOS_INSTALLED! equ 1 (
 )
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlama.cpp — установка/обновление%ESC%[0m
-echo       %ESC%[2mЛокальная LLM ^(Qwen3.6-35B^): скачивание, настройка Hermes, порт 5505%ESC%[0m
+echo       %ESC%[2mЛокальная LLM: скачивание, настройка Hermes, порт 5505%ESC%[0m
+echo.
+
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mСлужба Llama.cpp%ESC%[0m
 if !SERVICE_INSTALLED! equ 1 (
     echo       %ESC%[2mУдалить службу ^(файлы сохраняются^)%ESC%[0m
 ) else (
     echo       %ESC%[2mАвтозапуск Llama.cpp при старте Windows%ESC%[0m
 )
+echo.
+
 echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mMemOS — память агента%ESC%[0m
 if !MEMOS_INSTALLED! equ 1 (
     echo       %ESC%[2mОбновить до актуальной версии из npm ^(настройки сохраняются^)%ESC%[0m
@@ -137,6 +141,7 @@ if !MEMOS_INSTALLED! equ 1 (
     echo       %ESC%[2mУстановить: L1/L2/L3 память, гибридный поиск, viewer :18800%ESC%[0m
 )
 echo.
+
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 set "choice="
