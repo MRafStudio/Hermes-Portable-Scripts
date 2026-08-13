@@ -604,8 +604,8 @@ if not exist "%HERMES_HOME%\.env" (
 
 REM --- SOUL.md (если нет) ---
 if not exist "%HERMES_HOME%\SOUL.md" (
-    if exist "%SCRIPTS_DIR%\patch\default_soul.md" (
-        copy /Y "%SCRIPTS_DIR%\patch\default_soul.md" "%HERMES_HOME%\SOUL.md" >nul
+    if exist "%SCRIPTS_DIR%\profiles\default_soul.md" (
+        copy /Y "%SCRIPTS_DIR%\profiles\default_soul.md" "%HERMES_HOME%\SOUL.md" >nul
         echo   %ESC%[1;32m  +   SOUL.md создан.%ESC%[0m
     )
 )

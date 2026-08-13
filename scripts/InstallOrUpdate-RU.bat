@@ -128,19 +128,23 @@ if !errorlevel! neq 0 (
 )
 echo   %ESC%[1;32m  +   ru-constants.ts скопирован.%ESC%[0m
 
-REM --- default_soul.md → SOUL.md ---
-set "SOUL_SRC=%SCRIPTS_DIR%\patch\default_soul.md"
+REM --- default_soul.md → SOUL.md (только если ещё нет - личность не перезаписываем!) ---
+set "SOUL_SRC=%SCRIPTS_DIR%\profiles\default_soul.md"
 set "SOUL_DST=%HERMES_HOME%\SOUL.md"
 
-if exist "%SOUL_SRC%" (
-    copy /Y "%SOUL_SRC%" "%SOUL_DST%" >nul
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   SOUL.md обновлён из default_soul.md.%ESC%[0m
+if not exist "%SOUL_DST%" (
+    if exist "%SOUL_SRC%" (
+        copy /Y "%SOUL_SRC%" "%SOUL_DST%" >nul
+        if !errorlevel! equ 0 (
+            echo   %ESC%[1;32m  +   SOUL.md создан из default_soul.md.%ESC%[0m
+        ) else (
+            echo   %ESC%[1;33m  [i]  Не удалось скопировать SOUL.md.%ESC%[0m
+        )
     ) else (
-        echo   %ESC%[1;33m  [i]  Не удалось скопировать SOUL.md.%ESC%[0m
+        echo   %ESC%[1;33m  .   default_soul.md не найден, пропускаем.%ESC%[0m
     )
 ) else (
-    echo   %ESC%[1;33m  .   default_soul.md не найден, пропускаем.%ESC%[0m
+    echo   %ESC%[2m  .   SOUL.md уже есть - не трогаем.%ESC%[0m
 )
 
 REM ============================================================================
