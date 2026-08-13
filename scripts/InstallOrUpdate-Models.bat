@@ -80,7 +80,7 @@ REM   Выбор модели (база llama_models.py — единый спр�
 REM ============================================================================
 :pick
 echo.
-echo   %ESC%[1;32mДоступные модели (база llama_models.py)%ESC%[0m
+echo   %ESC%[1;32mДоступные модели (llama_models.py)%ESC%[0m
 "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" list
 echo.
 set "MID="
