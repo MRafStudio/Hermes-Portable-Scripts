@@ -28,27 +28,27 @@ REPO_DEFAULT = "MaziyarPanahi/gemma-3-27b-it-GGUF"
 
 MODELS = [
     # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj_ЛОКАЛЬНОЕ, repo, max_ctx, mmproj_ИСТИННОЕ)
-    # ДОМ (RTX 5090 32GB)
-    (1, "Gemma-3-27B Q4_K_M", "gemma-3-27b-it.Q4_K_M.gguf", "16.6 GB", 20,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf"),
-    (2, "Gemma-3-27B Q5_K_M", "gemma-3-27b-it.Q5_K_M.gguf", "18.3 GB", 22,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536,
-     "mmproj-bggpt-gemma3-27b-it-BF16.gguf"),
-    # РАБОТА (AMD 16GB)
-    (3, "Gemma-3-12B Q4_K_M", "gemma-3-12b-it-Q4_K_M.gguf", "7.3 GB", 10,
-     "mmproj-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768,
-     "mmproj-F16.gguf"),
-    (4, "Gemma-3-12B Q5_K_M", "gemma-3-12b-it-Q5_K_M.gguf", "8.4 GB", 14,
-     "mmproj-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768,
-     "mmproj-F16.gguf"),
     # ОСНОВНАЯ (2026, MoE — активных 3B — быстро как 9B, ум как 35B)
-    (5, "Qwen3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "16.8 GB", 24,
+    (1, "Qwen3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "16.8 GB", 24,
      "mmproj-35B-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144,
      "mmproj-F16.gguf"),
     # 27B ПОЛНАЯ (не MoE) — тест «дожимает» ли лучше; на 32GB VRAM 128K (KV больше!)
-    (6, "Qwen3.6-27B Q4_K_M", "Qwen3.6-27B-Q4_K_M.gguf", "15.7 GB", 20,
+    (2, "Qwen3.6-27B Q4_K_M", "Qwen3.6-27B-Q4_K_M.gguf", "15.7 GB", 20,
      "mmproj-27B-F16.gguf", "unsloth/Qwen3.6-27B-GGUF", 131072,
+     "mmproj-F16.gguf"),
+    # ДОМ (RTX 5090 32GB)
+    (3, "Gemma-3-27B Q4_K_M", "gemma-3-27b-it.Q4_K_M.gguf", "16.6 GB", 20,
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536,
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf"),
+    (4, "Gemma-3-27B Q5_K_M", "gemma-3-27b-it.Q5_K_M.gguf", "18.3 GB", 22,
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf", "MaziyarPanahi/gemma-3-27b-it-GGUF", 65536,
+     "mmproj-bggpt-gemma3-27b-it-BF16.gguf"),
+    # РАБОТА (AMD 16GB)
+    (5, "Gemma-3-12B Q4_K_M", "gemma-3-12b-it-Q4_K_M.gguf", "7.3 GB", 10,
+     "mmproj-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768,
+     "mmproj-F16.gguf"),
+    (6, "Gemma-3-12B Q5_K_M", "gemma-3-12b-it-Q5_K_M.gguf", "8.4 GB", 14,
+     "mmproj-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 32768,
      "mmproj-F16.gguf"),
 ]
 
@@ -80,8 +80,9 @@ def find_by_cfg(cfg_model):
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "list"
     if cmd == "list":
+        # только короткое имя + размер (меню выбора не должно быть сырым!)
         for m in MODELS:
-            out("|".join(str(x) for x in m))
+            out(f"{m[I_ID]}|{m[I_LABEL]}|{m[I_SIZE]}")
     elif cmd == "get":
         mid = int(sys.argv[2])
         key = sys.argv[3] if len(sys.argv) > 3 else "file"
