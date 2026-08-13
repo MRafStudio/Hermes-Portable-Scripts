@@ -54,7 +54,7 @@ if not errorlevel 1 (
 REM 4) Порт свободен - запускаем базу :5505
 :start_llama
 echo   Llama.cpp: запускаю ^(!MODEL_FILE! :!LLAMA_PORT!^)...
-start /min "LlamaCPP !LLAMA_PORT!" cmd /c ""%LLAMA_DIR%\Start_llama.bat" %MODEL_FILE% !LLAMA_PORT! %LLM_MODELS%\%MMPROJ_FILE%"
+start /min "LlamaCPP !LLAMA_PORT!" cmd /c ""%SCRIPTS_DIR%\Start_llama.bat" %MODEL_FILE% !LLAMA_PORT! %LLM_MODELS%\%MMPROJ_FILE%"
 REM ждём готовность (до 60с)
 set "waited=0"
 :wait_llama
