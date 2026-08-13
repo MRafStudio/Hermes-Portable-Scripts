@@ -51,8 +51,11 @@ REM   github.com напрямую режется (52) — качаем чере�
 REM   Прокси нестабилен — на случай обрывов retry-all-errors.
 REM ============================================================================
 set "PROXY=http://127.0.0.1:10809"
-set "LLAMA_URL=https://github.com/ggml-org/llama.cpp/releases/download/b10375/llama-b10375-bin-win-cuda-13.3-x64.zip"
-set "CUDART_URL=https://github.com/ggml-org/llama.cpp/releases/download/b10375/cudart-llama-bin-win-cuda-13.3-x64.zip"
+REM Последние известные ссылки - фоллбэк, если актуальная версия с GitHub недоступна
+set "LLAMA_FALLBACK_URL=https://github.com/ggml-org/llama.cpp/releases/download/b10375/llama-b10375-bin-win-cuda-13.3-x64.zip"
+set "CUDART_FALLBACK_URL=https://github.com/ggml-org/llama.cpp/releases/download/b10375/cudart-llama-bin-win-cuda-13.3-x64.zip"
+set "LLAMA_URL="
+set "CUDART_URL="
 
 REM ============================================================================
 REM   Установлен ли движок?
@@ -83,7 +86,7 @@ REM   Установка с нуля
 REM ============================================================================
 :do_install
 echo.
-echo %ESC%[1;33m llama.cpp: установка ^(b10375, CUDA 13.3^)...%ESC%[0m
+echo %ESC%[1;33m llama.cpp: установка ^(CUDA 13.3^)...%ESC%[0m
 goto prepare
 
 REM ============================================================================
@@ -99,6 +102,17 @@ REM ============================================================================
 :prepare
 call :stop_llama_server
 if errorlevel 1 exit /b 1
+REM актуальные URL из LAT_VER (новый билд = новая ссылка!); API недоступен - фоллбэк b10375
+set "LLAMA_URL=%LLAMA_FALLBACK_URL%"
+set "CUDART_URL=%CUDART_FALLBACK_URL%"
+if not defined LAT_VER call :get_remote_version
+if defined LAT_VER (
+    set "LLAMA_URL=https://github.com/ggml-org/llama.cpp/releases/download/b!LAT_VER!/llama-b!LAT_VER!-bin-win-cuda-13.3-x64.zip"
+    set "CUDART_URL=https://github.com/ggml-org/llama.cpp/releases/download/b!LAT_VER!/cudart-llama-bin-win-cuda-13.3-x64.zip"
+    echo   %ESC%[2m    Скачиваю версию b!LAT_VER!%ESC%[0m
+) else (
+    echo   %ESC%[2m    Версия с GitHub неизвестна - фоллбэк b10375%ESC%[0m
+)
 set "LLAMA_TMP=%TEMP%\llama-update"
 if exist "%LLAMA_TMP%" rmdir /s /q "%LLAMA_TMP%" 2>nul
 mkdir "%LLAMA_TMP%" 2>nul
@@ -130,7 +144,11 @@ if not exist "%LLAMA_TMP%\llama-server.exe" (
 REM --- распаковалось успешно - переносим СКОПОМ в data\llama ---
 move /y "%LLAMA_TMP%\*" "%LLAMA_DIR%\" >nul 2>&1
 rmdir /s /q "%LLAMA_TMP%" 2>nul
-echo %ESC%[1;32m+ %ESC%[0m llama.cpp: установлен ^(b10375^)
+if defined LAT_VER (
+    echo %ESC%[1;32m+ %ESC%[0m llama.cpp: установлен ^(b!LAT_VER!^)
+) else (
+    echo %ESC%[1;32m+ %ESC%[0m llama.cpp: установлен
+)
 
 REM ============================================================================
 REM   Инфо о запуске
