@@ -71,27 +71,13 @@ if (-not $latest) { $latest = "latest" }
 Write-Host "npm tag   : $latest"
 
 # --- Режим: INSTALL или UPDATE ---
+# UPDATE: НЕ сносим RuntimeHome! data\ (БД), config.yaml, models\ и junction
+# сохраняются как есть - распаковка свежего тарбола идёт ПОВЕРХ (только код).
 $isUpdate = Test-Path (Join-Path $RuntimeHome "package.json")
 if ($isUpdate) {
-    Write-Host "Mode      : UPDATE ($RuntimeHome exists)"
+    Write-Host "Mode      : UPDATE ($RuntimeHome exists) - code update only, data/config/models kept"
 } else {
     Write-Host "Mode      : INSTALL"
-}
-
-# --- Удаление старого (только для UPDATE; junction снимаем заранее) ---
-if ($isUpdate) {
-    if (Test-Path $PluginDir) {
-        Write-Host "Removing old junction $PluginDir ..."
-        Remove-Item -LiteralPath $PluginDir -Force -Recurse -ErrorAction Stop
-    }
-    try {
-        Remove-Item -LiteralPath $RuntimeHome -Force -Recurse -ErrorAction Stop
-    } catch {
-        Write-Host ""
-        Write-Host "ERROR: cannot remove $RuntimeHome (files are locked)."
-        Write-Host "       Stop the Hermes service / any running hermes process, then retry."
-        exit 1
-    }
 }
 
 # --- 1. npm pack -> распаковка в RuntimeHome ---

@@ -161,20 +161,40 @@ if ((Test-Path $embedModelOnnx) -and (Test-Path $embedModelTok)) {
 }
 
 # --- 2. config.yaml через штатный API bridge (GET/PATCH /api/v1/config) ---
-$testBridge = $null
-try {
-    $testBridge = Start-Process -FilePath $NodeBin.Source `
-        -ArgumentList @("dist\bridge.mjs", "--agent=hermes", "--home=$RuntimeHome", "--daemon") `
-        -WorkingDirectory $RuntimeHome -PassThru -WindowStyle Hidden
-    Start-Sleep -Seconds 15
-} catch {
-    Write-Host "WARNING: bridge start failed - config check skipped (will retry on next Hermes session)."
-}
+# Обеспечиваем viewer daemon на :18800: если не отвечает - поднимаем сами
+# (как в install-memos.ps1 dd275b7) и оставляем работать, без "next session".
 $viewerOk = $false
 try {
-    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:18800/" -UseBasicParsing -TimeoutSec 5
+    $resp = Invoke-WebRequest -Uri "http://127.0.0.1:18800/api/v1/health" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
     $viewerOk = ($resp.StatusCode -eq 200)
 } catch { }
+if (-not $viewerOk) {
+    Write-Host "[2/7] viewer :18800 not running - starting daemon for verification..."
+    try {
+        $daemonLogOut = Join-Path $RuntimeHome "logs\fixer-daemon.out.log"
+        $daemonLogErr = Join-Path $RuntimeHome "logs\fixer-daemon.err.log"
+        $null = Start-Process -FilePath $NodeBin.Source `
+            -ArgumentList @("dist\bridge.mjs", "--agent=hermes", "--home=$RuntimeHome", "--daemon") `
+            -WorkingDirectory $RuntimeHome -PassThru -WindowStyle Hidden `
+            -RedirectStandardOutput $daemonLogOut -RedirectStandardError $daemonLogErr
+        $waitSec = 0
+        for ($i = 0; $i -lt 30; $i++) {
+            Start-Sleep -Seconds 1
+            $waitSec = $i + 1
+            try {
+                $resp = Invoke-WebRequest -Uri "http://127.0.0.1:18800/api/v1/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+                if ($resp.StatusCode -eq 200) { $viewerOk = $true; break }
+            } catch { }
+        }
+        if ($viewerOk) {
+            Write-Host "[2/7] viewer daemon started, health OK (waited ${waitSec}s) - viewer stays up on :18800"
+        } else {
+            Write-Host "WARNING: viewer daemon did not become healthy in 30s - see logs\fixer-daemon.err.log"
+        }
+    } catch {
+        Write-Host "WARNING: viewer daemon start failed - config check skipped (will retry on next Hermes session)."
+    }
+}
 
 if ($viewerOk) {
     # 2a. Читаем текущий resolved конфиг
@@ -448,7 +468,8 @@ try {
     $resp = Invoke-WebRequest -Uri "http://127.0.0.1:18800/" -UseBasicParsing -TimeoutSec 5
     $viewerOkFinal = ($resp.StatusCode -eq 200)
 } catch { }
-if ($testBridge -and -not $testBridge.HasExited) { Stop-Process -Id $testBridge.Id -Force -ErrorAction SilentlyContinue }
+# viewer daemon оставляем работать (не убиваем): при старте Hermes-сессии
+# ensure_viewer_daemon увидит :18800 занятым MemOS и не запустит второй.
 
 Write-Host ""
 if ($dbOk -and $viewerOkFinal) {
