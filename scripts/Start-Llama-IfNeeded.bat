@@ -67,8 +67,8 @@ timeout /t 2 >nul
 curl -s -o nul --max-time 2 http://127.0.0.1:!LLAMA_PORT!/health >nul 2>&1
 if not errorlevel 1 goto llama_ready
 set /a waited+=2
-if !waited! lss 60 goto wait_llama
-echo   [WARN] Llama.cpp не ответил за 60с - Hermes стартует без локальной модели
+if !waited! lss 20 goto wait_llama
+echo   [WARN] Llama.cpp не ответил за 20с - Hermes стартует без локальной модели
 goto llama_done
 :llama_ready
 echo   Llama.cpp готов ^(:!LLAMA_PORT!^)
