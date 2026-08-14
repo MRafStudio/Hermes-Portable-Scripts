@@ -183,7 +183,7 @@ REM ============================================================================
 REM   [4] MemOS — установка / обновление / проверка (отдельный скрипт)
 REM ============================================================================
 :install_memos
-call "%SCRIPTS_DIR%\InstallOrUpdate_Memos.bat"
+call "%SCRIPTS_DIR%\InstallOrUpdate-Memos.bat"
 goto status
 
 :exit
