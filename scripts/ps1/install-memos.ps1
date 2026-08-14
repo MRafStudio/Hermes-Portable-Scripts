@@ -35,6 +35,10 @@ $RuntimeHome = Join-Path $HermesHome "memos-plugin"
 $PluginDir   = Join-Path $HermesHome "plugins\memtensor"
 $AdapterDir  = Join-Path $RuntimeHome "adapters\hermes\memos_provider"
 $HermesExe   = Join-Path $HermesHome "hermes-agent\venv\Scripts\hermes.exe"
+# MEMOS_HOME принудительно = RuntimeHome (resolveHome в bridge отдаёт env-приоритет
+# перед --home - иначе node-вызовы могут открыть чужой home из окружения).
+$env:MEMOS_HOME = $RuntimeHome
+$env:MEMOS_CONFIG_FILE = ""
 $TempDir     = Join-Path $HermesHome "data\temp"   # резерв; обычно не нужен
 if (-not (Test-Path $HermesHome)) { Write-Error "HERMES_HOME not found: $HermesHome"; exit 1 }
 
@@ -172,12 +176,12 @@ viewer:
   port: 18800
 embedding:
   provider: local
-  apiKey: ***
+  apiKey: ""
   model: ${RuntimeHome}\models\all-MiniLM-L6-v2
 llm:
   provider: local_only
   endpoint: ""
-  apiKey: ***
+  apiKey: ""
   model: ""
 storage:
   ftsTokenizer: trigram

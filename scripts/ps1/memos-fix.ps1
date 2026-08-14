@@ -24,6 +24,11 @@ $HermesHome   = Join-Path $RootDir "data\hermes"
 $RuntimeHome  = Join-Path $HermesHome "memos-plugin"
 $PluginDir    = Join-Path $HermesHome "plugins\memtensor"
 $AdapterDir   = Join-Path $RuntimeHome "adapters\hermes\memos_provider"
+# MEMOS_HOME: принудительно = RuntimeHome! resolveHome (core/config/paths.js)
+# отдаёт приоритет env MEMOS_HOME перед --home: без этого daemon, запущенный
+# из fix, открывает ЧУЖОЙ home (напр. домский C:\ из окружения desktop).
+$env:MEMOS_HOME = $RuntimeHome
+$env:MEMOS_CONFIG_FILE = ""
 $HermesExe    = Join-Path $HermesHome "hermes-agent\venv\Scripts\hermes.exe"
 $PythonExe    = Join-Path $HermesHome "hermes-agent\venv\Scripts\python.exe"
 $HfExe        = Join-Path $HermesHome "hermes-agent\venv\Scripts\hf.exe"
@@ -157,6 +162,20 @@ if ((Test-Path $embedModelOnnx) -and (Test-Path $embedModelTok)) {
         $fixed += "embedding-model"
     } else {
         Write-Host "  .   embedding model NOT installed (vector search will be empty until fixed)"
+    }
+}
+
+# --- 2a. apiKey: *** (голая маскировка writer'а) ломает YAML-парсер bridge ---
+# ("Unresolved alias: **") - чиним НАПРЯМУЮ в файле, ДО старта daemon, иначе
+# viewer не поднимется и шаг 2 (PATCH через API) станет недостижимым.
+$cfgPathRaw = Join-Path $RuntimeHome "config.yaml"
+if (Test-Path $cfgPathRaw) {
+    $rawCfg = Get-Content -Path $cfgPathRaw -Raw -Encoding UTF8
+    if ($rawCfg -match 'apiKey:\s*\*{3}') {
+        $rawCfg = [regex]::Replace($rawCfg, 'apiKey:\s*\*{3}', 'apiKey: ""')
+        [System.IO.File]::WriteAllText($cfgPathRaw, $rawCfg, (New-Object System.Text.UTF8Encoding $false))
+        Write-Host "[2a/7] config.yaml: fixed bare 'apiKey: ***' -> 'apiKey: \"\"' (invalid YAML alias)"
+        $fixed += "apikey-invalid"
     }
 }
 
@@ -308,7 +327,7 @@ if ($viewerOk) {
         if ($useDeepSeek -and $dsKey) {
             $cfgPath = Join-Path $RuntimeHome "config.yaml"
             $raw = Get-Content -Path $cfgPath -Raw -Encoding UTF8
-            $raw = [regex]::Replace($raw, '(apiKey:[ \t]*)"?\*{3}"?', ('${1}"' + $dsKey + '"'))
+            $raw = [regex]::Replace($raw, '(apiKey:\s*)(?:\*{3}|"")', ('${1}"' + $dsKey + '"'))
             Set-Content -Path $cfgPath -Value $raw -Encoding UTF8 -NoNewline
             Write-Host "  apiKey: written directly (bypass writer masking)"
             $fixed += "apikey"
