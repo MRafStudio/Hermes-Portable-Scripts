@@ -224,6 +224,22 @@ logging:
 }
 
 # --- 5. Активация провайдера в Hermes ---
+# Уважаем состояние Hermes: включаем MemOS только при новой установке (INSTALL)
+# или если она уже была включена (memory.provider=memtensor). При UPDATE
+# выключенной MemOS состояние НЕ меняем - пользователь отключил её сознательно.
+$wantActivate = $true
+if ($isUpdate) {
+    $curProvider = ""
+    if (Test-Path $HermesExe) {
+        $curProvider = (& $HermesExe config get memory.provider 2>$null | Out-String).Trim()
+    }
+    if ($curProvider -notmatch "memtensor") {
+        $wantActivate = $false
+        Write-Host "MemOS installed but DISABLED in Hermes (memory.provider not set) - skipping activation."
+        Write-Host "Enable later with: hermes config set memory.provider memtensor"
+    }
+}
+if ($wantActivate) {
 if (Test-Path $HermesExe) {
     $check = & $HermesExe config get memory.provider 2>$null
     if ($check -match "memtensor") {
@@ -282,6 +298,7 @@ if (Test-Path $HermesExe) {
 } else {
     Write-Host "WARNING: hermes.exe not found - enable memory manually (hermes config set memory.memory_enabled true)."
 }
+}   # end if ($wantActivate)
 
 # --- 6. Самотест (self-test) ---
 Write-Host ""

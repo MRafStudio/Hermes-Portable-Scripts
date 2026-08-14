@@ -33,6 +33,14 @@ $HermesExe    = Join-Path $HermesHome "hermes-agent\venv\Scripts\hermes.exe"
 $PythonExe    = Join-Path $HermesHome "hermes-agent\venv\Scripts\python.exe"
 $HfExe        = Join-Path $HermesHome "hermes-agent\venv\Scripts\hf.exe"
 $StartBat     = Join-Path $RootDir "Start.bat"
+# Состояние MemOS в Hermes: включена (memory.provider=memtensor) или выключена.
+# Скрипт УВАЖАЕТ его: активацию и кристаллизацию делает только при включённой
+# MemOS; иначе пользователь отключил её сознательно (дом при полигоне на :18800).
+$memActive = $false
+if (Test-Path $HermesExe) {
+    $memProvider = (& $HermesExe config get memory.provider 2>$null | Out-String).Trim()
+    if ($memProvider -match "memtensor") { $memActive = $true }
+}
 $NodeBin      = (Get-Command node -ErrorAction SilentlyContinue)
 # npm: приоритет 1 - портабельный/пользовательский npm из APPDATA (Start.bat: APPDATA=%DATA_DIR%\appdata;
 # там стоит npm 12, а системный npm.cmd в Program Files может вести на сломанный встроенный npm-cli.js ->
@@ -223,6 +231,9 @@ if ($viewerOk) {
     } catch { }
     if ($cfg) {
         $patch = @{}
+        if (-not $memActive) {
+            Write-Host "[2/7] MemOS disabled in Hermes (memory.provider not set) - LLM/crystallization settings skipped (applied on enable)."
+        } else {
         # --- 2b. Кристаллизация через deepseek (по желанию пользователя!) ---
         # (а) ключ из окружения DEEPSEEK_API_KEY (если есть) - без вопросов;
         # (б) иначе спросить: ввести ключ (кристаллизация через deepseek) или отказаться (local_only).
@@ -380,6 +391,7 @@ if ($viewerOk) {
             Write-Host "  ERROR: config.yaml INVALID after fix - restoring backup!"
             Copy-Item -Path (Join-Path $RuntimeHome "config.yaml.bak") -Destination (Join-Path $RuntimeHome "config.yaml") -Force
         }
+        }   # end if ($memActive) - crystallization block
     }
 } else {
     Write-Host "WARNING: viewer not reachable - config check skipped."
@@ -400,7 +412,11 @@ if (Test-Path $StartBat) {
     Write-Host "WARNING: Start.bat not found at $StartBat"
 }
 
-# --- 4. memory.provider = memtensor ---
+# --- 4. Активация в Hermes: provider + плагин + память ---
+if (-not $memActive) {
+    Write-Host "[4/7] MemOS disabled in Hermes (memory.provider not set) - skipping activation."
+    Write-Host "      Enable with: hermes config set memory.provider memtensor"
+} else {
 if (Test-Path $HermesExe) {
     $check = & $HermesExe config get memory.provider 2>$null
     if ($check -match "memtensor") {
@@ -457,6 +473,7 @@ if (Test-Path $HermesExe) {
 } else {
     Write-Host "WARNING: hermes.exe not found - enable memory manually (hermes config set memory.memory_enabled true)."
 }
+}   # end if ($memActive) - activation block
 
 # --- 5. junction plugins\memtensor ---
 if (-not (Test-Path (Join-Path $PluginDir "__init__.py"))) {
