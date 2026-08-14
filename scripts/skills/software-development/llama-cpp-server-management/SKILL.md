@@ -25,7 +25,7 @@ Deploy, run, and wire llama.cpp `llama-server` for Hermes Agent on Windows (dual
 - **Port 5505 — THE port for llama.cpp** (8080 is often taken by proxies/other apps; 5506 = emergency when 5505 is busy). ALL scripts, Hermes `providers.llama.base_url`, `auxiliary.vision.base_url` must use 5505/5506 — never 8080.
 - **One model = ONE live instance.** 2×16.8GB > 32GB VRAM (RTX 5090): second instance offloads to RAM → 15-25 T/s. House (base) and polygon (test) must NOT run the model simultaneously.
 - **`--alias llama/<model>` is REQUIRED** — Hermes sends the alias; without it the server (which registers the full .gguf path) returns model-not-found.
-- Flags for 5090 (sm_120): `--mmproj` (not -mmproj), `--flash-attn 1`, `--port` (not -p), `-ngl 999`, `--parallel 1`, `--image-min-tokens 1024` (Qwen-VL grounding). CUDA 13.3 required (12.4 does not support Blackwell).
+- Flags for 5090 (sm_120): `--mmproj` (not -mmproj), `--flash-attn 1`, `--port` (not -p), `-ngl 999`, `--parallel 1`. CUDA 13.3 required (12.4 does not support Blackwell). **НЕ использовать `--image-min-tokens`**: для Gemma-4-26B он роняет загрузку mmproj (`image_max_pixels 645120 < image_min_pixels 2359296` — llama-server exiting due to model loading error); проверено биссекцией 14.08 — флаг убран из всех скриптов.
 
 ## Start script port logic (Start-Llama-IfNeeded.bat)
 1. `curl :5505/health` answers → use it (already running, one instance).

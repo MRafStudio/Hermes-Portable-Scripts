@@ -101,7 +101,7 @@ echo   %ESC%[2m  Проектор:    %MMPROJ_FILE%%ESC%[0m
 echo   %ESC%[2m  Порт:        %LLAMA_PORT%%ESC%[0m
 echo.
 
-"%NSSM_EXE%" install "%SERVICE_NAME%" "%LLAMA_EXE%" -m "%MODELS_DIR%\%MODEL_FILE%" --mmproj "%MODELS_DIR%\%MMPROJ_FILE%" --alias llama/%MODEL_FILE:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 1 --image-min-tokens 1024 --port %LLAMA_PORT% --host 127.0.0.1
+"%NSSM_EXE%" install "%SERVICE_NAME%" "%LLAMA_EXE%" -m "%MODELS_DIR%\%MODEL_FILE%" --mmproj "%MODELS_DIR%\%MMPROJ_FILE%" --alias llama/%MODEL_FILE:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 1 --port %LLAMA_PORT% --host 127.0.0.1
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] nssm install не удался.%ESC%[0m
     pause
