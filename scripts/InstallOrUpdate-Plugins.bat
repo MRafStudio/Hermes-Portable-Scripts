@@ -67,6 +67,21 @@ set "LLAMA_EXE=%DATA_DIR%\llama\llama-server.exe"
 set "LLM_INSTALLED=0"
 if exist "%LLAMA_EXE%" set "LLM_INSTALLED=1"
 
+REM Версия llama.cpp: как в InstallOrUpdate-Llama.bat (:get_local_version) - build из
+REM --version (вывод в stderr; через временный файл - пайп в for /f с кавычками exe не работает).
+set "LLAMA_VERSION=?"
+if exist "%LLAMA_EXE%" (
+    "%LLAMA_EXE%" --version > "%TEMP%\v_llama.tmp" 2>&1
+    set "LLAMA_VERSION="
+    for /f "tokens=2" %%v in ('type "%TEMP%\v_llama.tmp"') do if not defined LLAMA_VERSION set "LLAMA_VERSION=%%v"
+    echo !LLAMA_VERSION! | findstr /r "^[0-9][0-9]*$" >nul
+    if errorlevel 1 (
+        set "LLAMA_VERSION="
+        for /f "tokens=4 delims=, " %%v in ('findstr /i "build" "%TEMP%\v_llama.tmp"') do set "LLAMA_VERSION=%%v"
+    )
+    del "%TEMP%\v_llama.tmp" >nul 2>&1
+)
+
 set "LLM_MODEL="
 set "LLM_ANY=0"
 if exist "%MODELS_DIR%\*.gguf" set "LLM_ANY=1"
@@ -102,11 +117,11 @@ echo  %ESC%[1;36m###############################################################
 echo.
 if !LLM_INSTALLED! equ 1 (
     if !LLM_ANY! equ 0 (
-        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модели не установлены^)%ESC%[0m
+        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(b!LLAMA_VERSION!, модели не установлены^)%ESC%[0m
     ) else if defined LLM_MODEL (
-        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модель !LLM_MODEL!^)%ESC%[0m
+        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(b!LLAMA_VERSION!, модель !LLM_MODEL!^)%ESC%[0m
     ) else (
-        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(модели есть - дефолт не назначен^)%ESC%[0m
+        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(b!LLAMA_VERSION!, модели есть - дефолт не назначен^)%ESC%[0m
     )
 ) else (
     echo   %ESC%[1;33m. %ESC%[0m Llama.cpp — не установлен
