@@ -10,24 +10,36 @@ for %%i in ("%SCRIPTS_DIR%..") do set "ROOT_DIR=%%~fi"
 set "LLAMA_DIR=%ROOT_DIR%\data\llama"
 set "LLM_MODELS=%ROOT_DIR%\data\llm\models"
 set "CFG_FILE=%ROOT_DIR%\data\llm\default_model.cfg"
+set "PY=%ROOT_DIR%\data\hermes\hermes-agent\venv\Scripts\python.exe"
+set "TEMP_DIR=%ROOT_DIR%\data\temp"
+if not exist "%TEMP_DIR%" mkdir "%TEMP_DIR%" 2>nul
 
 set "MODEL=%~1"
 set "PORT=%~2"
 if "%PORT%"=="" set "PORT=5505"
 set "MMPROJ=%~3"
 set "MAXCTX=262144"
+set "THINKING=1"
 
 REM Дефолтная модель — из default_model.cfg (единый источник правды), аргументы имеют приоритет
 if exist "%CFG_FILE%" (
-    for /f "tokens=1,* delims==" %%a in ('findstr /b "MODEL_FILE MMPROJ_FILE MAXCTX" "%CFG_FILE%"') do (
+    for /f "tokens=1,* delims==" %%a in ('findstr /b "MODEL_FILE MMPROJ_FILE MAXCTX THINKING" "%CFG_FILE%"') do (
         if "%%a"=="MODEL_FILE" if "%MODEL%"=="" set "MODEL=%%b"
         if "%%a"=="MMPROJ_FILE" if "%MMPROJ%"=="" set "MMPROJ=%%b"
         if "%%a"=="MAXCTX" set "MAXCTX=%%b"
+        if "%%a"=="THINKING" set "THINKING=%%b"
     )
 )
 if "%MODEL%"=="" set "MODEL=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
 if "%MMPROJ%"=="" set "MMPROJ=%LLM_MODELS%\mmproj-Qwen-35B-F16.gguf"
 if not exist "%MMPROJ%" set "MMPROJ=%LLM_MODELS%\mmproj-Qwen-35B-F16.gguf"
+
+REM Файловый обмен: python собирает флаг думания с правильным экранированием (кавычки-танцы — в python, не в cmd)
+set "THINK_FLAG="
+if exist "%PY%" (
+    "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" thinking_flag start "%THINKING%" > "%TEMP_DIR%\llama_thinking_flag.txt" 2>nul
+    set /p THINK_FLAG=<"%TEMP_DIR%\llama_thinking_flag.txt"
+)
 
 set "MODEL_PATH=%LLM_MODELS%\%MODEL%"
 if not exist "%MODEL_PATH%" (
@@ -38,7 +50,7 @@ if not exist "%MODEL_PATH%" (
 )
 
 REM Отвязка: llama-server — отдельный процесс (start /min), окно свернуто, лог — в своё окно
-start "LlamaCPP %MODEL%" /min "%LLAMA_DIR%\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 2 --port %PORT% --host 127.0.0.1
+start "LlamaCPP %MODEL%" /min "%LLAMA_DIR%\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 2 %THINK_FLAG% --port %PORT% --host 127.0.0.1
 REM --- ПОЛНАЯ синхронизация Hermes: llama/<модель> + реальный порт (единая точка запуска сервера) ---
 set "HERMES_BIN=%ROOT_DIR%\data\hermes\hermes-agent\venv\Scripts\hermes.exe"
 if exist "%HERMES_BIN%" (

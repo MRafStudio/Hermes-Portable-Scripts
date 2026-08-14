@@ -110,7 +110,7 @@ if not defined PICK (
     pause
     goto exit
 )
-for /f "tokens=1-8 delims=|" %%a in ("!PICK!") do (
+for /f "tokens=1-9 delims=|" %%a in ("!PICK!") do (
     set "MODEL_ID=%%a"
     set "MODEL_FILE=%%b"
     set "MMPROJ_FILE=%%c"
@@ -119,6 +119,7 @@ for /f "tokens=1-8 delims=|" %%a in ("!PICK!") do (
     set "MMPROJ_SRC=%%f"
     set "MODEL_LABEL=%%g"
     set "MODEL_ALIAS=%%h"
+    set "MODEL_THINKING=%%i"
 )
 
 REM --- если модель уже установлена — сразу к назначению дефолта ---
@@ -220,6 +221,7 @@ echo MODEL_FILE=%MODEL_FILE%
 echo MMPROJ_FILE=%MMPROJ_FILE%
 echo MAXCTX=%MODEL_MAXCTX%
 echo MODEL_ALIAS=%MODEL_ALIAS%
+echo THINKING=%MODEL_THINKING%
 ) > "%CFG_FILE%"
 echo   %ESC%[1;32m+ %ESC%[0m Дефолт записан: %MODEL_LABEL%
 
@@ -248,7 +250,9 @@ if not errorlevel 1 (
     REM служба установлена - обновляем параметры модели (nssm AppParameters) и перезапускаем
     set "NSSM_EXE=%ROOT_DIR%\scripts\nssm.exe"
     if exist "%NSSM_EXE%" (
-        "%NSSM_EXE%" set "%SERVICE_NAME%" AppParameters "-m %MODELS_DIR%\%MODEL_FILE% --mmproj %MODELS_DIR%\%MMPROJ_FILE% --alias llama/%MODEL_FILE:~0,-5% -c %MODEL_MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 1 --port 5505 --host 127.0.0.1" >nul 2>&1
+        "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" thinking_flag nssm "%MODEL_THINKING%" > "%TEMP%\llama_thinking_flag.txt" 2>nul
+        set /p THINK_FLAG=<"%TEMP%\llama_thinking_flag.txt"
+        "%NSSM_EXE%" set "%SERVICE_NAME%" AppParameters "-m %MODELS_DIR%\%MODEL_FILE% --mmproj %MODELS_DIR%\%MMPROJ_FILE% --alias llama/%MODEL_FILE:~0,-5% -c %MODEL_MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 1 !THINK_FLAG! --port 5505 --host 127.0.0.1" >nul 2>&1
         echo   %ESC%[1;32m+ %ESC%[0m Параметры службы обновлены: %MODEL_LABEL%
     ) else (
         echo   %ESC%[1;33m  nssm не найден - параметры службы НЕ обновлены, останется старая модель.%ESC%[0m

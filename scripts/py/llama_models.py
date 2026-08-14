@@ -32,26 +32,28 @@ MODELS = [
     # Базовая модель но для видеокарт начиная с 24Gb
     (1, "Qwen-3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "18.0 GB", 24,
      "mmproj-Qwen-35B-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144,
-     "mmproj-F16.gguf"),
+     "mmproj-F16.gguf", 1),
     # Ближайший конкурент Qwen3.6 при меньших потребностях
     # ВНИМАНИЕ: mmproj-F16.gguf из репо НЕ грузится (image_max_pixels < image_min_pixels) - только BF16!
     (2, "Gemma-4-26B-A4B  UD-IQ4_NL", "gemma-4-26B-A4B-it-UD-IQ4_NL.gguf", "13.6 GB", 20,
      "mmproj-Gemma-26B-BF16.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 262144,
-     "mmproj-BF16.gguf"),
+     "mmproj-BF16.gguf", 0),
     # С натяжкой: 128 контекста это буквально впритык для Hermes
     (3, "Gemma-3-12B     UD-Q4_K_XL", "gemma-3-12b-it-UD-Q4_K_XL.gguf", "7.43 GB", 11,
      "mmproj-Gemma-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 131072,
-     "mmproj-F16.gguf"),
+     "mmproj-F16.gguf", 1),
     #
     (4, "Qwythos-9B 5-1M MTP-Q4_K_M", "Qwythos-9B-Claude-Mythos-5-1M-MTP-Q4_K_M.gguf", "5.89 GB", 16,
      "mmproj-Qwythos-9B-F16.gguf", "empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF", 524288,
-     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf"),
+     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", 1),
 ]
 
 ESC = "\x1b"
 
 # индексы полей
-I_ID, I_LABEL, I_FILE, I_SIZE, I_VRAM, I_MMPROJ, I_REPO, I_MAXCTX, I_MMPROJ_SRC = range(9)
+I_ID, I_LABEL, I_FILE, I_SIZE, I_VRAM, I_MMPROJ, I_REPO, I_MAXCTX, I_MMPROJ_SRC, I_THINKING = range(10)
+# I_THINKING: 1 = думание включено (enable_thinking по умолчанию/true), 0 = выключено
+# (--chat-template-kwargs {"enable_thinking":false} в llama-server; для агентских циклов с tool-calling)
 
 
 def out(s):
@@ -121,7 +123,7 @@ def main():
                         picked = m
                         break
         if picked:
-            out(f"{picked[I_ID]}|{picked[I_FILE]}|{picked[I_MMPROJ]}|{picked[I_REPO]}|{picked[I_MAXCTX]}|{picked[I_MMPROJ_SRC]}|{picked[I_LABEL]}|llama/{picked[I_FILE][:-5]}")
+            out(f"{picked[I_ID]}|{picked[I_FILE]}|{picked[I_MMPROJ]}|{picked[I_REPO]}|{picked[I_MAXCTX]}|{picked[I_MMPROJ_SRC]}|{picked[I_LABEL]}|llama/{picked[I_FILE][:-5]}|{picked[I_THINKING]}")
     elif cmd == "label":
         cfg_model = sys.argv[2] if len(sys.argv) > 2 else ""
         m = find_by_cfg(cfg_model)
@@ -147,6 +149,20 @@ def main():
                 out(f"{m[I_ID]}|{m[I_LABEL]}")
     elif cmd == "count":
         out(str(len(MODELS)))
+    elif cmd == "thinking_flag":
+        # Файловый обмен: python собирает флаг с ПРАВИЛЬНЫМ экранированием для cmd,
+        # .bat читает его через set /p (никаких кавычек-танцев в .bat!)
+        # usage: thinking_flag <start|nssm> <0|1>
+        mode = sys.argv[2] if len(sys.argv) > 2 else "start"
+        thinking = (sys.argv[3] if len(sys.argv) > 3 else "1").strip()
+        if thinking != "0":
+            out("")
+        elif mode == "nssm":
+            # внутри внешних кавычек AppParameters: \'\"\' — экранированная кавычка для nssm
+            out('--chat-template-kwargs {\\"enable_thinking\\":false}')
+        else:
+            # start-команда: внешние кавычки + экранированные внутренние
+            out('--chat-template-kwargs "{\\"enable_thinking\\":false}"')
     elif cmd == "status":
         models_dir = sys.argv[2] if len(sys.argv) > 2 else ""
         found = False
