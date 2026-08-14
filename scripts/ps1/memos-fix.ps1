@@ -384,7 +384,7 @@ if (Test-Path $HermesExe) {
     $mt = @($pluginStatus | Where-Object { $_.name -eq "memtensor" } | Select-Object -First 1)
     if ($mt.Count -eq 0 -or $mt[0].status -ne "enabled") {
         Write-Host "[4a/7] memtensor plugin not enabled - enabling (hermes plugins enable memtensor)..."
-        & $HermesExe plugins enable memtensor | Out-Null
+        & $HermesExe plugins enable memtensor --no-allow-tool-override | Out-Null
         $after = & $HermesExe plugins list --json 2>$null | ConvertFrom-Json
         $mtAfter = @($after | Where-Object { $_.name -eq "memtensor" } | Select-Object -First 1)
         if ($mtAfter.Count -gt 0 -and $mtAfter[0].status -eq "enabled") {
