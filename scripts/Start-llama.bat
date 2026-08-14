@@ -1,10 +1,10 @@
 @echo off
-REM scripts\Start_llama.bat — запуск llama-server (EDINственный скрипт запуска — в репозитории!)
-REM Использование: Start_llama.bat [MODEL] [PORT] [MMPROJ]  (дефолты: default_model.cfg / 5505 / mmproj из cfg)
+REM scripts\Start-llama.bat — запуск llama-server (EDINственный скрипт запуска — в репозитории!)
+REM Использование: Start-llama.bat [MODEL] [PORT] [MMPROJ]  (дефолты: default_model.cfg / 5505 / mmproj из cfg)
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-REM Start_llama.bat живёт в scripts\ (единый источник) - каталоги вычисляем сами
+REM Start-llama.bat живёт в scripts\ (единый источник) - каталоги вычисляем сами
 set "SCRIPTS_DIR=%~dp0"
 for %%i in ("%SCRIPTS_DIR%..") do set "ROOT_DIR=%%~fi"
 set "LLAMA_DIR=%ROOT_DIR%\data\llama"
@@ -38,7 +38,7 @@ if not exist "%MODEL_PATH%" (
 )
 
 REM Отвязка: llama-server — отдельный процесс (start /min), окно свернуто, лог — в своё окно
-start "LlamaCPP %MODEL%" /min "%LLAMA_DIR%\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 4 --image-min-tokens 1024 --port %PORT% --host 127.0.0.1
+start "LlamaCPP %MODEL%" /min "%LLAMA_DIR%\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 2 --image-min-tokens 1024 --port %PORT% --host 127.0.0.1
 REM --- ПОЛНАЯ синхронизация Hermes: llama/<модель> + реальный порт (единая точка запуска сервера) ---
 set "HERMES_BIN=%ROOT_DIR%\data\hermes\hermes-agent\venv\Scripts\hermes.exe"
 if exist "%HERMES_BIN%" (

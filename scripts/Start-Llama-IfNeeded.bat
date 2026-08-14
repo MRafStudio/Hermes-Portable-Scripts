@@ -59,7 +59,7 @@ if not errorlevel 1 (
 REM 4) Порт свободен - запускаем базу :5505
 :start_llama
 echo   Llama.cpp: запускаю ^(!MODEL_FILE! :!LLAMA_PORT!^)...
-start /min "LlamaCPP !LLAMA_PORT!" cmd /c ""%SCRIPTS_DIR%\Start_llama.bat" %MODEL_FILE% !LLAMA_PORT! %LLM_MODELS%\%MMPROJ_FILE%"
+start /min "LlamaCPP !LLAMA_PORT!" cmd /c ""%SCRIPTS_DIR%\Start-llama.bat" %MODEL_FILE% !LLAMA_PORT! %LLM_MODELS%\%MMPROJ_FILE%"
 REM ждём готовность (до 60с)
 set "waited=0"
 :wait_llama
@@ -73,7 +73,7 @@ goto llama_done
 :llama_ready
 echo   Llama.cpp готов ^(:!LLAMA_PORT!^)
 
-REM 5) Hermes: ПОЛНАЯ синхронизация на фактический порт + модель (единая логика с Start_llama.bat!)
+REM 5) Hermes: ПОЛНАЯ синхронизация на фактический порт + модель (единая логика с Start-llama.bat!)
 :configure_hermes
 if exist "%HERMES_BIN%" (
     "%HERMES_BIN%" config set model.default "llama/%MODEL_FILE:~0,-5%" >nul 2>&1

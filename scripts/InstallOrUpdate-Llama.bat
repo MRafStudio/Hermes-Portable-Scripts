@@ -155,7 +155,7 @@ REM   Инфо о запуске
 REM ============================================================================
 :run_info
 echo.
-echo %ESC%[1;33m  Запуск:   %ESC%[0m%SCRIPTS_DIR%\Start_llama.bat
+echo %ESC%[1;33m  Запуск:   %ESC%[0m%SCRIPTS_DIR%\Start-llama.bat
 echo %ESC%[1;33m  Модель:   %ESC%[0mнужна в %MODELS_DIR% - скажи Hermes, какую качать
 echo %ESC%[1;33m  Порт API: %ESC%[0m5505 - Start-Llama-IfNeeded поднимет автоматически
 echo.
