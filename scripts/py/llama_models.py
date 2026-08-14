@@ -34,9 +34,10 @@ MODELS = [
      "mmproj-Qwen-35B-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144,
      "mmproj-F16.gguf"),
     # Ближайший конкурент Qwen3.6 при меньших потребностях
+    # ВНИМАНИЕ: mmproj-F16.gguf из репо НЕ грузится (image_max_pixels < image_min_pixels) - только BF16!
     (2, "Gemma-4-26B-A4B  UD-IQ4_NL", "gemma-4-26B-A4B-it-UD-IQ4_NL.gguf", "13.6 GB", 20,
-     "mmproj-Gemma-27B-F16.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 262144,
-     "mmproj-F16.gguf"),
+     "mmproj-Gemma-26B-BF16.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 262144,
+     "mmproj-BF16.gguf"),
     # С натяжкой: 128 контекста это буквально впритык для Hermes
     (3, "Gemma-3-12B     UD-Q4_K_XL", "gemma-3-12b-it-UD-Q4_K_XL.gguf", "7.43 GB", 11,
      "mmproj-Gemma-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 131072,
