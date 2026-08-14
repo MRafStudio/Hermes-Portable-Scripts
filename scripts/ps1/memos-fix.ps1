@@ -261,29 +261,70 @@ if ($viewerOk) {
                 if ($dsKey.Trim() -ne "") { $useDeepSeek = $true }
             }
         }
-        # llm: deepseek (если пользователь дал ключ) ИЛИ local_only (автономный режим - без LLM).
+        # LLM-схема кристаллизации (важно! по архитектуре MemOS):
+        #   llm  = deepseek/llama -> L1 scoring/reward + L2-индукция (политики) + skills + feedback
+        #                      (ВСЕ эти подсистемы идут через единый llm-клиент; l3Llm - только L3)
+        #   l3Llm = то же -> L3 world models
+        #   skillEvolver = то же -> эволюция навыков
+        #   lightweight=false -> фоновые LLM-задачи (кристаллизация) НЕ скипаются!
+        #                        (lightweight=true скипает L2/L3/skills - кристаллизация мертва)
+        #   fallbackToHost=false -> НЕ падать на host-LLM (kobold думал 42с на кристаллизации!)
+        # Приоритет: deepseek (ключ введён) -> локальная llama-server (если запущена) -> local_only.
         $llmProvider = $cfg.config.llm.provider
+        $cryLlm = $null
         if ($useDeepSeek) {
-            $patch.llm = @{
+            $cryLlm = @{
                 provider = "openai_compatible"
                 endpoint = "https://api.deepseek.com/v1"
                 # apiKey НЕ шлём в PATCH: writer плагина МАСКИРУЕТ его (пишет '***' -
                 # невалидный YAML для 2.0.15 - daemon падает!). Ключ пишем НАПРЯМУЮ после PATCH.
                 model = "deepseek-v4-flash"
             }
-            Write-Host "  Crystallization: deepseek (openai_compatible, model=deepseek-v4-flash)"
+            Write-Host "  Crystallization: deepseek (llm + l3Llm + skillEvolver, model=deepseek-v4-flash)"
+        } else {
+            # Локальная llama-server (openai_compatible): порт по health (5505 служба / 5506 desktop),
+            # модель - из data\llm\default_model.cfg (MODEL_ALIAS = единый источник).
+            $llamaBase = $null
+            foreach ($lp in 5505, 5506) {
+                try {
+                    $lh = Invoke-WebRequest -Uri "http://127.0.0.1:$lp/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+                    if ($lh.StatusCode -eq 200) { $llamaBase = "http://127.0.0.1:$lp/v1"; break }
+                } catch { }
+            }
+            $llamaAlias = ""
+            $llamaCfg = Join-Path $RootDir "data\llm\default_model.cfg"
+            if (Test-Path $llamaCfg) {
+                $m = Select-String -Path $llamaCfg -Pattern "^MODEL_ALIAS=(.+)$"
+                if ($m) { $llamaAlias = $m.Matches[0].Groups[1].Value.Trim() }
+            }
+            if ($llamaBase -and $llamaAlias) {
+                $cryLlm = @{
+                    provider = "openai_compatible"
+                    endpoint = $llamaBase
+                    model = $llamaAlias
+                }
+                Write-Host "  Crystallization: LOCAL llama-server ($llamaBase, model=$llamaAlias)"
+            } else {
+                Write-Host "  Crystallization: no deepseek key and llama-server not reachable - autonomous (local_only)"
+            }
+        }
+        if ($cryLlm) {
+            $patch.llm = $cryLlm
+            $patch.l3Llm = $cryLlm
+            $patch.skillEvolver = $cryLlm
         } elseif ($llmProvider -ne "local_only") {
             $patch.llm = @{ provider = "local_only" }
         }
-        # fallbackToHost=false: summarizer/кристаллизация НЕ падают в fallback на host-LLM (локальную!)
+        # fallbackToHost=false: кристаллизация НЕ падает в fallback на host-LLM (локальную kobold!)
         # (иначе local_only всё равно мучает локальную LLM через Hermes-bridge - проверено 12.08)
         $patch.llm.fallbackToHost = $false
-        # lightweight=true: только summarize+embed+retrieval, нет фоновых LLM-задач
-        # (с local_only поиск по трассам работает - проверено стресс-тестом 1000 запросов)
+        # lightweight: при кристаллизации (deepseek ИЛИ llama) ОБЯЗАТЕЛЬНО false (иначе pipeline
+        # скипает L2/L3/skills и кристаллизация не работает); при автономном local_only - true
         $lw = $cfg.config.algorithm.lightweightMemory.enabled
-        if ($lw -ne $true) {
+        $lwTarget = if ($cryLlm) { $false } else { $true }
+        if ($lw -ne $lwTarget) {
             if (-not $patch.algorithm) { $patch.algorithm = @{} }
-            $patch.algorithm.lightweightMemory = @{ enabled = $true }
+            $patch.algorithm.lightweightMemory = @{ enabled = $lwTarget }
         }
         # embedTraces=true: эмбеддинги пишутся на каждый ход - новый trace сразу
         # находится по смыслу (семантический поиск), ручной rebuild не нужен.
