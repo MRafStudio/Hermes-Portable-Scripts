@@ -354,11 +354,17 @@ if ($viewerOk) {
         #     токенов на думание -> пустой content -> "empty response" и L3/skills падают;
         #   timeoutMs=180000: длинные batch-рефлексии рвутся на дефолтных 45-60с
         #     ("request was cancelled"). Проверено на полигоне 14.08.
-        foreach ($sec in @("llm", "l3Llm", "skillEvolver")) {
+        #   l3Llm - ОТДЕЛЬНО и БОЛЬШЕ: L3-абстракция (кластер политик -> world model)
+        #     самая тяжёлая: Qwen думает 20-60k токенов (замер 14.08: 19.5k думания
+        #     на 3 политики, обрывы до 121с) -> maxTokens=65536, timeoutMs=600000.
+        foreach ($sec in @("llm", "skillEvolver")) {
             if (-not $patch.$sec) { $patch.$sec = @{} }
             $patch.$sec.maxTokens = 8192
             $patch.$sec.timeoutMs = 180000
         }
+        if (-not $patch.l3Llm) { $patch.l3Llm = @{} }
+        $patch.l3Llm.maxTokens = 65536
+        $patch.l3Llm.timeoutMs = 600000
         if ($patch.Count -gt 0) {
             $body = $patch | ConvertTo-Json -Depth 6 -Compress
             # БЭКАП config.yaml перед правкой (минное поле - откат при поломке!)
