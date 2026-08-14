@@ -38,7 +38,7 @@ if not exist "%MODEL_PATH%" (
 )
 
 REM Отвязка: llama-server — отдельный процесс (start /min), окно свернуто, лог — в своё окно
-start "LlamaCPP %MODEL%" /min "%LLAMA_DIR%\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 1 --image-min-tokens 1024 --port %PORT% --host 127.0.0.1
+start "LlamaCPP %MODEL%" /min "%LLAMA_DIR%\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 4 --image-min-tokens 1024 --port %PORT% --host 127.0.0.1
 REM --- ПОЛНАЯ синхронизация Hermes: llama/<модель> + реальный порт (единая точка запуска сервера) ---
 set "HERMES_BIN=%ROOT_DIR%\data\hermes\hermes-agent\venv\Scripts\hermes.exe"
 if exist "%HERMES_BIN%" (
