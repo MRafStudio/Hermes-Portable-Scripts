@@ -68,22 +68,15 @@ goto llama_done
 :llama_ready
 echo   Llama.cpp готов ^(:!LLAMA_PORT!^)
 
-REM 5) Hermes-провайдер на фактический порт (если не 5505 — переконфигурируем!)
+REM 5) Hermes: ПОЛНАЯ синхронизация на фактический порт + модель (единая логика с Start_llama.bat!)
 :configure_hermes
-if not "!LLAMA_PORT!"=="5505" (
-    if exist "%HERMES_BIN%" (
-        "%HERMES_BIN%" config set providers.llama.base_url "http://127.0.0.1:!LLAMA_PORT!/v1" >nul 2>&1
-        echo   Hermes: providers.llama.base_url -> :!LLAMA_PORT! (переконфигурировано)
-    )
-) else (
-    REM база на 5505 - дефолт (убеждаемся, что конфиг правильный - если отличается)
-    if exist "%HERMES_BIN%" (
-        set "CUR_URL="
-        for /f "usebackq delims=" %%u in (`"%HERMES_BIN%" config get providers.llama.base_url 2^>nul`) do set "CUR_URL=%%u"
-        if not "!CUR_URL!"=="" if not "!CUR_URL:5505=!"=="!CUR_URL!" goto llama_done
-        "%HERMES_BIN%" config set providers.llama.base_url "http://127.0.0.1:5505/v1" >nul 2>&1
-        echo   Hermes: providers.llama.base_url -> :5505
-    )
+if exist "%HERMES_BIN%" (
+    "%HERMES_BIN%" config set model.default "llama/%MODEL_FILE:~0,-5%" >nul 2>&1
+    "%HERMES_BIN%" config set model.provider "llama" >nul 2>&1
+    "%HERMES_BIN%" config set model.base_url "http://127.0.0.1:!LLAMA_PORT!/v1" >nul 2>&1
+    "%HERMES_BIN%" config set providers.llama.model "llama/%MODEL_FILE:~0,-5%" >nul 2>&1
+    "%HERMES_BIN%" config set providers.llama.base_url "http://127.0.0.1:!LLAMA_PORT!/v1" >nul 2>&1
+    echo   Hermes: llama/%MODEL_FILE:~0,-5% на :!LLAMA_PORT!
 )
 :llama_done
 :menu
