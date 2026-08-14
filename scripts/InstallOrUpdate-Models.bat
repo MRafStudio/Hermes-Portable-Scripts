@@ -292,7 +292,7 @@ if defined SERVICE_NAME (
     echo   %ESC%[2m  Hermes службой не установлен - конфиг применится при следующем запуске.%ESC%[0m
 )
 
-start "%SCRIPTS_DIR%\SmartPause.bat 5"
+call "%SCRIPTS_DIR%\SmartPause.bat" 5
 exit /b 0
 
 :clear_default
