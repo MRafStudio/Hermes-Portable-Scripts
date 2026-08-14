@@ -124,7 +124,7 @@ for /f "tokens=1-8 delims=|" %%a in ("!PICK!") do (
 REM --- если модель уже установлена — сразу к назначению дефолта ---
 if defined MODEL_FILE if exist "%MODELS_DIR%\%MODEL_FILE%" (
     echo.
-    echo   %ESC%[2m  Модель уже установлена - проверяю проектор (vision)...%ESC%[0m
+    echo   %ESC%[2m  Модель уже установлена - проверяю проектор ^(vision^)...%ESC%[0m
     if not exist "%MODELS_DIR%\%MMPROJ_FILE%" (
         echo %ESC%[1;33m  Проектор %MMPROJ_FILE% не найден - загружаю...%ESC%[0m
         call :download_hf "%MODEL_REPO%" "%MMPROJ_SRC%" "%MODELS_DIR%"
@@ -251,7 +251,7 @@ if not errorlevel 1 (
         "%NSSM_EXE%" set "%SERVICE_NAME%" AppParameters "-m %MODELS_DIR%\%MODEL_FILE% --mmproj %MODELS_DIR%\%MMPROJ_FILE% --alias llama/%MODEL_FILE:~0,-5% -c %MODEL_MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 1 --image-min-tokens 1024 --port 5505 --host 127.0.0.1" >nul 2>&1
         echo   %ESC%[1;32m+ %ESC%[0m Параметры службы обновлены: %MODEL_LABEL%
     ) else (
-        echo   %ESC%[1;33m  nssm не найден - параметры службы НЕ обновлены (останется старая модель).%ESC%[0m
+        echo   %ESC%[1;33m  nssm не найден - параметры службы НЕ обновлены ^(останется старая модель^).%ESC%[0m
     )
     echo   Перезапуск службы %SERVICE_NAME%...
     sc stop "%SERVICE_NAME%" >nul 2>&1
@@ -278,7 +278,7 @@ REM --- перезапуск Hermes, если он работает службо
 call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_DIR%" <nul
 if defined SERVICE_NAME (
     set "hsrv="
-    set /p "hsrv=%ESC%[33mПерезапустить службу Hermes ^(!SERVICE_NAME!^) сейчас (y/N)? %ESC%[0m"
+    set /p "hsrv=%ESC%[33mПерезапустить службу Hermes ^(!SERVICE_NAME!^) сейчас ^(y/N^)? %ESC%[0m"
     if /i "!hsrv!"=="y" (
         echo   Перезапуск службы Hermes...
         sc stop "!SERVICE_NAME!" >nul 2>&1
