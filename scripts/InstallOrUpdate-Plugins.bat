@@ -180,39 +180,10 @@ call "%SCRIPTS_DIR%\Llama-Service.bat"
 goto status
 
 REM ============================================================================
-REM   [4] MemOS — установка / обновление
+REM   [4] MemOS — установка / обновление / проверка (отдельный скрипт)
 REM ============================================================================
 :install_memos
-cls
-echo.
-echo %ESC%[1;33m-%ESC%[0m %ESC%[1mMemOS — память агента: установка / обновление...%ESC%[0m
-echo.
-echo %ESC%[2m  Источник: npm (@memtensor/memos-local-plugin, latest).%ESC%[0m
-echo %ESC%[2m  Рефлексия LLM: кристаллизация через DeepSeek API, локально llama.cpp :5505.%ESC%[0m
-echo %ESC%[2m  Телеметрия отключена, 100%% локально.%ESC%[0m
-echo.
-echo %ESC%[33m  Убедитесь, что Hermes (служба/сессии) остановлен, иначе файлы залочены.%ESC%[0m
-echo.
-
-set "confirm="
-set /p "confirm=%ESC%[33mПродолжить (y/N)? %ESC%[0m"
-if /i not "%confirm%"=="y" goto menu
-
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\install-memos.ps1" -RootDir "%ROOT_DIR%"
-
-echo.
-echo %ESC%[1;36mПроверка установки MemOS: memos-fix.ps1 (самопроверка + доустановка недостающего)...%ESC%[0m
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\memos-fix.ps1" -RootDir "%ROOT_DIR%"
-if errorlevel 1 (
-    echo.
-    echo %ESC%[1;31m[ОШИБКА] Проблемы после установки MemOS — смотрите сообщения выше.%ESC%[0m
-) else (
-    echo.
-    echo %ESC%[1;32mГотово. Проверка: при следующей сессии Hermes viewer откроется на :18800.%ESC%[0m
-)
-
-echo.
-pause
+call "%SCRIPTS_DIR%\InstallOrUpdate_Memos.bat"
 goto status
 
 :exit
