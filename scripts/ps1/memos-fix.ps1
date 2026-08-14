@@ -349,6 +349,16 @@ if ($viewerOk) {
             if (-not $patch.embedding) { $patch.embedding = @{} }
             $patch.embedding.model = $EmbedModelDir
         }
+        # Тюнинг кристаллизации (для ЛЮБОЙ LLM - deepseek ИЛИ локальная llama):
+        #   maxTokens=8192: reasoning-модели (Qwen/deepseek) съедают дефолтные 1024
+        #     токенов на думание -> пустой content -> "empty response" и L3/skills падают;
+        #   timeoutMs=180000: длинные batch-рефлексии рвутся на дефолтных 45-60с
+        #     ("request was cancelled"). Проверено на полигоне 14.08.
+        foreach ($sec in @("llm", "l3Llm", "skillEvolver")) {
+            if (-not $patch.$sec) { $patch.$sec = @{} }
+            $patch.$sec.maxTokens = 8192
+            $patch.$sec.timeoutMs = 180000
+        }
         if ($patch.Count -gt 0) {
             $body = $patch | ConvertTo-Json -Depth 6 -Compress
             # БЭКАП config.yaml перед правкой (минное поле - откат при поломке!)
