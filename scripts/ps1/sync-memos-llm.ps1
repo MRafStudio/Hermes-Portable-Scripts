@@ -140,11 +140,13 @@ if (-not (Test-MemosDaemon)) {
     }
 }
 
-# --- 8. PATCH llm/l3Llm/skillEvolver (БЕЗ apiKey - writer маскирует его) ---
+# --- 8. PATCH llm/skillEvolver (БЕЗ apiKey - writer маскирует его) ---
+# l3Llm сознательно НЕ синхронизируем: в MemOS 2.0.15 l3Llm-клиент создаётся
+# без maxTokens (всегда 1024) и L3 падает; fix держит l3Llm.model="" -
+# L3-абстракция идёт через ОСНОВНОЙ llm (maxTokens=65536).
 try {
     $patch = @{}
     $patch.llm = $cry
-    $patch.l3Llm = $cry
     $patch.skillEvolver = $cry
     $patch.algorithm = @{ lightweightMemory = @{ enabled = $false } }
     $body = $patch | ConvertTo-Json -Depth 6 -Compress

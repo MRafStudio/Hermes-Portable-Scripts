@@ -350,20 +350,22 @@ if ($viewerOk) {
             $patch.embedding.model = $EmbedModelDir
         }
         # Тюнинг кристаллизации (для ЛЮБОЙ LLM - deepseek ИЛИ локальная llama):
-        #   maxTokens=8192: reasoning-модели (Qwen/deepseek) съедают дефолтные 1024
-        #     токенов на думание -> пустой content -> "empty response" и L3/skills падают;
-        #   timeoutMs=180000: длинные batch-рефлексии рвутся на дефолтных 45-60с
-        #     ("request was cancelled"). Проверено на полигоне 14.08.
-        #   l3Llm - ОТДЕЛЬНО и БОЛЬШЕ: L3-абстракция (кластер политик -> world model)
-        #     самая тяжёлая: Qwen думает 20-60k токенов (замер 14.08: 19.5k думания
-        #     на 3 политики, обрывы до 121с) -> maxTokens=65536, timeoutMs=600000.
+        #   maxTokens: reasoning-модели (Qwen/deepseek) съедают дефолтные 1024 токенов
+        #     на думание -> пустой content -> "empty response" (L2/skills/L3 падали);
+        #   timeoutMs=180000: длинные batch-рефлексии рвутся на дефолтных 45-60с.
+        #   ВАЖНО (MemOS 2.0.15): l3Llm-клиент создаётся БЕЗ maxTokens из конфига
+        #     (всегда 1024) -> L3-абстракция обрывается на думании. Поэтому L3 гоняем
+        #     через ОСНОВНОЙ llm-клиент: l3Llm.model/provider="" (клиент не создаётся,
+        #     штатный fallback на llm) и llm.maxTokens=65536 (Qwen думает 20-60k токенов
+        #     на world model; замер 14.08: 19.5k на 3 политики, обрывы до 121с).
         foreach ($sec in @("llm", "skillEvolver")) {
             if (-not $patch.$sec) { $patch.$sec = @{} }
-            $patch.$sec.maxTokens = 8192
+            if ($sec -eq "llm") { $patch.$sec.maxTokens = 65536 } else { $patch.$sec.maxTokens = 8192 }
             $patch.$sec.timeoutMs = 180000
         }
         if (-not $patch.l3Llm) { $patch.l3Llm = @{} }
-        $patch.l3Llm.maxTokens = 65536
+        $patch.l3Llm.model = ""
+        $patch.l3Llm.provider = ""
         $patch.l3Llm.timeoutMs = 600000
         if ($patch.Count -gt 0) {
             $body = $patch | ConvertTo-Json -Depth 6 -Compress

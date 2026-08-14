@@ -199,7 +199,7 @@ llm:
   endpoint: ""
   apiKey: ""
   model: ""
-  maxTokens: 8192
+  maxTokens: 65536
   timeoutMs: 180000
 storage:
   ftsTokenizer: trigram
