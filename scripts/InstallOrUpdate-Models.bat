@@ -107,8 +107,9 @@ if defined MODEL_FILE (
 )
 echo.
 set "MID="
-set /p "MID=%ESC%[33mВыбери ID модели или Enter для отмены: %ESC%[0m"
+set /p "MID=%ESC%[33mВыбери ID модели, 0 - отключить локальную llama, Enter - отмена: %ESC%[0m"
 if "%MID%"=="" goto exit
+if "%MID%"=="0" goto clear_default
 
 set "PICK="
 for /f "delims=" %%p in ('""%PY%" "%SCRIPTS_DIR%\py\llama_models.py" pick "%MID%" "%MODELS_DIR%""') do set "PICK=%%p"
@@ -292,6 +293,20 @@ if defined SERVICE_NAME (
     echo   %ESC%[2m  Hermes службой не установлен - конфиг применится при следующем запуске.%ESC%[0m
 )
 exit /b 0
+
+:clear_default
+(
+echo MODEL_ID=
+echo MODEL_LABEL=
+echo MODEL_FILE=
+echo MMPROJ_FILE=
+echo MAXCTX=
+echo MODEL_ALIAS=
+) > "%CFG_FILE%"
+echo   %ESC%[1;32m+ %ESC%[0m Локальная llama отключена - дефолтная модель снята.
+echo   %ESC%[2m    Конфиг Hermes и MemOS настроятся при следующем запуске Start.bat.%ESC%[0m
+pause
+goto exit
 
 :exit
 exit /b 0

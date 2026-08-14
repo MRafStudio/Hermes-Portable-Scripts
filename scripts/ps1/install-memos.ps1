@@ -84,6 +84,22 @@ if ($isUpdate) {
     Write-Host "Mode      : INSTALL"
 }
 
+# UPDATE: остановить работающий daemon (bridge node.exe этого RuntimeHome) перед
+# перезаписью кода - иначе daemon держит старый код/файлы в памяти до рестарта.
+if ($isUpdate) {
+    Write-Host "Stopping MemOS bridge processes (code update)..."
+    try {
+        $nodeProcs = Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue
+        foreach ($p in @($nodeProcs)) {
+            if ($p.CommandLine -and $p.CommandLine -like "*$RuntimeHome*") {
+                Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+                Write-Host "  stopped PID $($p.ProcessId)"
+            }
+        }
+    } catch { }
+    Start-Sleep -Seconds 2
+}
+
 # --- 1. npm pack -> распаковка в RuntimeHome ---
 $packDir = Join-Path $env:TEMP "memos-pack"
 if (Test-Path $packDir) { Remove-Item -LiteralPath $packDir -Force -Recurse -ErrorAction SilentlyContinue }

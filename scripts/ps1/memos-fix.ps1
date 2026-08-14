@@ -275,7 +275,7 @@ if ($viewerOk) {
         #   lightweight=false -> фоновые LLM-задачи (кристаллизация) НЕ скипаются!
         #                        (lightweight=true скипает L2/L3/skills - кристаллизация мертва)
         #   fallbackToHost=false -> НЕ падать на host-LLM (kobold думал 42с на кристаллизации!)
-        # Приоритет: deepseek (ключ введён) -> локальная llama-server (если запущена) -> local_only.
+        #   Приоритет: deepseek (ключ введён) -> local_only (llama-подключение пропишет sync-memos-llm.ps1 при первом запуске Hermes).
         $llmProvider = $cfg.config.llm.provider
         $cryLlm = $null
         if ($useDeepSeek) {
@@ -288,31 +288,10 @@ if ($viewerOk) {
             }
             Write-Host "  Crystallization: deepseek (llm + l3Llm + skillEvolver, model=deepseek-v4-flash)"
         } else {
-            # Локальная llama-server (openai_compatible): порт по health (5505 служба / 5506 desktop),
-            # модель - из data\llm\default_model.cfg (MODEL_ALIAS = единый источник).
-            $llamaBase = $null
-            foreach ($lp in 5505, 5506) {
-                try {
-                    $lh = Invoke-WebRequest -Uri "http://127.0.0.1:$lp/health" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-                    if ($lh.StatusCode -eq 200) { $llamaBase = "http://127.0.0.1:$lp/v1"; break }
-                } catch { }
-            }
-            $llamaAlias = ""
-            $llamaCfg = Join-Path $RootDir "data\llm\default_model.cfg"
-            if (Test-Path $llamaCfg) {
-                $m = Select-String -Path $llamaCfg -Pattern "^MODEL_ALIAS=(.+)$"
-                if ($m) { $llamaAlias = $m.Matches[0].Groups[1].Value.Trim() }
-            }
-            if ($llamaBase -and $llamaAlias) {
-                $cryLlm = @{
-                    provider = "openai_compatible"
-                    endpoint = $llamaBase
-                    model = $llamaAlias
-                }
-                Write-Host "  Crystallization: LOCAL llama-server ($llamaBase, model=$llamaAlias)"
-            } else {
-                Write-Host "  Crystallization: no deepseek key and llama-server not reachable - autonomous (local_only)"
-            }
+            # Локальную llama при установке НЕ настраиваем: конфиг Hermes ещё пуст
+            # (или пользователь не выбрал локальную LLM). Параметры LLM (llm/l3Llm/skillEvolver)
+            # пропишет Start-Llama-IfNeeded.bat при первом запуске Hermes (через sync-memos-llm.ps1).
+            Write-Host "  LLM parameters will be configured on first Hermes launch (Start-Llama-IfNeeded.bat)."
         }
         if ($cryLlm) {
             $patch.llm = $cryLlm
