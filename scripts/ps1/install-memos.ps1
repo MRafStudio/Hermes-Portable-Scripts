@@ -115,6 +115,17 @@ New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
 if ($LASTEXITCODE -ne 0) { Write-Error "tar extraction failed (exit $($LASTEXITCODE))"; exit 1 }
 New-Item -ItemType Directory -Path $RuntimeHome -Force | Out-Null
 Copy-Item -Path (Join-Path $extractDir "package\*") -Destination $RuntimeHome -Recurse -Force
+# Страховка: адаптер Hermes (adapters\hermes\memos_provider) декларируется в files
+# npm-пакета, но при сбоях копирования может потеряться - проверяем и докопируем.
+$adapterMarker = Join-Path $RuntimeHome "adapters\hermes\memos_provider\__init__.py"
+if (-not (Test-Path $adapterMarker)) {
+    Write-Host "WARNING: Hermes adapter missing after extract - re-copying adapters from package..."
+    Copy-Item -Path (Join-Path $extractDir "package\adapters") -Destination $RuntimeHome -Recurse -Force
+}
+if (-not (Test-Path $adapterMarker)) {
+    Write-Error "Hermes adapter STILL missing after re-copy: $adapterMarker"; exit 1
+}
+Write-Host "Hermes adapter OK: $RuntimeHome\adapters\hermes\memos_provider"
 Remove-Item -LiteralPath (Join-Path $extractDir "package\tests") -Force -Recurse -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath (Join-Path $extractDir "package\website") -Force -Recurse -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $packDir -Force -Recurse -ErrorAction SilentlyContinue
