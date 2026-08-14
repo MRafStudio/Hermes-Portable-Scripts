@@ -86,16 +86,8 @@ REM ============================================================================
 :pick
 echo.
 echo   %ESC%[1;32mДоступные модели (llama_models.py)%ESC%[0m
-"%PY%" "%SCRIPTS_DIR%\py\llama_models.py" list
+"%PY%" "%SCRIPTS_DIR%\py\llama_models.py" list "%MODELS_DIR%"
 echo.
-REM --- какие модели уже установлены ---
-set "INST="
-for /f "delims=" %%m in ('""%PY%" "%SCRIPTS_DIR%\py\llama_models.py" installed "%MODELS_DIR%""') do set "INST=!INST! %%m"
-if defined INST (
-    echo   %ESC%[1;32mУстановлены:%ESC%[0m!INST!
-) else (
-    echo   %ESC%[1;33mМодели не установлены.%ESC%[0m
-)
 REM --- дефолтная модель (из default_model.cfg — единый источник правды) ---
 call :load_default
 set "HAS_DEFAULT=0"
@@ -132,7 +124,14 @@ for /f "tokens=1-8 delims=|" %%a in ("!PICK!") do (
 REM --- если модель уже установлена — сразу к назначению дефолта ---
 if defined MODEL_FILE if exist "%MODELS_DIR%\%MODEL_FILE%" (
     echo.
-    echo   %ESC%[2m  Модель уже установлена - переходим к назначению дефолта.%ESC%[0m
+    echo   %ESC%[2m  Модель уже установлена - проверяю проектор (vision)...%ESC%[0m
+    if not exist "%MODELS_DIR%\%MMPROJ_FILE%" (
+        echo %ESC%[1;33m  Проектор %MMPROJ_FILE% не найден - загружаю...%ESC%[0m
+        call :download_hf "%MODEL_REPO%" "%MMPROJ_SRC%" "%MODELS_DIR%"
+        if not "%MMPROJ_SRC%"=="%MMPROJ_FILE%" (
+            move /y "%MODELS_DIR%\%MMPROJ_SRC%" "%MODELS_DIR%\%MMPROJ_FILE%" >nul 2>&1
+        )
+    )
     goto ask_default
 )
 
@@ -164,7 +163,7 @@ if not exist "%MODELS_DIR%\%MMPROJ_FILE%" (
     echo   %ESC%[2m    уже есть - пропускаю.%ESC%[0m
 )
 echo.
-echo %ESC%[1;32m Готово! Модель в %MODELS_DIR%%ESC%[0m
+echo %ESC%[1;32m Готово. Модель в %MODELS_DIR%%ESC%[0m
 
 REM ============================================================================
 REM   Назначение дефолтной модели (первая установленная — автоматически)
@@ -252,7 +251,7 @@ if not errorlevel 1 (
         "%NSSM_EXE%" set "%SERVICE_NAME%" AppParameters "-m %MODELS_DIR%\%MODEL_FILE% --mmproj %MODELS_DIR%\%MMPROJ_FILE% --alias llama/%MODEL_FILE:~0,-5% -c %MODEL_MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 1 --image-min-tokens 1024 --port 5505 --host 127.0.0.1" >nul 2>&1
         echo   %ESC%[1;32m+ %ESC%[0m Параметры службы обновлены: %MODEL_LABEL%
     ) else (
-        echo   %ESC%[1;33m  nssm не найден - параметры службы НЕ обновлены (останется старая модель)!%ESC%[0m
+        echo   %ESC%[1;33m  nssm не найден - параметры службы НЕ обновлены (останется старая модель).%ESC%[0m
     )
     echo   Перезапуск службы %SERVICE_NAME%...
     sc stop "%SERVICE_NAME%" >nul 2>&1
