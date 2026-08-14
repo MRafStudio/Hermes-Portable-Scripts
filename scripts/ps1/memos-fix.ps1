@@ -241,9 +241,11 @@ if ($viewerOk) {
             $dsKey = $existingKey
             $tail = $existingKey.Substring([Math]::Max(0, $existingKey.Length - 4))
             Write-Host "  Crystallization: deepseek key already configured (sk-...$tail) - keeping it"
-            $resp2 = Read-Host "  Replace deepseek key? (Y - enter new, N - keep existing) [N]"
+            Write-Host "  Replace deepseek key? (Y - enter new, N - keep existing) [N]: " -ForegroundColor Yellow -NoNewline
+            $resp2 = Read-Host
             if ($resp2 -match "^[yY]") {
-                $dsKey = Read-Host "  Enter new deepseek API key (sk-...):"
+                Write-Host "  Enter new deepseek API key (sk-...): " -ForegroundColor Yellow -NoNewline
+                $dsKey = Read-Host
                 if ($dsKey.Trim() -eq "") { $dsKey = $existingKey; Write-Host "  Empty input - keeping existing key." }
             }
         } elseif ($env:DEEPSEEK_API_KEY -and $env:DEEPSEEK_API_KEY.Trim() -ne "") {
@@ -251,9 +253,11 @@ if ($viewerOk) {
             $dsKey = $env:DEEPSEEK_API_KEY.Trim()
             Write-Host "  Crystallization: deepseek (DEEPSEEK_API_KEY from env)"
         } else {
-            $resp = Read-Host "  Crystallization via deepseek? (Y - enter key, N - autonomous without LLM) [N]"
+            Write-Host "  Crystallization via deepseek? (Y - enter key, N - autonomous without LLM) [N]: " -ForegroundColor Yellow -NoNewline
+            $resp = Read-Host
             if ($resp -match "^[yY]") {
-                $dsKey = Read-Host "  Enter deepseek API key (sk-...):"
+                Write-Host "  Enter deepseek API key (sk-...): " -ForegroundColor Yellow -NoNewline
+                $dsKey = Read-Host
                 if ($dsKey.Trim() -ne "") { $useDeepSeek = $true }
             }
         }
