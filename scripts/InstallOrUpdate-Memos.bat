@@ -81,6 +81,9 @@ echo.
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mПроверка и настройка%ESC%[0m
 echo       %ESC%[2mСамопроверка, подъём viewer, кристаллизация DeepSeek (по желанию)%ESC%[0m
 echo.
+echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть конфигурацию ^(config.yaml^)%ESC%[0m
+echo       %ESC%[2mРучное редактирование: Notepad++ или Блокнот%ESC%[0m
+echo.
 echo   %ESC%[1;31m[8]%ESC%[0m %ESC%[1;31mУдалить MemOS полностью%ESC%[0m
 if !MEMOS_INSTALLED! equ 1 (
     echo       %ESC%[2mБД памяти, настройки и модели будут удалены БЕЗВОЗВРАТНО%ESC%[0m
@@ -89,12 +92,13 @@ echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад%ESC%[0m
 echo.
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-2, 8): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-3, 8): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" exit /b 0
 if "%choice%"=="1" goto install_memos
 if "%choice%"=="2" goto fix_memos
+if "%choice%"=="3" goto open_config
 if "%choice%"=="8" goto uninstall_memos
 goto menu
 
@@ -199,3 +203,31 @@ if errorlevel 1 (
 echo.
 pause
 goto status
+
+REM ============================================================================
+REM   [3] Открыть config.yaml (Notepad++ если установлен, иначе Блокнот)
+REM ============================================================================
+:open_config
+set "CFG_PATH=%HERMES_HOME%\memos-plugin\config.yaml"
+if not exist "%CFG_PATH%" (
+    echo.
+    echo %ESC%[1;31m[ОШИБКА] config.yaml не найден: %CFG_PATH%%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+set "NPP="
+if exist "%ProgramFiles%\Notepad++\notepad++.exe" set "NPP=%ProgramFiles%\Notepad++\notepad++.exe"
+if not defined NPP if exist "%ProgramFiles(x86)%\Notepad++\notepad++.exe" set "NPP=%ProgramFiles(x86)%\Notepad++\notepad++.exe"
+if not defined NPP if exist "%LOCALAPPDATA%\Programs\Notepad++\notepad++.exe" set "NPP=%LOCALAPPDATA%\Programs\Notepad++\notepad++.exe"
+if not defined NPP if exist "%APPDATA%\Notepad++\notepad++.exe" set "NPP=%APPDATA%\Notepad++\notepad++.exe"
+if defined NPP (
+    echo %ESC%[1;32m+ %ESC%[0m Открываю Notepad++: %CFG_PATH%
+    start "" "%NPP%" "%CFG_PATH%"
+) else (
+    echo %ESC%[1;32m+ %ESC%[0m Открываю Блокнот: %CFG_PATH%
+    start "" notepad.exe "%CFG_PATH%"
+)
+echo.
+pause
+goto menu
