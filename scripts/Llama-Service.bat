@@ -26,13 +26,15 @@ set "MODEL_FILE=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
 set "MMPROJ_FILE=mmproj-35B-F16.gguf"
 set "MAXCTX=262144"
 set "THINKING=1"
+set "MODEL_ID=1"
 set "PY=%HERMES_HOME%\hermes-agent\venv\Scripts\python.exe"
 if exist "%DATA_DIR%\llm\default_model.cfg" (
-    for /f "tokens=1,* delims==" %%a in ('findstr /b "MODEL_FILE MMPROJ_FILE MAXCTX THINKING" "%DATA_DIR%\llm\default_model.cfg"') do (
+    for /f "tokens=1,* delims==" %%a in ('findstr /b "MODEL_FILE MMPROJ_FILE MAXCTX THINKING MODEL_ID" "%DATA_DIR%\llm\default_model.cfg"') do (
         if "%%a"=="MODEL_FILE" set "MODEL_FILE=%%b"
         if "%%a"=="MMPROJ_FILE" set "MMPROJ_FILE=%%b"
         if "%%a"=="MAXCTX" set "MAXCTX=%%b"
         if "%%a"=="THINKING" set "THINKING=%%b"
+        if "%%a"=="MODEL_ID" set "MODEL_ID=%%b"
     )
 )
 
@@ -106,7 +108,9 @@ echo.
 
 "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" thinking_flag nssm "%THINKING%" > "%TEMP%\llama_thinking_flag.txt" 2>nul
 set /p THINK_FLAG=<"%TEMP%\llama_thinking_flag.txt"
-"%NSSM_EXE%" install "%SERVICE_NAME%" "%LLAMA_EXE%" -m "%MODELS_DIR%\%MODEL_FILE%" --mmproj "%MODELS_DIR%\%MMPROJ_FILE%" --alias llama/%MODEL_FILE:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 1 !THINK_FLAG! --port %LLAMA_PORT% --host 127.0.0.1
+"%PY%" "%SCRIPTS_DIR%\py\llama_models.py" server_flags "%MODEL_ID%" > "%TEMP%\llama_server_flags.txt" 2>nul
+set /p SERVER_FLAGS=<"%TEMP%\llama_server_flags.txt"
+"%NSSM_EXE%" install "%SERVICE_NAME%" "%LLAMA_EXE%" -m "%MODELS_DIR%\%MODEL_FILE%" --mmproj "%MODELS_DIR%\%MMPROJ_FILE%" --alias llama/%MODEL_FILE:~0,-5% -c %MAXCTX% !SERVER_FLAGS! -ngl 999 --flash-attn 1 --parallel 1 !THINK_FLAG! --port %LLAMA_PORT% --host 127.0.0.1
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] nssm install не удался.%ESC%[0m
     pause

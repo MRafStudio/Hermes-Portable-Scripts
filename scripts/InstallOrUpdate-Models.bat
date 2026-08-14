@@ -110,7 +110,7 @@ if not defined PICK (
     pause
     goto exit
 )
-for /f "tokens=1-9 delims=|" %%a in ("!PICK!") do (
+for /f "tokens=1-11 delims=|" %%a in ("!PICK!") do (
     set "MODEL_ID=%%a"
     set "MODEL_FILE=%%b"
     set "MMPROJ_FILE=%%c"
@@ -120,6 +120,8 @@ for /f "tokens=1-9 delims=|" %%a in ("!PICK!") do (
     set "MODEL_LABEL=%%g"
     set "MODEL_ALIAS=%%h"
     set "MODEL_THINKING=%%i"
+    set "MODEL_KV=%%j"
+    set "MODEL_NPREDICT=%%k"
 )
 
 REM --- если модель уже установлена — сразу к назначению дефолта ---
@@ -252,7 +254,9 @@ if not errorlevel 1 (
     if exist "%NSSM_EXE%" (
         "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" thinking_flag nssm "%MODEL_THINKING%" > "%TEMP%\llama_thinking_flag.txt" 2>nul
         set /p THINK_FLAG=<"%TEMP%\llama_thinking_flag.txt"
-        "%NSSM_EXE%" set "%SERVICE_NAME%" AppParameters "-m %MODELS_DIR%\%MODEL_FILE% --mmproj %MODELS_DIR%\%MMPROJ_FILE% --alias llama/%MODEL_FILE:~0,-5% -c %MODEL_MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 1 !THINK_FLAG! --port 5505 --host 127.0.0.1" >nul 2>&1
+        "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" server_flags "%MODEL_ID%" > "%TEMP%\llama_server_flags.txt" 2>nul
+        set /p SERVER_FLAGS=<"%TEMP%\llama_server_flags.txt"
+        "%NSSM_EXE%" set "%SERVICE_NAME%" AppParameters "-m %MODELS_DIR%\%MODEL_FILE% --mmproj %MODELS_DIR%\%MMPROJ_FILE% --alias llama/%MODEL_FILE:~0,-5% -c %MODEL_MAXCTX% !SERVER_FLAGS! -ngl 999 --flash-attn 1 --parallel 1 !THINK_FLAG! --port 5505 --host 127.0.0.1" >nul 2>&1
         echo   %ESC%[1;32m+ %ESC%[0m Параметры службы обновлены: %MODEL_LABEL%
     ) else (
         echo   %ESC%[1;33m  nssm не найден - параметры службы НЕ обновлены, останется старая модель.%ESC%[0m
