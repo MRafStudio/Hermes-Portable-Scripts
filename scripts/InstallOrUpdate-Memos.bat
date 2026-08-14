@@ -1,4 +1,4 @@
-@REM scripts\InstallOrUpdate_Memos.bat — MemOS: установка / обновление / проверка
+@REM scripts\InstallOrUpdate-Memos.bat — MemOS: установка / обновление / удаление
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -81,15 +81,21 @@ echo.
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mПроверка и настройка%ESC%[0m
 echo       %ESC%[2mСамопроверка, подъём viewer, кристаллизация DeepSeek (по желанию)%ESC%[0m
 echo.
+echo   %ESC%[1;31m[8]%ESC%[0m %ESC%[1;31mУдалить MemOS полностью%ESC%[0m
+if !MEMOS_INSTALLED! equ 1 (
+    echo       %ESC%[2mБД памяти, настройки и модели будут удалены БЕЗВОЗВРАТНО%ESC%[0m
+)
+echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад%ESC%[0m
 echo.
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-2): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-2, 8): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" exit /b 0
 if "%choice%"=="1" goto install_memos
 if "%choice%"=="2" goto fix_memos
+if "%choice%"=="8" goto uninstall_memos
 goto menu
 
 REM ============================================================================
@@ -151,6 +157,44 @@ if errorlevel 1 (
 ) else (
     echo.
     echo %ESC%[1;32mMemOS в порядке.%ESC%[0m
+)
+echo.
+pause
+goto status
+
+REM ============================================================================
+REM   [8] Полное удаление MemOS
+REM ============================================================================
+:uninstall_memos
+cls
+echo.
+echo %ESC%[1;31m!!! ВНИМАНИЕ !!!%ESC%[0m
+echo.
+echo %ESC%[1;31m  MemOS будет удалена полностью и БЕЗВОЗВРАТНО:%ESC%[0m
+echo %ESC%[1;31m    - база данных памяти (все трейсы, эпизоды, политики)%ESC%[0m
+echo %ESC%[1;31m    - конфигурация (включая DeepSeek API ключ)%ESC%[0m
+echo %ESC%[1;31m    - модели эмбеддингов%ESC%[0m
+echo %ESC%[1;31m  Восстановление памяти будет НЕВОЗМОЖНО!%ESC%[0m
+echo.
+if !MEMOS_INSTALLED! equ 0 (
+    echo %ESC%[1;33m  MemOS и так не установлена - удалять нечего.%ESC%[0m
+    echo.
+    pause
+    goto status
+)
+set "confirm="
+set /p "confirm=%ESC%[1;31mУдалить MemOS безвозвратно (y/N)? %ESC%[0m"
+if /i not "%confirm%"=="y" goto menu
+
+echo.
+echo %ESC%[1;36mУдаление MemOS: uninstall-memos.ps1 ...%ESC%[0m
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\uninstall-memos.ps1" -RootDir "%ROOT_DIR%"
+if errorlevel 1 (
+    echo.
+    echo %ESC%[1;31m[ОШИБКА] Удаление MemOS прервано — смотрите сообщения выше.%ESC%[0m
+) else (
+    echo.
+    echo %ESC%[1;32mMemOS удалена. Hermes отключён от MemOS.%ESC%[0m
 )
 echo.
 pause
