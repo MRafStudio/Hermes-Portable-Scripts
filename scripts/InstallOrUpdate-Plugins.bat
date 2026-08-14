@@ -39,6 +39,9 @@ REM   Получение ESC (стандартный трюк, без PowerShell
 REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
+REM Куда возвращаться после пересчёта статусов: menu (главное) или llama_menu (подменю Llama)
+set "RETURN_MENU=menu"
+
 REM ============================================================================
 REM   Параметры плагинов
 REM ============================================================================
@@ -137,46 +140,37 @@ if !MEMOS_INSTALLED! equ 1 (
     echo   %ESC%[1;33m. %ESC%[0m MemOS — память агента: не установлен
 )
 echo.
-echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlama.cpp — установка/обновление%ESC%[0m
-echo       %ESC%[2mЛокальная LLM: скачивание, настройка Hermes, порт 5505%ESC%[0m
-echo.
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mЗагрузка и назначение дефолтных моделей%ESC%[0m
-echo       %ESC%[2mУстановленные модели, назначение дефолтной, переключение Hermes%ESC%[0m
-echo.
 
-echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mСлужба Llama.cpp%ESC%[0m
-if !SERVICE_INSTALLED! equ 1 (
-    echo       %ESC%[2mУдалить службу ^(файлы сохраняются^)%ESC%[0m
-) else (
-    echo       %ESC%[2mАвтозапуск Llama.cpp при старте Windows%ESC%[0m
-)
-echo.
+REM Возврат: в главное меню расширений или в подменю Llama
+goto %RETURN_MENU%
 
-echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mMemOS — память агента%ESC%[0m
+echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlama — локальный сервер LLM%ESC%[0m
+echo       %ESC%[2mУстановка/обновление, модели, служба%ESC%[0m
+echo.
+echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mMemOS — память агента%ESC%[0m
 if !MEMOS_INSTALLED! equ 1 (
     echo       %ESC%[2mОбновить до актуальной версии из npm ^(настройки сохраняются^)%ESC%[0m
 ) else (
     echo       %ESC%[2mУстановить: L1/L2/L3 память, гибридный поиск, viewer :18800%ESC%[0m
 )
 echo.
-
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-4): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-2): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
-if "%choice%"=="1" goto install_llama
-if "%choice%"=="2" goto install_models
-if "%choice%"=="3" goto llama_service
-if "%choice%"=="4" goto install_memos
+if "%choice%"=="1" goto llama_menu
+if "%choice%"=="2" goto install_memos
 goto menu
+
 
 REM ============================================================================
 REM   [1] Llama.cpp — установка / обновление
 REM ============================================================================
 :install_llama
+set "RETURN_MENU=llama_menu"
 call "%SCRIPTS_DIR%\InstallOrUpdate-Llama.bat"
 goto status
 
@@ -184,6 +178,7 @@ REM ============================================================================
 REM   [2] Модели — загрузка и назначение дефолтной
 REM ============================================================================
 :install_models
+set "RETURN_MENU=llama_menu"
 call "%SCRIPTS_DIR%\InstallOrUpdate-Models.bat"
 goto status
 
@@ -191,6 +186,7 @@ REM ============================================================================
 REM   [3] Служба Llama.cpp — установка / удаление
 REM ============================================================================
 :llama_service
+set "RETURN_MENU=llama_menu"
 call "%SCRIPTS_DIR%\Llama-Service.bat"
 goto status
 
@@ -198,8 +194,46 @@ REM ============================================================================
 REM   [4] MemOS — установка / обновление / проверка (отдельный скрипт)
 REM ============================================================================
 :install_memos
+set "RETURN_MENU=menu"
 call "%SCRIPTS_DIR%\InstallOrUpdate-Memos.bat"
 goto status
+
+REM ============================================================================
+REM   Llama — подменю: установка/обновление, модели, служба
+REM ============================================================================
+:llama_menu
+cls
+echo.
+echo  %ESC%[1;36m################################################################################%ESC%[0m
+echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
+echo  %ESC%[1;36m##%ESC%[0m %ESC%[1;37m                         Llama%ESC%[0m — %ESC%[1;33mлокальный сервер LLM%ESC%[0m                     %ESC%[1;36m##%ESC%[0m
+echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
+echo  %ESC%[1;36m################################################################################%ESC%[0m
+echo.
+echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlama.cpp — установка/обновление%ESC%[0m
+echo       %ESC%[2mЛокальная LLM: скачивание, настройка Hermes, порт 5505%ESC%[0m
+echo.
+echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mЗагрузка и назначение дефолтных моделей%ESC%[0m
+echo       %ESC%[2mУстановленные модели, назначение дефолтной, переключение Hermes%ESC%[0m
+echo.
+echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mСлужба Llama.cpp%ESC%[0m
+if !SERVICE_INSTALLED! equ 1 (
+    echo       %ESC%[2mУдалить службу ^(файлы сохраняются^)%ESC%[0m
+) else (
+    echo       %ESC%[2mАвтозапуск Llama.cpp при старте Windows%ESC%[0m
+)
+echo.
+echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в меню расширений%ESC%[0m
+echo.
+set "choice="
+set /p "choice=%ESC%[33mВыберите действие (0-3): %ESC%[0m"
+set "choice=%choice: =%"
+
+if "%choice%"=="0" goto menu
+if "%choice%"=="1" goto install_llama
+if "%choice%"=="2" goto install_models
+if "%choice%"=="3" goto llama_service
+goto llama_menu
 
 :exit
 exit /b 0
