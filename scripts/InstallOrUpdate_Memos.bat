@@ -16,6 +16,7 @@ for %%F in ("%SCRIPTS_DIR%\..") do set "ROOT_DIR=%%~fF"
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "DATA_DIR=%ROOT_DIR%\data"
 set "PY=%HERMES_HOME%\hermes-agent\venv\Scripts\python.exe"
+set "MEMOS_HOME=%HERMES_HOME%\memos-plugin"
 
 REM ============================================================================
 REM   Изоляция данных
