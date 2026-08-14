@@ -35,7 +35,7 @@ Deploy, run, and wire llama.cpp `llama-server` for Hermes Agent on Windows (dual
 5. Always reconfigure `providers.llama.base_url` (and auxiliary.vision.base_url) to the ACTUAL port via `hermes config set`.
 
 ## Pitfalls
-- `Start_llama.bat` lives in repo (`scripts/`) as ONE static script — NO copy in `data\llama` (removed 08.2026), NO generator. It computes `LLAMA_DIR=%ROOT_DIR%\data\llama` itself. All callers use `%SCRIPTS_DIR%\Start_llama.bat` (Start-Llama-IfNeeded, InstallOrUpdate-Models).
+- `Start-llama.bat` lives in repo (`scripts/`) as ONE static script — NO copy in `data\llama` (removed 08.2026), NO generator. It computes `LLAMA_DIR=%ROOT_DIR%\data\llama` itself. All callers use `%SCRIPTS_DIR%\Start-llama.bat` (Start-Llama-IfNeeded, InstallOrUpdate-Models).
 - Launch llama detached: `start "title" /min "%LLAMA_DIR%\llama-server.exe" ...` — otherwise closing Start.bat kills the server (same console group). No `pause` in the launch script (leaves an orphan window).
 - Hermes desktop can't launch GUI apps from the service session (no screen) — llama-server (console) is fine, GUI apps are not.
 - After `sed` on any .bat: normalize CRLF on DISK (sed writes LF → cmd breaks with "VERSION is not recognized"). See windows-gitbash-terminal.
