@@ -237,23 +237,29 @@ if ($viewerOk) {
 \n]+)"?') { $existingKey = $Matches[1].Trim() }
         }
         if ($existingKey.Length -gt 10) {
-            $useDeepSeek = $true
-            $dsKey = $existingKey
             $tail = $existingKey.Substring([Math]::Max(0, $existingKey.Length - 4))
-            Write-Host "  Crystallization: deepseek key already configured (sk-...$tail) - keeping it"
-            Write-Host "  Replace deepseek key? (Y - enter new, N - keep existing) [N]: " -ForegroundColor Yellow -NoNewline
+            Write-Host "  Crystallization: deepseek key already configured (sk-...$tail)"
+            Write-Host "  Use deepseek? (Y - yes, N - switch to local llama-server) [Y]: " -ForegroundColor Yellow -NoNewline
             $resp2 = Read-Host
-            if ($resp2 -match "^[yY]") {
-                Write-Host "  Enter new deepseek API key (sk-...): " -ForegroundColor Yellow -NoNewline
-                $dsKey = Read-Host
-                if ($dsKey.Trim() -eq "") { $dsKey = $existingKey; Write-Host "  Empty input - keeping existing key." }
+            if ($resp2 -match "^[nN]") {
+                Write-Host "  Switching crystallization to local llama-server"
+            } else {
+                $useDeepSeek = $true
+                $dsKey = $existingKey
+                Write-Host "  Replace deepseek key? (Y - enter new, N - keep existing) [N]: " -ForegroundColor Yellow -NoNewline
+                $resp2b = Read-Host
+                if ($resp2b -match "^[yY]") {
+                    Write-Host "  Enter new deepseek API key (sk-...): " -ForegroundColor Yellow -NoNewline
+                    $dsKey = Read-Host
+                    if ($dsKey.Trim() -eq "") { $dsKey = $existingKey; Write-Host "  Empty input - keeping existing key." }
+                }
             }
         } elseif ($env:DEEPSEEK_API_KEY -and $env:DEEPSEEK_API_KEY.Trim() -ne "") {
             $useDeepSeek = $true
             $dsKey = $env:DEEPSEEK_API_KEY.Trim()
             Write-Host "  Crystallization: deepseek (DEEPSEEK_API_KEY from env)"
         } else {
-            Write-Host "  Crystallization via deepseek? (Y - enter key, N - autonomous without LLM) [N]: " -ForegroundColor Yellow -NoNewline
+            Write-Host "  Crystallization via deepseek? (Y - enter key, N - use local llama-server) [N]: " -ForegroundColor Yellow -NoNewline
             $resp = Read-Host
             if ($resp -match "^[yY]") {
                 Write-Host "  Enter deepseek API key (sk-...): " -ForegroundColor Yellow -NoNewline
@@ -376,6 +382,16 @@ if ($viewerOk) {
             Set-Content -Path $cfgPath -Value $raw -Encoding UTF8 -NoNewline
             Write-Host "  apiKey: written directly (bypass writer masking)"
             $fixed += "apikey"
+        } elseif (-not $useDeepSeek) {
+            # Режим без deepseek (llama-server / local_only): writer после PATCH может
+            # замаскировать apiKey в голый '***' - невалидный YAML - чистим в "".
+            $cfgPath = Join-Path $RuntimeHome "config.yaml"
+            $raw = Get-Content -Path $cfgPath -Raw -Encoding UTF8
+            if ($raw -match 'apiKey:\s*\*{3}') {
+                $raw = [regex]::Replace($raw, 'apiKey:\s*\*{3}', 'apiKey: ""')
+                Set-Content -Path $cfgPath -Value $raw -Encoding UTF8 -NoNewline
+                Write-Host "  apiKey: masked '***' cleared (no deepseek)"
+            }
         }
         # ВАЛИДАЦИЯ YAML после любых правок (минное поле!): python + pyyaml (venv Hermes - js-yaml в node_modules плагина нет)
         & $PythonExe -c "import yaml,sys; yaml.safe_load(open(sys.argv[1],encoding='utf-8'))" (Join-Path $RuntimeHome "config.yaml")
