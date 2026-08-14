@@ -20,14 +20,16 @@ if "%PORT%"=="" set "PORT=5505"
 set "MMPROJ=%~3"
 set "MAXCTX=262144"
 set "THINKING=1"
+set "MODEL_ID="
 
 REM Дефолтная модель — из default_model.cfg (единый источник правды), аргументы имеют приоритет
 if exist "%CFG_FILE%" (
-    for /f "tokens=1,* delims==" %%a in ('findstr /b "MODEL_FILE MMPROJ_FILE MAXCTX THINKING" "%CFG_FILE%"') do (
+    for /f "tokens=1,* delims==" %%a in ('findstr /b "MODEL_FILE MMPROJ_FILE MAXCTX THINKING MODEL_ID" "%CFG_FILE%"') do (
         if "%%a"=="MODEL_FILE" if "%MODEL%"=="" set "MODEL=%%b"
         if "%%a"=="MMPROJ_FILE" if "%MMPROJ%"=="" set "MMPROJ=%%b"
         if "%%a"=="MAXCTX" set "MAXCTX=%%b"
         if "%%a"=="THINKING" set "THINKING=%%b"
+        if "%%a"=="MODEL_ID" set "MODEL_ID=%%b"
     )
 )
 if "%MODEL%"=="" set "MODEL=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
@@ -41,6 +43,13 @@ if exist "%PY%" (
     set /p THINK_FLAG=<"%TEMP_DIR%\llama_thinking_flag.txt"
 )
 
+REM Файловый обмен: KV-квант + запас токенов на вызов — из библиотеки моделей (llama_models.py server_flags)
+set "SERVER_FLAGS="
+if exist "%PY%" if not "%MODEL_ID%"=="" (
+    "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" server_flags "%MODEL_ID%" > "%TEMP_DIR%\llama_server_flags.txt" 2>nul
+    set /p SERVER_FLAGS=<"%TEMP_DIR%\llama_server_flags.txt"
+)
+
 set "MODEL_PATH=%LLM_MODELS%\%MODEL%"
 if not exist "%MODEL_PATH%" (
     echo [ERROR] модель не найдена: %MODEL%
@@ -50,7 +59,7 @@ if not exist "%MODEL_PATH%" (
 )
 
 REM Отвязка: llama-server — отдельный процесс (start /min), окно свернуто, лог — в своё окно
-start "LlamaCPP %MODEL%" /min "%LLAMA_DIR%\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c %MAXCTX% --cache-type-k q4_0 --cache-type-v q4_0 -ngl 999 --flash-attn 1 --parallel 2 %THINK_FLAG% --port %PORT% --host 127.0.0.1
+start "LlamaCPP %MODEL%" /min "%LLAMA_DIR%\llama-server.exe" -m "%MODEL_PATH%" --mmproj "%MMPROJ%" --alias llama/%MODEL:~0,-5% -c %MAXCTX% %SERVER_FLAGS% -ngl 999 --flash-attn 1 --parallel 2 %THINK_FLAG% --port %PORT% --host 127.0.0.1
 REM --- ПОЛНАЯ синхронизация Hermes: llama/<модель> + реальный порт (единая точка запуска сервера) ---
 set "HERMES_BIN=%ROOT_DIR%\data\hermes\hermes-agent\venv\Scripts\hermes.exe"
 if exist "%HERMES_BIN%" (
