@@ -75,10 +75,18 @@ def find_by_cfg(cfg_model):
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "list"
     if cmd == "list":
-        # только короткое имя + размер (меню выбора не должно быть сырым!)
+        # короткое имя + размер; при наличии models_dir - маркер установки (+/-)
+        models_dir = sys.argv[2] if len(sys.argv) > 2 else ""
         w = max(len(m[I_LABEL]) for m in MODELS)
         for m in MODELS:
-            out(f"{m[I_ID]}. {m[I_LABEL]:<{w}}  {m[I_SIZE]}")
+            if models_dir:
+                if os.path.exists(os.path.join(models_dir, m[I_FILE])):
+                    mark = f"{ESC}[1;32m+{ESC}[0m"
+                else:
+                    mark = f"{ESC}[1;33m-{ESC}[0m"
+                out(f"{m[I_ID]}. {mark} {m[I_LABEL]:<{w}}  {m[I_SIZE]}")
+            else:
+                out(f"{m[I_ID]}. {m[I_LABEL]:<{w}}  {m[I_SIZE]}")
     elif cmd == "get":
         mid = int(sys.argv[2])
         key = sys.argv[3] if len(sys.argv) > 3 else "file"

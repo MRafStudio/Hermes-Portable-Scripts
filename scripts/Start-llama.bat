@@ -26,8 +26,8 @@ if exist "%CFG_FILE%" (
     )
 )
 if "%MODEL%"=="" set "MODEL=Qwen3.6-35B-A3B-UD-IQ4_NL.gguf"
-if "%MMPROJ%"=="" set "MMPROJ=%LLM_MODELS%\mmproj-35B-F16.gguf"
-if not exist "%MMPROJ%" set "MMPROJ=%LLM_MODELS%\mmproj-35B-F16.gguf"
+if "%MMPROJ%"=="" set "MMPROJ=%LLM_MODELS%\mmproj-Qwen-35B-F16.gguf"
+if not exist "%MMPROJ%" set "MMPROJ=%LLM_MODELS%\mmproj-Qwen-35B-F16.gguf"
 
 set "MODEL_PATH=%LLM_MODELS%\%MODEL%"
 if not exist "%MODEL_PATH%" (
