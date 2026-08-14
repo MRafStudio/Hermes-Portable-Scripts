@@ -123,11 +123,11 @@ echo  %ESC%[1;36m###############################################################
 echo.
 if !LLM_INSTALLED! equ 1 (
     if !LLM_ANY! equ 0 (
-        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(b!LLAMA_VERSION!, модели не установлены^)%ESC%[0m
+        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp %ESC%[2m^(b!LLAMA_VERSION!^)%ESC%[0m - модели не установлены%ESC%[0m
     ) else if defined LLM_MODEL (
-        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(b!LLAMA_VERSION!, модель !LLM_MODEL!^)%ESC%[0m
+        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp %ESC%[2m^(b!LLAMA_VERSION!^)%ESC%[0m - модель !LLM_MODEL!%ESC%[0m
     ) else (
-        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp — установлен %ESC%[2m^(b!LLAMA_VERSION!, модели есть - дефолт не назначен^)%ESC%[0m
+        echo   %ESC%[1;32m+ %ESC%[0m Llama.cpp %ESC%[2m^(b!LLAMA_VERSION!^)%ESC%[0m - модель не назначена%ESC%[0m
     )
 ) else (
     echo   %ESC%[1;33m. %ESC%[0m Llama.cpp — не установлен
