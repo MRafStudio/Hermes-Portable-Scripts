@@ -153,16 +153,13 @@ def main():
         # Файловый обмен: python собирает флаг с ПРАВИЛЬНЫМ экранированием для cmd,
         # .bat читает его через set /p (никаких кавычек-танцев в .bat!)
         # usage: thinking_flag <start|nssm> <0|1>
-        mode = sys.argv[2] if len(sys.argv) > 2 else "start"
+        # ВАЖНО: --chat-template-kwargs {"enable_thinking":false} — deprecated (llama.cpp build 10425);
+        # правильный флаг: --reasoning off
         thinking = (sys.argv[3] if len(sys.argv) > 3 else "1").strip()
         if thinking != "0":
             out("")
-        elif mode == "nssm":
-            # внутри внешних кавычек AppParameters: \'\"\' — экранированная кавычка для nssm
-            out('--chat-template-kwargs {\\"enable_thinking\\":false}')
         else:
-            # start-команда: внешние кавычки + экранированные внутренние
-            out('--chat-template-kwargs "{\\"enable_thinking\\":false}"')
+            out("--reasoning off")
     elif cmd == "status":
         models_dir = sys.argv[2] if len(sys.argv) > 2 else ""
         found = False
