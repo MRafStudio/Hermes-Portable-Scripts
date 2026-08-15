@@ -50,6 +50,16 @@ if exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" if exist "%CONFIG_
 )
 
 REM ============================================================================
+REM ============================================================================
+REM   Роли (scripts\roles\*.yaml): автопроверка и инжекция в config.yaml
+REM   Инжектор работает только через hermes config get/set, перед изменением
+REM   делает бэкап config.yaml в %HERMES_HOME%\.backup\ГГГГ.ММ.ДД ЧЧ-ММ.yaml
+REM ============================================================================
+if exist "%HERMES_HOME%\hermes-agent\venv\Scripts\python.exe" if exist "%SCRIPTS_DIR%\roles" (
+    "%HERMES_HOME%\hermes-agent\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\install_roles.py" --root "%ROOT_DIR%"
+)
+
+REM ============================================================================
 REM   Изоляция данных (ничего в систему!)
 REM ============================================================================
 set "TEMP=%DATA_DIR%\temp"
