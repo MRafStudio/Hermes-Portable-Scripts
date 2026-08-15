@@ -111,7 +111,19 @@ exit /b 0
 
 :llama_done
 :menu
+call :inject_roles
 exit /b 0
 
 :not_installed
+call :inject_roles
+exit /b 0
+
+REM === Инжекция ролей (scripts\roles\*.yaml) в config.yaml ===
+REM   Вызывается ПОСЛЕ восстановления конфига (:configure_hermes) -
+REM   если config.yaml был удалён, он уже пересоздан hermes config set.
+REM   Инжектор: только hermes config get/set + бэкап в .backup перед изменением.
+:inject_roles
+if exist "%DATA_DIR%\hermes\hermes-agent\venv\Scripts\python.exe" if exist "%SCRIPTS_DIR%\roles" (
+    "%DATA_DIR%\hermes\hermes-agent\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\install_roles.py" --root "%ROOT_DIR%"
+)
 exit /b 0
