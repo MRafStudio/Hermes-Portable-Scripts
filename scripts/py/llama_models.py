@@ -1,10 +1,10 @@
 # llama_models.py — справочник разрешённых моделей Llama.cpp и их проекторов (mmproj)
 # Каждая запись: (id, КОРОТКОЕ имя, ПОЛНОЕ имя с .gguf, размер, мин. VRAM GB,
 #                 mmproj_ЛОКАЛЬНОЕ (после переименования), repo, max_ctx, mmproj_ИСТИННОЕ (в репо — для скачивания),
-#                 thinking, kv_quant, n_predict)
+#                 kv_quant, n_predict)
 # Правило: скачивать по ИСТИННОМУ имени → переименовывать в ЛОКАЛЬНОЕ (mmproj-<модель>…) — единое место истины!
 #   Пример: (1, "Gemma-4-26B-A4B UD-IQ4_NL", "gemma-4-26B-A4B-it-UD-IQ4_NL.gguf", "13.6 GB", 20,
-#            "mmproj-Gemma-27B-F16.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 262144, "mmproj-F16.gguf", 1, "q8_0", "65536")
+#            "mmproj-Gemma-27B-F16.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 262144, "mmproj-F16.gguf", "q8_0", "65536")
 # ВАЖНО: полное имя ОБЯЗАТЕЛЬНО с расширением .gguf (имя файла на диске; в model.default оно без
 # расширения — сопоставление в pick/label учитывает это). repo — путь для скачивания с Hugging Face.
 # max_ctx — рекомендуемый контекст llmcpp для этой модели (KV-кэш должен влезать в VRAM).
@@ -12,22 +12,23 @@
 #            но ест ~2x VRAM — для 262k контекста на 32GB картах проверено только на Gemma-4-26B (q8_0);
 #            Qwen-35B и Qwythos-9B (524k!) оставлены на q4_0 (впритык по VRAM).
 # n_predict — запас токенов на вызов (--n-predict): думание + content должны влезать (официальный рецепт
-#            function calling для Gemma-4: thinking ON + до 4000+ токенов; 65536 — запас с большим запасом прочности).
+#            function calling для Gemma-4: думание ВКЛ + запас 4000+ токенов; 65536 — запас прочности).
+# Думание (reasoning) ВСЕГДА ВКЛЮЧЕНО для всех моделей (нативно в llama-server по умолчанию) —
+# отдельным параметром не управляется, поэтому из справочника исключено.
 # Несколько моделей могут делить один mmproj; у каждой модели может быть свой mmproj и repo.
 # При добавлении новой модели ДОБАВЬ строку в MODELS — меню, статусы и загрузка
 # в InstallOrUpdate-Llama.bat обновятся автоматически (скрипт читает этот справочник).
 #
 # CLI:
 #   list                 — все записи: id|label|file|size|vram|mmproj|repo|maxctx
-#   get <id> <key>       — одно поле (label|file|size|vram|mmproj|repo|maxctx|thinking|kv|npredict)
+#   get <id> <key>       — одно поле (label|file|size|vram|mmproj|repo|maxctx|kv|npredict)
 #   pick <choice> <cfg_model> <models_dir> — выбор модели (1/2/Enter→cfg_model→установленная)
-#                          печатает "id|file|mmproj|repo|maxctx|mmprojsrc|label|alias|thinking|kv|npredict" или ничего
+#                          печатает "id|file|mmproj|repo|maxctx|mmprojsrc|label|alias|kv|npredict" или ничего
 #   label <cfg_model>    — короткое имя модели по model.default (для подсказки "[Enter = ...]")
 #   resolve <short_name> — ПОЛНОЕ имя файла по короткому имени (или пусто)
 #   menu <models_dir>    — строки меню выбора (с пометкой [файл] для установленных)
 #   status <models_dir>  — статус-строки установленных моделей (все!)
 #   count                — число моделей
-#   thinking_flag <start|nssm> <0|1> — флаг думания для llama-server (файловый обмен с .bat)
 #   server_flags <id>    — KV-квант + n_predict для модели: "--cache-type-k Q --cache-type-v Q --n-predict N"
 #                          (файловый обмен с .bat; БЕЗ внешних кавычек — для set /p и nssm)
 import os
@@ -36,34 +37,32 @@ import sys
 REPO_DEFAULT = "unsloth/Qwen3.6-35B-A3B-GGUF"
 
 MODELS = [
-    # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj_ЛОКАЛЬНОЕ, repo, max_ctx, mmproj_ИСТИННОЕ, thinking, kv_quant, n_predict)
+    # (id, короткое имя, полное имя с .gguf, размер, мин. VRAM GB, mmproj_ЛОКАЛЬНОЕ, repo, max_ctx, mmproj_ИСТИННОЕ, kv_quant, n_predict)
     # ===========================================================================================================================
     # Базовая модель но для видеокарт начиная с 24Gb
     (1, "Qwen-3.6-35B-A3B UD-IQ4_NL", "Qwen3.6-35B-A3B-UD-IQ4_NL.gguf", "18.0 GB", 24,
      "mmproj-Qwen-35B-F16.gguf", "unsloth/Qwen3.6-35B-A3B-GGUF", 262144,
-     "mmproj-F16.gguf", 1, "q4_0", "65536"),
+     "mmproj-F16.gguf", "q4_0", "65536"),
     # Ближайший конкурент Qwen3.6 при меньших потребностях
     # ВНИМАНИЕ: mmproj-F16.gguf из репо НЕ грузится (image_max_pixels < image_min_pixels) - только BF16!
-    # THINKING=1 проверен на практике (14-15.08.2026): думание ON + KV q8_0 + n-predict 65536 — агент "дожимает"
     (2, "Gemma-4-26B-A4B  UD-IQ4_NL", "gemma-4-26B-A4B-it-UD-IQ4_NL.gguf", "13.6 GB", 20,
      "mmproj-Gemma-26B-BF16.gguf", "unsloth/gemma-4-26B-A4B-it-GGUF", 262144,
-     "mmproj-BF16.gguf", 1, "q8_0", "65536"),
+     "mmproj-BF16.gguf", "q8_0", "65536"),
     # С натяжкой: 128 контекста это буквально впритык для Hermes
     (3, "Gemma-3-12B     UD-Q4_K_XL", "gemma-3-12b-it-UD-Q4_K_XL.gguf", "7.43 GB", 11,
      "mmproj-Gemma-12B-F16.gguf", "unsloth/gemma-3-12b-it-GGUF", 131072,
-     "mmproj-F16.gguf", 1, "q4_0", "65536"),
+     "mmproj-F16.gguf", "q4_0", "65536"),
     # 524k контекст — KV-кэш огромный, q4_0 обязателен (q8_0 не влезет)
     (4, "Qwythos-9B 5-1M MTP-Q4_K_M", "Qwythos-9B-Claude-Mythos-5-1M-MTP-Q4_K_M.gguf", "5.89 GB", 16,
      "mmproj-Qwythos-9B-F16.gguf", "empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF", 524288,
-     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", 1, "q4_0", "65536"),
+     "mmproj-Qwythos-9B-Claude-Mythos-5-1M-F16.gguf", "q4_0", "65536"),
 ]
 
 ESC = "\x1b"
 
 # индексы полей
-I_ID, I_LABEL, I_FILE, I_SIZE, I_VRAM, I_MMPROJ, I_REPO, I_MAXCTX, I_MMPROJ_SRC, I_THINKING, I_KV, I_NPREDICT = range(12)
-# I_THINKING: 1 = думание включено (enable_thinking по умолчанию/true), 0 = выключено
-# (--chat-template-kwargs {"enable_thinking":false} в llama-server; для агентских циклов с tool-calling)
+I_ID, I_LABEL, I_FILE, I_SIZE, I_VRAM, I_MMPROJ, I_REPO, I_MAXCTX, I_MMPROJ_SRC, I_KV, I_NPREDICT = range(11)
+# Думание (reasoning) всегда ВКЛЮЧЕНО нативно в llama-server (по умолчанию) — флагом не управляется.
 
 
 def out(s):
@@ -105,7 +104,7 @@ def main():
         key = sys.argv[3] if len(sys.argv) > 3 else "file"
         idx = {"label": I_LABEL, "file": I_FILE, "size": I_SIZE, "vram": I_VRAM,
                "mmproj": I_MMPROJ, "repo": I_REPO, "maxctx": I_MAXCTX,
-               "mmprojsrc": I_MMPROJ_SRC, "thinking": I_THINKING,
+               "mmprojsrc": I_MMPROJ_SRC,
                "kv": I_KV, "npredict": I_NPREDICT}[key]
         for m in MODELS:
             if m[I_ID] == mid:
@@ -134,7 +133,7 @@ def main():
                         picked = m
                         break
         if picked:
-            out(f"{picked[I_ID]}|{picked[I_FILE]}|{picked[I_MMPROJ]}|{picked[I_REPO]}|{picked[I_MAXCTX]}|{picked[I_MMPROJ_SRC]}|{picked[I_LABEL]}|llama/{picked[I_FILE][:-5]}|{picked[I_THINKING]}|{picked[I_KV]}|{picked[I_NPREDICT]}")
+            out(f"{picked[I_ID]}|{picked[I_FILE]}|{picked[I_MMPROJ]}|{picked[I_REPO]}|{picked[I_MAXCTX]}|{picked[I_MMPROJ_SRC]}|{picked[I_LABEL]}|llama/{picked[I_FILE][:-5]}|{picked[I_KV]}|{picked[I_NPREDICT]}")
     elif cmd == "label":
         cfg_model = sys.argv[2] if len(sys.argv) > 2 else ""
         m = find_by_cfg(cfg_model)
@@ -160,17 +159,6 @@ def main():
                 out(f"{m[I_ID]}|{m[I_LABEL]}")
     elif cmd == "count":
         out(str(len(MODELS)))
-    elif cmd == "thinking_flag":
-        # Файловый обмен: python собирает флаг с ПРАВИЛЬНЫМ экранированием для cmd,
-        # .bat читает его через set /p (никаких кавычек-танцев в .bat!)
-        # usage: thinking_flag <start|nssm> <0|1>
-        # ВАЖНО: --chat-template-kwargs {"enable_thinking":false} — deprecated (llama.cpp build 10425);
-        # правильный флаг: --reasoning off
-        thinking = (sys.argv[3] if len(sys.argv) > 3 else "1").strip()
-        if thinking != "0":
-            out("")
-        else:
-            out("--reasoning off")
     elif cmd == "server_flags":
         # Файловый обмен: KV-квант + запас токенов на вызов для модели из справочника.
         # usage: server_flags <id>   →  "--cache-type-k Q --cache-type-v Q --n-predict N" (без внешних кавычек —
