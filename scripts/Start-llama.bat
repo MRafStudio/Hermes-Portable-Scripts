@@ -68,6 +68,10 @@ if exist "%HERMES_BIN%" (
     "%HERMES_BIN%" config set model.base_url "http://127.0.0.1:%PORT%/v1" >nul 2>&1
     "%HERMES_BIN%" config set providers.llama.model "llama/%MODEL:~0,-5%" >nul 2>&1
     "%HERMES_BIN%" config set providers.llama.base_url "http://127.0.0.1:%PORT%/v1" >nul 2>&1
+    REM --- модель для зрения (auxiliary.vision) = та же llama-модель ---
+    "%HERMES_BIN%" config set auxiliary.vision.model "llama/%MODEL:~0,-5%" >nul 2>&1
+    "%HERMES_BIN%" config set auxiliary.vision.provider "llama" >nul 2>&1
+    "%HERMES_BIN%" config set auxiliary.vision.base_url "http://127.0.0.1:%PORT%/v1" >nul 2>&1
 )
 echo Сервер запущен в отдельном окне (свернуто).
 exit /b 0
