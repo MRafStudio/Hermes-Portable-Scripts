@@ -41,7 +41,6 @@ REM   ESC
 REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
-
 REM ============================================================================
 REM   uv (для установки huggingface_hub в venv)
 REM ============================================================================
@@ -88,6 +87,7 @@ echo.
 echo   %ESC%[1;32mДоступные модели (llama_models.py)%ESC%[0m
 "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" list "%MODELS_DIR%"
 echo.
+
 REM --- дефолтная модель (из default_model.cfg — единый источник правды) ---
 call :load_default
 set "HAS_DEFAULT=0"
@@ -98,6 +98,7 @@ if defined MODEL_FILE (
     echo   %ESC%[1;33mДефолтная модель не назначена%ESC%[0m %ESC%[2m^(первая установленная станет дефолтной^)%ESC%[0m
 )
 echo.
+
 set "MID="
 set /p "MID=%ESC%[33mВыбери ID модели, 0 - отключить локальную llama, Enter - отмена: %ESC%[0m"
 if "%MID%"=="" goto exit
@@ -234,6 +235,10 @@ if exist "%HERMES_BIN%" (
     "%HERMES_BIN%" config set model.base_url "http://127.0.0.1:5505/v1" >nul 2>&1
     "%HERMES_BIN%" config set providers.llama.model "%MODEL_ALIAS%" >nul 2>&1
     "%HERMES_BIN%" config set providers.llama.base_url "http://127.0.0.1:5505/v1" >nul 2>&1
+    REM --- модель для зрения (auxiliary.vision) = та же llama-модель ---
+    "%HERMES_BIN%" config set auxiliary.vision.model "%MODEL_ALIAS%" >nul 2>&1
+    "%HERMES_BIN%" config set auxiliary.vision.provider "llama" >nul 2>&1
+    "%HERMES_BIN%" config set auxiliary.vision.base_url "http://127.0.0.1:5505/v1" >nul 2>&1
     echo   Hermes: переключён на llama :5505 ^(%MODEL_ALIAS%^)
 ) else (
     echo   %ESC%[1;33m  Hermes CLI не найден - конфиг Hermes не тронут.%ESC%[0m
