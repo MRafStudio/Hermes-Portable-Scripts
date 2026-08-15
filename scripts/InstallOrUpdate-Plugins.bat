@@ -170,6 +170,7 @@ REM   [1] Llama.cpp — установка / обновление
 REM ============================================================================
 :install_llama
 set "RETURN_MENU=llama_menu"
+call "%SCRIPTS_DIR%\Backup-Now.bat"
 call "%SCRIPTS_DIR%\InstallOrUpdate-Llama.bat"
 goto status
 
@@ -178,6 +179,7 @@ REM   [2] Модели — загрузка и назначение дефолт
 REM ============================================================================
 :install_models
 set "RETURN_MENU=llama_menu"
+call "%SCRIPTS_DIR%\Backup-Now.bat"
 call "%SCRIPTS_DIR%\InstallOrUpdate-Models.bat"
 goto status
 
@@ -186,6 +188,7 @@ REM   [3] Служба Llama.cpp — установка / удаление
 REM ============================================================================
 :llama_service
 set "RETURN_MENU=llama_menu"
+call "%SCRIPTS_DIR%\Backup-Now.bat"
 call "%SCRIPTS_DIR%\Llama-Service.bat"
 goto status
 
@@ -194,6 +197,7 @@ REM   [4] MemOS — установка / обновление / проверка
 REM ============================================================================
 :install_memos
 set "RETURN_MENU=menu"
+call "%SCRIPTS_DIR%\Backup-Now.bat"
 call "%SCRIPTS_DIR%\InstallOrUpdate-Memos.bat"
 goto status
 
