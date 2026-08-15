@@ -41,16 +41,6 @@ if exist "%SCRIPTS_DIR%\ps1\fix-user_env.ps1" (
 )
 
 REM ============================================================================
-REM   Рабочая директория сессий: terminal.cwd в config.yaml всегда = %ROOT_DIR%\data\home
-REM   (Electron иначе берёт системный профиль через WinAPI — сессии падают в C:\Users\<user>)
-REM ============================================================================
-if exist "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" (
-    "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set terminal.cwd "%ROOT_DIR%\data\home"
-)
-
-REM ============================================================================
-
-REM ============================================================================
 REM   Изоляция данных (ничего в систему!)
 REM ============================================================================
 set "TEMP=%DATA_DIR%\temp"
