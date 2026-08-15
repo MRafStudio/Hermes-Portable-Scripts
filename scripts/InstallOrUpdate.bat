@@ -184,6 +184,7 @@ goto menu
 cls
 echo.
 echo   %ESC%[1;33m-%ESC%[0m %ESC%[1mЗапуск установки Hermes Web ^(сервер^)...%ESC%[0m
+call "%SCRIPTS_DIR%\Backup-Now.bat"
 call "%SCRIPTS_DIR%\InstallOrUpdate-Web.bat" 0
 goto menu
 
@@ -191,6 +192,7 @@ goto menu
 cls
 echo.
 echo   %ESC%[1;33m-%ESC%[0m %ESC%[1mЗапуск установки Hermes Desktop...%ESC%[0m
+call "%SCRIPTS_DIR%\Backup-Now.bat"
 call "%SCRIPTS_DIR%\InstallOrUpdate-Desktop.bat" 0
 goto menu
 
@@ -200,6 +202,7 @@ if !ANY_INSTALLED! equ 0 (
     pause
     goto menu
 )
+call "%SCRIPTS_DIR%\Backup-Now.bat"
 call "%SCRIPTS_DIR%\Install-Hermes-Service.bat"
 goto menu
 
