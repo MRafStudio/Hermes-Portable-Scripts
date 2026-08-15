@@ -24,12 +24,11 @@ if exist "%DATA_DIR%\llm\default_model.cfg" (
 )
 
 
-REM --- Маркер MemOS: помним, что плагин был включён (memory.provider=memtensor) ---
-REM   конфиг жив: memtensor -> маркер создаётся/остаётся; НЕ memtensor -> маркер удаляется
-REM   конфиг грохнут + маркер есть -> RESTORE_MEMOS=1 (восстановим в :inject_roles)
+REM --- Маркер MemOS (\.memos-enabled): помним включение плагина ---
+REM   конфиг грохнут + маркер есть -> memory.provider=memtensor восстанавливается СРАЗУ
+REM   конфиг жив: memtensor -> маркер остаётся; НЕ memtensor -> маркер удаляется
 set "MEMOS_HOME_DIR=%DATA_DIR%\hermes\memos-plugin"
 set "MEMOS_MARKER=%MEMOS_HOME_DIR%\.memos-enabled"
-set "RESTORE_MEMOS="
 if exist "%MEMOS_HOME_DIR%" (
     if exist "%DATA_DIR%\hermes\config.yaml" (
         set "MP="
@@ -40,8 +39,16 @@ if exist "%MEMOS_HOME_DIR%" (
             if exist "%MEMOS_MARKER%" del "%MEMOS_MARKER%"
         )
     ) else (
-        if exist "%MEMOS_MARKER%" set "RESTORE_MEMOS=1"
+        if exist "%MEMOS_MARKER%" if exist "%HERMES_BIN%" (
+            "%HERMES_BIN%" config set memory.provider memtensor >nul 2>&1
+            echo   MemOS: memory.provider=memtensor восстановлен
+        )
     )
+)
+
+REM --- Рабочая директория сессий: terminal.cwd = %ROOT_DIR%\data\home ---
+if exist "%HERMES_BIN%" (
+    "%HERMES_BIN%" config set terminal.cwd "%ROOT_DIR%\data\home" >nul 2>&1
 )
 
 REM llama установлена?
@@ -146,12 +153,6 @@ REM   Инжектор: только hermes config get/set + бэкап в .back
 :inject_roles
 if exist "%DATA_DIR%\hermes\hermes-agent\venv\Scripts\python.exe" if exist "%SCRIPTS_DIR%\roles" (
     "%DATA_DIR%\hermes\hermes-agent\venv\Scripts\python.exe" "%SCRIPTS_DIR%\py\install_roles.py" --root "%ROOT_DIR%"
-)
-
-REM --- Восстановление memory.provider, если config.yaml был грохнут (маркер MemOS) ---
-if defined RESTORE_MEMOS (
-    if exist "%HERMES_BIN%" "%HERMES_BIN%" config set memory.provider memtensor >nul 2>&1
-    echo   MemOS: memory.provider=memtensor восстановлен
 )
 
 exit /b 0
