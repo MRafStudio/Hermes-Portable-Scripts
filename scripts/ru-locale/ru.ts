@@ -909,13 +909,13 @@ export const ru = defineLocale({
       statusOff: 'Выключено',
       allServers: 'Все серверы',
       authenticatedTitle: 'Аутентификация выполнена',
-      authenticatedMessage: (server, count) => `Сервер «${server}»: ${count} инструментов доступно`,
+      authenticatedMessage: (server, count) => `Сервер ${server}: ${count} инструментов доступно`,
       waitingForBrowser: 'Ожидание браузера…',
       authenticate: 'Аутентифицироваться',
       unsavedConnect: 'Несохранённые изменения при подключении',
-      enableTool: tool => `Включить «${tool}»`,
-      disableTool: tool => `Отключить «${tool}»`,
-      noOutput: 'Нет вывода'
+      enableTool: tool => `Включить ${tool}`,
+      disableTool: tool => `Отключить ${tool}`,
+      noOutput: 'Нет вывода',
       deepLinkTitle: 'Добавить MCP-сервер?',
       deepLinkDescription:
         'Ссылка запросила добавление этого MCP-сервера в Hermes. Проверьте точную конфигурацию ниже — она получена из ссылки, а не от Hermes.',
