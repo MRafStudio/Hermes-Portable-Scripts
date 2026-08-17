@@ -331,7 +331,7 @@ REM ============================================================================
 echo.
 echo   %ESC%[1;33m[3/5]%ESC%[0m %ESC%[1mПатчим конфиги TypeScript...%ESC%[0m
 
-set "PATCH_DIR=%SCRIPTS_DIR%\ps"
+set "PATCH_DIR=%SCRIPTS_DIR%\ps1"
 
 REM --- types.ts ---
 set "TYPES_FILE=%I18N_DIR%\types.ts"
