@@ -267,6 +267,9 @@ if exist "%HERMES_HOME%\hermes-agent\.git" (
     echo   %ESC%[2m       Сброс к origin/main...%ESC%[0m
     git fetch origin main >nul 2>&1
     git reset --hard origin/main >nul 2>&1
+    REM Удаляем stash без вопросов
+    echo   %ESC%[2m       Очистка stash...%ESC%[0m
+    git stash drop >nul 2>&1
     if !errorlevel! equ 0 (
         echo   %ESC%[1;32m  +   Репозиторий сброшен к origin/main.%ESC%[0m
     ) else (
