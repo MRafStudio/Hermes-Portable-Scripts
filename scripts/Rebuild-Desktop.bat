@@ -271,13 +271,19 @@ if exist "%HERMES_HOME%\bin\rg.exe" (
     echo   %ESC%[1;33m  .   ripgrep не установлен ^(будет findstr^).%ESC%[0m
 )
 
-REM --- ffmpeg (TTS голосовые) ---
-if not exist "%HERMES_HOME%\bin\ffmpeg.exe" (
-    echo   %ESC%[1;33m  .   ffmpeg отсутствует — устанавливаем...%ESC%[0m
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\install_ffmpeg.ps1" -HermesHome "%HERMES_HOME%"
-)
+REM --- ffmpeg-набор (ffmpeg/ffprobe/ffplay: TTS, аудио, медиа) ---
+if not exist "%HERMES_HOME%\bin\ffmpeg.exe" goto :install_ffmpeg_toolkit
+if exist "%HERMES_HOME%\bin\ffprobe.exe" goto :ffmpeg_toolkit_ok
+:install_ffmpeg_toolkit
+echo   %ESC%[1;33m  .   ffmpeg-набор отсутствует — устанавливаем...%ESC%[0m
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\install_ffmpeg.ps1" -HermesHome "%HERMES_HOME%"
+:ffmpeg_toolkit_ok
 if exist "%HERMES_HOME%\bin\ffmpeg.exe" (
-    echo   %ESC%[1;32m  +   ffmpeg: OK%ESC%[0m
+    if exist "%HERMES_HOME%\bin\ffprobe.exe" (
+        echo   %ESC%[1;32m  +   ffmpeg-набор: OK%ESC%[0m
+    ) else (
+        echo   %ESC%[1;33m  .   ffmpeg не установлен ^(TTS ограничен^).%ESC%[0m
+    )
 ) else (
     echo   %ESC%[1;33m  .   ffmpeg не установлен ^(TTS ограничен^).%ESC%[0m
 )
