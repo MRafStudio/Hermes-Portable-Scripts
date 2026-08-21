@@ -1,7 +1,7 @@
 # scripts\ps1\install_ffmpeg.ps1
-# Установка ffmpeg.exe в портабельный каталог HERMES_HOME\bin.
-# Приоритет: глобальный ffmpeg из реестрового PATH (Machine+User) -> копирование exe+DLL;
-# если глобального нет или он невалиден - скачивание (цепочка git-curl -> bitsadmin -> certutil -> PS TLS12).
+# Установка набора ffmpeg (ffmpeg.exe + ffprobe.exe + ffplay.exe) в портабельный каталог HERMES_HOME\bin.
+# Приоритет: глобальные бинарники из реестрового PATH (Machine+User) -> копирование exe+DLL;
+# если глобальных нет или они невалидны - скачивание (цепочка git-curl -> bitsadmin -> certutil -> PS TLS12).
 # Зеркала: BtbN gpl -> BtbN lgpl -> gyan.dev essentials.
 param(
     [string]$HermesHome = $env:HERMES_HOME
@@ -12,10 +12,18 @@ $ProgressPreference = "Continue"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $binDir = "$HermesHome\bin"
-$target = "$binDir\ffmpeg.exe"
-if (Test-Path $target) {
-    Write-Host "  +   ffmpeg already installed: $target" -ForegroundColor Green
+$tools = @("ffmpeg.exe", "ffprobe.exe", "ffplay.exe")
+$targets = @{}
+foreach ($t in $tools) { $targets[$t] = "$binDir\$t" }
+
+# Все три инструмента уже на месте -> выходим (идемпотентность при повторных запусках).
+if (@($tools | Where-Object { Test-Path $targets[$_] }).Count -eq $tools.Count) {
+    Write-Host "  +   ffmpeg toolkit already installed: $binDir" -ForegroundColor Green
     exit 0
+}
+
+function Missing-Tools {
+    return @($tools | Where-Object { -not (Test-Path $targets[$_]) })
 }
 
 # Поиск глобального бинарника в реестровом PATH (Machine+User).
@@ -38,36 +46,43 @@ function Find-GlobalTool([string]$ExeName) {
     return $null
 }
 
-# --- Копирование глобального ffmpeg (экономия ~144 МБ трафика) ---
-$globalFfmpeg = Find-GlobalTool "ffmpeg.exe"
-if ($globalFfmpeg) {
-    Write-Host "    Found global ffmpeg: $globalFfmpeg" -ForegroundColor Gray
+# --- Копирование глобальных ffmpeg/ffprobe/ffplay (экономия ~450 МБ трафика) ---
+$copiedAny = $false
+foreach ($t in (Missing-Tools)) {
+    $g = Find-GlobalTool $t
+    if (-not $g) { continue }
     # Валидируем ИСТОЧНИК: запускается ли он вообще
     $srcOk = $false
-    try { & $globalFfmpeg -version *> $null; if ($LASTEXITCODE -eq 0) { $srcOk = $true } } catch { $srcOk = $false }
+    try { & $g -version *> $null; if ($LASTEXITCODE -eq 0) { $srcOk = $true } } catch { $srcOk = $false }
     if ($srcOk) {
         if (-not (Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir | Out-Null }
-        Copy-Item $globalFfmpeg -Destination $target -Force
-        # Динамическая сборка (gyan.dev): копируем DLL рядом с exe - без них ffmpeg не стартует.
-        # Статическая сборка (BtbN): DLL нет - копируется только exe, это тоже корректно.
-        $srcDir = Split-Path $globalFfmpeg
-        Get-ChildItem "$srcDir\*.dll" -ErrorAction SilentlyContinue | ForEach-Object {
-            Copy-Item $_.FullName -Destination $binDir -Force
+        Copy-Item $g -Destination $targets[$t] -Force
+        if (-not $copiedAny) {
+            # Динамическая сборка (gyan.dev): копируем DLL рядом с exe - без них ffmpeg не стартует.
+            # Статическая сборка (BtbN): DLL нет - копируется только exe, это тоже корректно.
+            $srcDir = Split-Path $g
+            Get-ChildItem "$srcDir\*.dll" -ErrorAction SilentlyContinue | ForEach-Object {
+                Copy-Item $_.FullName -Destination $binDir -Force
+            }
+            $copiedAny = $true
         }
-        # Валидируем КОПИЮ: DLL на месте? exe не повреждён? Если нет - чистим и качаем fallback
-        $copyOk = $false
-        try { & $target -version *> $null; if ($LASTEXITCODE -eq 0) { $copyOk = $true } } catch { $copyOk = $false }
-        if ($copyOk) {
-            $copiedSize = (Get-ChildItem $binDir -File | Where-Object { $_.Name -eq "ffmpeg.exe" -or $_.Extension -eq ".dll" } | Measure-Object Length -Sum).Sum
-            Write-Host "  +   ffmpeg copied from global: $target ($([math]::Round($copiedSize/1MB,1)) MB total)" -ForegroundColor Green
-            exit 0
-        }
-        Write-Host "  .   copied ffmpeg failed validation, removing and falling back to download..." -ForegroundColor Yellow
-        Remove-Item $target -Force -ErrorAction SilentlyContinue
-        Get-ChildItem "$binDir\*.dll" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
-    } else {
-        Write-Host "  .   global ffmpeg failed validation, falling back to download..." -ForegroundColor Yellow
     }
+}
+
+# Валидируем КОПИИ: всё на месте? exe не повреждены? Если нет - чистим и качаем fallback
+if ((Missing-Tools).Count -eq 0) {
+    $copyOk = $true
+    foreach ($t in $tools) {
+        try { & $targets[$t] -version *> $null; if ($LASTEXITCODE -ne 0) { $copyOk = $false } } catch { $copyOk = $false }
+    }
+    if ($copyOk) {
+        $copiedSize = (Get-ChildItem $binDir -File | Where-Object { $tools -contains $_.Name -or $_.Extension -eq ".dll" } | Measure-Object Length -Sum).Sum
+        Write-Host "  +   ffmpeg toolkit copied from global: $binDir ($([math]::Round($copiedSize/1MB,1)) MB total)" -ForegroundColor Green
+        exit 0
+    }
+    Write-Host "  .   copied ffmpeg failed validation, removing and falling back to download..." -ForegroundColor Yellow
+    foreach ($t in $tools) { Remove-Item $targets[$t] -Force -ErrorAction SilentlyContinue }
+    Get-ChildItem "$binDir\*.dll" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
 }
 
 # --- Fallback: скачивание (git-curl -> bitsadmin -> certutil -> PS TLS12) ---
@@ -119,22 +134,29 @@ function Download-With($url, $out) {
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $ok = $false
 foreach ($url in $mirrors) {
-    Write-Host "    Downloading ffmpeg: $url" -ForegroundColor Gray
+    Write-Host "    Downloading ffmpeg toolkit: $url" -ForegroundColor Gray
     if (Download-With $url $zip) {
         try {
             $z = [System.IO.Compression.ZipFile]::OpenRead($zip)
             try {
-                # Извлекаем ffmpeg.exe (BtbN-сборка — статическая, DLL не нужны)
-                $entry = $z.Entries | Where-Object { $_.Name -eq "ffmpeg.exe" } | Select-Object -First 1
-                if ($entry) {
-                    [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target, $true)
-                    # Распаковался без ошибок = архив целый (CRC32-проверка zip)
-                    $size = (Get-Item $target).Length
-                    Write-Host "  +   ffmpeg installed: $target ($([math]::Round($size/1MB,1)) MB)" -ForegroundColor Green
+                # Извлекаем недостающие инструменты из bin/ (BtbN-сборка — статическая, DLL не нужны)
+                $stillMissing = Missing-Tools
+                $extractedAny = $false
+                foreach ($t in $stillMissing) {
+                    $entry = $z.Entries | Where-Object { $_.Name -eq $t -and $_.FullName -like "*/bin/*" } | Select-Object -First 1
+                    if ($entry) {
+                        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $targets[$t], $true)
+                        $extractedAny = $true
+                    }
+                }
+                # Распаковалось без ошибок = архив целый (CRC32-проверка zip)
+                if ($extractedAny) {
+                    $size = (Get-ChildItem $binDir -File | Where-Object { $tools -contains $_.Name } | Measure-Object Length -Sum).Sum
+                    Write-Host "  +   ffmpeg toolkit installed: $binDir ($([math]::Round($size/1MB,1)) MB)" -ForegroundColor Green
                     $ok = $true
                     break
                 } else {
-                    Write-Host "  .   no ffmpeg.exe in archive bin/, trying next mirror..." -ForegroundColor Yellow
+                    Write-Host "  .   no ffmpeg tools in archive bin/, trying next mirror..." -ForegroundColor Yellow
                 }
             } finally {
                 $z.Dispose()
@@ -149,7 +171,7 @@ foreach ($url in $mirrors) {
 }
 
 if (-not $ok) {
-    Write-Host "  .   ffmpeg install failed after all mirrors" -ForegroundColor Yellow
+    Write-Host "  .   ffmpeg toolkit install failed after all mirrors" -ForegroundColor Yellow
     exit 1
 }
 exit 0
