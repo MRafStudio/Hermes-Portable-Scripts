@@ -45,7 +45,7 @@ set "RETURN_MENU=menu"
 REM ============================================================================
 REM   Параметры плагинов
 REM ============================================================================
-set "LLAMA_MANAGER_DIR=%DATA_DIR%\LlamaManager"
+set "LLAMA_MANAGER_DIR=%DATA_DIR%\llama-manager"
 set "LLAMA_MANAGER_EXE=%LLAMA_MANAGER_DIR%\LlamaCppWindowsManager.exe"
 
 REM ============================================================================
@@ -133,7 +133,7 @@ goto menu
 
 REM ============================================================================
 REM   [1] LlamaCppWindowsManager — установка / обновление
-REM   Скачивание последнего релиза (zip) и распаковка в data\LlamaManager
+REM   Скачивание последнего релиза (zip) и распаковка в data\llama-manager
 REM ============================================================================
 :install_llama
 set "RETURN_MENU=llama_menu"
@@ -158,7 +158,7 @@ mkdir "%LLM_UNPACK%" 2>nul
 call :download "%LLM_ZIP_URL%" "%LLM_ZIP%" "LlamaCppWindowsManager-win-x64.zip"
 if errorlevel 1 goto install_fail
 
-REM --- распаковка в temp, затем перенос в data\LlamaManager ---
+REM --- распаковка в temp, затем перенос в data\llama-manager ---
 set "SEVENZIP="
 if exist "%ProgramFiles%\7-Zip\7z.exe" set "SEVENZIP=%ProgramFiles%\7-Zip\7z.exe"
 if not defined SEVENZIP if exist "%ProgramFiles(x86)%\7-Zip\7z.exe" set "SEVENZIP=%ProgramFiles(x86)%\7-Zip\7z.exe"
@@ -276,7 +276,7 @@ echo  %ESC%[1;36m##                                                             
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlamaCppWindowsManager — установка/обновление%ESC%[0m
-echo       %ESC%[2mСкачивание последнего релиза, распаковка в data\LlamaManager%ESC%[0m
+echo       %ESC%[2mСкачивание последнего релиза, распаковка в data\llama-manager%ESC%[0m
 echo.
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mЗагрузка и назначение дефолтных моделей%ESC%[0m
 echo       %ESC%[2mУстановленные модели, назначение дефолтной, переключение Hermes%ESC%[0m
