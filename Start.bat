@@ -215,7 +215,6 @@ call "%SCRIPTS_DIR%\LaunchOptions.bat"
 goto menu
 
 :launch
-call "%SCRIPTS_DIR%\Start-Llama-IfNeeded.bat"
 if !DESKTOP_INSTALLED! equ 1 (
     cls
     echo.
