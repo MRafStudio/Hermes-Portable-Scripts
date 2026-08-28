@@ -3,7 +3,7 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-title HeadRoom — прокси сжатия контекста
+title Установка прокси headroom
 
 REM ============================================================================
 REM   Корректное определение путей
@@ -92,18 +92,18 @@ if not errorlevel 1 set "HEADROOM_SVC=1"
 
 REM Hermes подключён к прокси? (model.base_url или providers.deepseek-hr.base_url)
 set "HR_LINKED=0"
+set "HR_CUR="
 if exist "%HERMES_BIN%" (
-    for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.base_url 2^>nul ^| findstr /V /C:"not set"') do (
-        set "HR_CUR=%%u"
-        if "!HR_CUR!"=="%HEADROOM_BASE_URL%" set "HR_LINKED=1"
-    )
-    if "!HR_LINKED!"=="0" (
-        for /f "delims=" %%u in ('"%HERMES_BIN%" config get providers.deepseek-hr.base_url 2^>nul ^| findstr /V /C:"not set"') do (
-            set "HR_CUR=%%u"
-            if "!HR_CUR!"=="%HEADROOM_BASE_URL%" set "HR_LINKED=1"
-        )
-    )
+    for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.base_url 2^>nul') do set "HR_CUR=%%u"
 )
+echo(%HR_CUR%|findstr /C:"not set" >nul 2>&1 && set "HR_CUR="
+if defined HR_CUR if "%HR_CUR%"=="%HEADROOM_BASE_URL%" set "HR_LINKED=1"
+set "HR_CUR="
+if "!HR_LINKED!"=="0" if exist "%HERMES_BIN%" (
+    for /f "delims=" %%u in ('"%HERMES_BIN%" config get providers.deepseek-hr.base_url 2^>nul') do set "HR_CUR=%%u"
+)
+echo(%HR_CUR%|findstr /C:"not set" >nul 2>&1 && set "HR_CUR="
+if defined HR_CUR if "%HR_CUR%"=="%HEADROOM_BASE_URL%" set "HR_LINKED=1"
 
 REM ============================================================================
 REM   Меню
@@ -217,7 +217,16 @@ cls
 echo.
 echo  %ESC%[1;33m- %ESC%[0m %ESC%[1mУстановка/обновление HeadRoom...%ESC%[0m
 echo.
+REM --- Лог установки (для диагностики, если что-то упадёт) ---
+set "HR_INSTALL_LOG=%DATA_DIR%\logs\headroom-install.log"
+if not exist "%DATA_DIR%\logs" mkdir "%DATA_DIR%\logs" 2>nul
+echo [%date% %time%] === Установка HeadRoom === > "%HR_INSTALL_LOG%"
+echo [%date% %time%] SCRIPTS_DIR=%SCRIPTS_DIR% >> "%HR_INSTALL_LOG%"
+echo [%date% %time%] HEADROOM_DIR=%HEADROOM_DIR% >> "%HR_INSTALL_LOG%"
+echo [%date% %time%] HEADROOM_HF_HOME=%HEADROOM_HF_HOME% >> "%HR_INSTALL_LOG%"
+echo [%date% %time%] EXTRAS=%HEADROOM_EXTRAS% >> "%HR_INSTALL_LOG%"
 call "%SCRIPTS_DIR%\Backup-Now.bat"
+echo [%date% %time%] Бэкап выполнен >> "%HR_INSTALL_LOG%"
 
 if not exist "%UV_EXE%" (
     echo   %ESC%[1;31m[ОШИБКА] uv не найден: %UV_EXE%%ESC%[0m
@@ -245,6 +254,15 @@ call :download "%HR_WHEEL_URL%" "%HR_WHEEL%" "headroom wheel"
 if errorlevel 1 exit /b 1
 
 REM --- Создание venv (python 3.13, скачается uv'ом при необходимости) ---
+REM   ВАЖНО: сначала останавливаем службу — иначе она держит python.exe/headroom.exe
+REM   в памяти, rmdir не сможет удалить venv, и установка падает.
+echo   %ESC%[2m  Останавливаю службу Headroom ^(для чистой замены venv^)...%ESC%[0m
+if exist "%HEADROOM_NSSM%" (
+    "%HEADROOM_NSSM%" stop Headroom >nul 2>&1
+) else (
+    sc stop Headroom >nul 2>&1
+)
+timeout /t 3 /nobreak >nul 2>&1
 echo   %ESC%[2m  Создание виртуального окружения...%ESC%[0m
 if exist "%HEADROOM_VENV%" (
     echo   %ESC%[2m  Чищу старый venv — обновление экстров ^(proxy,ml,code^) гарантировано...%ESC%[0m
@@ -478,14 +496,18 @@ set "HR_HERMES_OK=0"
 set "HR_CUR="
 set "HR_HR_OK=0"
 if exist "%HERMES_BIN%" (
-    for /f "delims=" %%u in ('"%HERMES_BIN%" config get providers.deepseek-hr.base_url 2^>nul ^| findstr /V /C:"not set"') do set "HR_CUR=%%u"
-    if defined HR_CUR (
-        set "HR_HR_OK=1"
-        set "HR_HERMES_OK=1"
-    ) else (
-        for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.base_url 2^>nul ^| findstr /V /C:"not set"') do set "HR_CUR=%%u"
-        if defined HR_CUR set "HR_HERMES_OK=1"
+    for /f "delims=" %%u in ('"%HERMES_BIN%" config get providers.deepseek-hr.base_url 2^>nul') do set "HR_CUR=%%u"
+)
+echo(%HR_CUR%|findstr /C:"not set" >nul 2>&1 && set "HR_CUR="
+if defined HR_CUR (
+    set "HR_HR_OK=1"
+    set "HR_HERMES_OK=1"
+) else (
+    if exist "%HERMES_BIN%" (
+        for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.base_url 2^>nul') do set "HR_CUR=%%u"
     )
+    echo(%HR_CUR%|findstr /C:"not set" >nul 2>&1 && set "HR_CUR="
+    if defined HR_CUR set "HR_HERMES_OK=1"
 )
 exit /b 0
 
@@ -592,7 +614,7 @@ if not exist "%HEADROOM_HF_HOME%\hub" mkdir "%HEADROOM_HF_HOME%\hub" 2>nul
 set "HF_HOME=%HEADROOM_HF_HOME%"
 "%HEADROOM_PY%" "%SCRIPTS_DIR%\py\headroom_download_model.py"
 if errorlevel 1 (
-    echo   %ESC%[1;31m[ОШИБКА] Модель Kompress не скачана (напрямую и через прокси 10809).%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Модель Kompress не скачана ^(напрямую и через прокси 10809^).%ESC%[0m
     echo   %ESC%[33mПроверь интернет/прокси и повтори установку.%ESC%[0m
     exit /b 1
 )
@@ -612,19 +634,13 @@ if not exist "%SCRIPTS_DIR%\py\headroom_set_hf_env.ps1" (
 echo   %ESC%[2m  Прописываю HF_HOME службе Headroom...%ESC%[0m
 REM --- Путь 1: ps1 (с обратной проверкой внутри) ---
 powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\py\headroom_set_hf_env.ps1" -HeadroomDir "%HEADROOM_DIR%" -HfHome "%HEADROOM_HF_HOME%"
+reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2>nul | findstr /C:"HF_HOME=" >nul
 if errorlevel 1 (
-    echo   %ESC%[1;33m  ps1 не сработал — пробую reg add напрямую...%ESC%[0m
-)
-REM --- Проверка: записалось ли HF_HOME ---
-set "HF_CHECK="
-for /f "delims=" %%u in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2^>nul ^| findstr /C:"HF_HOME="') do set "HF_CHECK=%%u"
-if not defined HF_CHECK (
-    echo   %ESC%[2m  Путь 2: reg add (дублирующая запись)...%ESC%[0m
+    echo   %ESC%[2m  Путь 2: reg add ^(дублирующая запись^)...%ESC%[0m
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra /t REG_MULTI_SZ /d "HEADROOM_WORKSPACE_DIR=%HEADROOM_DIR%\workspace\0HF_HOME=%HEADROOM_HF_HOME%" /f >nul 2>&1
-    set "HF_CHECK="
-    for /f "delims=" %%u in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2^>nul ^| findstr /C:"HF_HOME="') do set "HF_CHECK=%%u"
+    reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2>nul | findstr /C:"HF_HOME=" >nul
 )
-if not defined HF_CHECK (
+if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Проверка реестра не нашла HF_HOME — запись не применилась.%ESC%[0m
     exit /b 1
 )
@@ -668,7 +684,7 @@ if not exist "%SCRIPTS_DIR%\py\headroom_verify_compress.py" (
 echo   %ESC%[2m  Проверяю сжатие (health + реальный тест /v1/compress)...%ESC%[0m
 "%HEADROOM_PY%" "%SCRIPTS_DIR%\py\headroom_verify_compress.py"
 if errorlevel 1 (
-    echo   %ESC%[1;31m[ОШИБКА] Сжатие НЕ работает (noop/degraded).%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Сжатие НЕ работает ^(noop/degraded^).%ESC%[0m
     exit /b 1
 )
 echo   %ESC%[1;32m+ %ESC%[0m Сжатие подтверждено.
