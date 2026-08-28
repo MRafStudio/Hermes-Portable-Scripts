@@ -250,7 +250,7 @@ if not exist "%HR_RELEASE_JSON%" (
     "%CURL_HDR%" -s -L --fail -x "http://127.0.0.1:10809" -m 30 -o "%HR_RELEASE_JSON%" "https://api.github.com/repos/%HEADROOM_REPO%/releases/latest" 2>nul
 )
 if not exist "%HR_RELEASE_JSON%" (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось получить последний релиз с GitHub (нет сети ни напрямую, ни через прокси 10809).%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось получить последний релиз с GitHub ^(нет сети ни напрямую, ни через прокси 10809^).%ESC%[0m
     pause
     exit /b 1
 )
