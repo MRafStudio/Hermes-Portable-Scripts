@@ -15,8 +15,10 @@ BASE = "http://127.0.0.1:8787"
 
 def check_health() -> bool:
     import time
-    # Ждём готовности kompress до 60 сек (первый запуск грузит модель)
-    for _ in range(12):
+    # Ждём готовности kompress до 180 сек (первый запуск грузит ONNX-модель,
+    # а служба после рестарта может не слушать порт ещё ~30-60 сек).
+    k = {}
+    for _ in range(36):
         try:
             with urllib.request.urlopen(BASE + "/health", timeout=10) as r:
                 d = json.loads(r.read())
@@ -28,7 +30,8 @@ def check_health() -> bool:
             print("health kompress: готовится (ready=%s backend=%s)... %ds" % (
                 k.get("ready"), k.get("backend"), (_ + 1) * 5))
         except Exception as e:
-            print("health: ожидание старта (%s)..." % (type(e).__name__))
+            print("health: ожидание старта службы (%s)... %ds" % (
+                type(e).__name__, (_ + 1) * 5))
         time.sleep(5)
     print("FAIL: kompress так и не стал готов (backend=%r)" % k.get("backend"))
     return False
@@ -82,8 +85,37 @@ def check_compress() -> bool:
         return False
 
 
+def warmup() -> None:
+    """Прогрев ленивой ONNX-модели. kompress.ready=true в health НЕ значит,
+    что модель загружена — она грузится при первом /v1/compress. Первый
+    «холостой» запрос без учёта результата просто заставляет headroom
+    загрузить модель, чтобы боевой замер не попал на прогревочные noop."""
+    import uuid
+    text = ("Прогрев модели компрессии. " * 200) + uuid.uuid4().hex
+    payload = {
+        "messages": [{"role": "user", "content": text}],
+        "model": "deepseek-v4-flash",
+        "config": {"compress_user_messages": True, "target_ratio": 0.4},
+    }
+    req = urllib.request.Request(
+        BASE + "/v1/compress",
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=180) as r:
+            r.read()
+        print("warmup: запрос на прогрев отправлен")
+    except Exception as e:
+        print("warmup: (%s) — прогревочный запрос, игнорируем" % type(e).__name__)
+
+
 def main() -> int:
     ok_health = check_health()
+    if not ok_health:
+        print("VERIFY_FAIL")
+        return 1
+    warmup()
     ok_compress = check_compress()
     if ok_health and ok_compress:
         print("VERIFY_OK")
