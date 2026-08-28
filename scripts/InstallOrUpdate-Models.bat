@@ -19,9 +19,7 @@ set "DATA_DIR=%ROOT_DIR%\data"
 set "LLM_DIR=%DATA_DIR%\llm"
 set "MODELS_DIR=%LLM_DIR%\models"
 set "PY=%REPO_DIR%\venv\Scripts\python.exe"
-set "LLAMA_DIR=%DATA_DIR%\llama"
 set "CFG_FILE=%LLM_DIR%\default_model.cfg"
-set "SERVICE_NAME=LlamaCPP"
 set "HERMES_BIN=%REPO_DIR%\venv\Scripts\hermes.exe"
 
 REM ============================================================================
@@ -242,46 +240,42 @@ if exist "%HERMES_BIN%" (
     echo   %ESC%[1;33m  Hermes CLI не найден - конфиг Hermes не тронут.%ESC%[0m
 )
 
-REM --- перезапуск llama с новой моделью (служба или desktop-процесс) ---
+REM --- перезапуск llama с новой моделью (через LlamaCppWindowsManager) ---
 call :restart_llama
 exit /b 0
 
 REM ============================================================================
-REM   :restart_llama — перезапуск llama-server (служба LlamaCPP или процесс)
+REM   :restart_llama — переключение llama-сервера через LlamaCppWindowsManager
+REM   (llwmctl: регистрация моделей из %MODELS_DIR%, загрузка новой модели)
 REM ============================================================================
 :restart_llama
-sc query "%SERVICE_NAME%" >nul 2>&1
-if not errorlevel 1 (
-    REM служба установлена - обновляем параметры модели (nssm AppParameters) и перезапускаем
-    set "NSSM_EXE=%ROOT_DIR%\scripts\nssm.exe"
-    if exist "%NSSM_EXE%" (
-        "%PY%" "%SCRIPTS_DIR%\py\llama_models.py" server_flags "%MODEL_ID%" > "%TEMP%\llama_server_flags.txt" 2>nul
-        set /p SERVER_FLAGS=<"%TEMP%\llama_server_flags.txt"
-        "%NSSM_EXE%" set "%SERVICE_NAME%" AppParameters "-m %MODELS_DIR%\%MODEL_FILE% --mmproj %MODELS_DIR%\%MMPROJ_FILE% --alias llama/%MODEL_FILE:~0,-5% -c %MODEL_MAXCTX% !SERVER_FLAGS! -ngl 999 --flash-attn 1 --parallel 1 --port 5505 --host 127.0.0.1" >nul 2>&1
-        echo   %ESC%[1;32m+ %ESC%[0m Параметры службы обновлены: %MODEL_LABEL%
-    ) else (
-        echo   %ESC%[1;33m  nssm не найден - параметры службы НЕ обновлены, останется старая модель.%ESC%[0m
-    )
-    echo   Перезапуск службы %SERVICE_NAME%...
-    sc stop "%SERVICE_NAME%" >nul 2>&1
-    timeout /t 2 >nul
-    sc start "%SERVICE_NAME%" >nul 2>&1
-    if errorlevel 1 (
-        echo   %ESC%[1;33m  Служба не перезапустилась - нужны права администратора.%ESC%[0m
-    )
-) else (
-    tasklist /fi "imagename eq llama-server.exe" 2>nul | findstr /i "llama-server" >nul 2>&1
-    if not errorlevel 1 (
-        echo   Останавливаю llama-server...
-        taskkill /f /im llama-server.exe >nul 2>&1
-        timeout /t 2 >nul
-        if exist "%SCRIPTS_DIR%\Start-llama.bat" (
-            start /min "LlamaCPP" cmd /c ""%SCRIPTS_DIR%\Start-llama.bat""
-        )
-    ) else (
-        echo   %ESC%[2m  llama-server не запущен - новая модель подхватится при старте.%ESC%[0m
-    )
+set "LLWMCTL=%DATA_DIR%\llama-manager\llwmctl.exe"
+
+if not exist "%LLWMCTL%" (
+    echo   %ESC%[1;33m  LlamaCppWindowsManager не установлен - модель применится после установки менеджера.%ESC%[0m
+    goto hermes_restart
 )
+
+"%LLWMCTL%" status >nul 2>&1
+if errorlevel 1 (
+    echo   %ESC%[1;33m  LlamaCppWindowsManager не запущен.%ESC%[0m
+    echo   %ESC%[2m    Запустите менеджер ^([3] в меню «Расширения и плагины»^) и загрузите модель: %MODEL_LABEL%%ESC%[0m
+    goto hermes_restart
+)
+
+echo   %ESC%[2m  Регистрирую модели из %MODELS_DIR%...%ESC%[0m
+"%LLWMCTL%" models import --folder "%MODELS_DIR%" >nul 2>&1
+"%LLWMCTL%" models scan >nul 2>&1
+
+echo   %ESC%[2m  Переключаю llama-сервер на %MODEL_LABEL% ...%ESC%[0m
+"%LLWMCTL%" load "%MODEL_FILE%" --wait >nul 2>&1
+if errorlevel 1 (
+    echo   %ESC%[1;33m  Не удалось загрузить модель через llwmctl - загрузите её вручную в менеджере.%ESC%[0m
+) else (
+    echo   %ESC%[1;32m+ %ESC%[0m llama-сервер переключён: %MODEL_LABEL%
+)
+
+:hermes_restart
 
 REM --- перезапуск Hermes, если он работает службой ---
 call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_DIR%" <nul

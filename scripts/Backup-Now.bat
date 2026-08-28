@@ -23,8 +23,6 @@ set "BKDIR=%DATA_DIR%\backup\%BK%"
 if not exist "%BKDIR%" mkdir "%BKDIR%" 2>nul
 if exist "%HERMES_HOME%\config.yaml" copy /y "%HERMES_HOME%\config.yaml" "%BKDIR%\hermes-config.yaml" >nul 2>&1
 if exist "%HERMES_HOME%\memos-plugin\config.yaml" copy /y "%HERMES_HOME%\memos-plugin\config.yaml" "%BKDIR%\memos-plugin-config.yaml" >nul 2>&1
-if exist "%SCRIPTS_DIR%\Start-llama.bat" copy /y "%SCRIPTS_DIR%\Start-llama.bat" "%BKDIR%" >nul 2>&1
-if exist "%SCRIPTS_DIR%\Llama-Service.bat" copy /y "%SCRIPTS_DIR%\Llama-Service.bat" "%BKDIR%" >nul 2>&1
 if exist "%SCRIPTS_DIR%\InstallOrUpdate-Models.bat" copy /y "%SCRIPTS_DIR%\InstallOrUpdate-Models.bat" "%BKDIR%" >nul 2>&1
 if exist "%SCRIPTS_DIR%\py\llama_models.py" copy /y "%SCRIPTS_DIR%\py\llama_models.py" "%BKDIR%" >nul 2>&1
 echo     %BKDIR%
