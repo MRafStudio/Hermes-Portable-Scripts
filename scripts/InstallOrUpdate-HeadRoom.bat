@@ -30,6 +30,8 @@ set "HEADROOM_NSSM_ZIP=%TEMP%\nssm-2.24.zip"
 set "HEADROOM_PORT=8787"
 set "HEADROOM_UPSTREAM=https://api.deepseek.com"
 set "HEADROOM_EXTRAS=proxy,ml,code"
+set "HEADROOM_HF_HOME=%DATA_DIR%\huggingface"
+set "HEADROOM_HF_MODEL=chopratejas/kompress-v2-base"
 set "HEADROOM_STATS=%SCRIPTS_DIR%\py\headroom_stats.py"
 set "HEADROOM_REPO=headroomlabs-ai/headroom"
 set "HEADROOM_NSSM_URL=https://nssm.cc/release/nssm-2.24.zip"
@@ -87,12 +89,18 @@ set "HEADROOM_SVC=0"
 sc query Headroom >nul 2>&1
 if not errorlevel 1 set "HEADROOM_SVC=1"
 
-REM Hermes подключён к прокси? (model.base_url указывает на нас)
+REM Hermes подключён к прокси? (model.base_url или providers.deepseek-hr.base_url)
 set "HR_LINKED=0"
 if exist "%HERMES_BIN%" (
-    for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.base_url 2^>nul') do (
+    for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.base_url 2^>nul ^| findstr /V /C:"not set"') do (
         set "HR_CUR=%%u"
         if "!HR_CUR!"=="%HEADROOM_BASE_URL%" set "HR_LINKED=1"
+    )
+    if "!HR_LINKED!"=="0" (
+        for /f "delims=" %%u in ('"%HERMES_BIN%" config get providers.deepseek-hr.base_url 2^>nul ^| findstr /V /C:"not set"') do (
+            set "HR_CUR=%%u"
+            if "!HR_CUR!"=="%HEADROOM_BASE_URL%" set "HR_LINKED=1"
+        )
     )
 )
 
@@ -126,9 +134,11 @@ if !HR_LINKED! equ 1 (
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mУстановить/Обновить HeadRoom%ESC%[0m
 echo       %ESC%[2mСвежий wheel из GitHub, venv, служба с автозапуском%ESC%[0m
+if !HEADROOM_INSTALLED! equ 1 (
 echo.
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mПереустановить службу%ESC%[0m
 echo       %ESC%[2mЕсли прокси не стартует или путь установки изменился%ESC%[0m
+)
 
 if !HEADROOM_SVC! equ 1 (
 echo.
@@ -138,25 +148,48 @@ echo.
 echo   %ESC%[1;31m[7]%ESC%[0m %ESC%[1;31mПОЛНЫЙ СНОС HeadRoom%ESC%[0m
 echo       %ESC%[2mСлужба + каталог целиком. Чистая переустановка через [1]%ESC%[0m
 )
+if !HEADROOM_INSTALLED! equ 1 (
 echo.
 echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mСтатус и экономия%ESC%[0m
 echo       %ESC%[2mСводка: запросы, сэкономленные токены, деньги%ESC%[0m
 echo.
 echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mПодключить/Отключить прокси в Hermes%ESC%[0m
 echo       %ESC%[2mТумблер: model.base_url на прокси ^(или обратно на DeepSeek^)%ESC%[0m
+)
 echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад%ESC%[0m
 echo.
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-6): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие: %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" exit /b 0
 if "%choice%"=="1" goto install
-if "%choice%"=="2" goto svc_reinstall
+if "%choice%"=="2" (
+    if !HEADROOM_INSTALLED! equ 0 (
+        echo   %ESC%[1;31m[ОШИБКА] HeadRoom не установлен — сначала пункт [1].%ESC%[0m
+        pause
+        goto menu
+    )
+    goto svc_reinstall
+)
 if "%choice%"=="3" goto svc_remove
-if "%choice%"=="4" goto stats
-if "%choice%"=="6" goto toggle_proxy
+if "%choice%"=="4" (
+    if !HEADROOM_INSTALLED! equ 0 (
+        echo   %ESC%[1;31m[ОШИБКА] HeadRoom не установлен — сначала пункт [1].%ESC%[0m
+        pause
+        goto menu
+    )
+    goto stats
+)
+if "%choice%"=="6" (
+    if !HEADROOM_INSTALLED! equ 0 (
+        echo   %ESC%[1;31m[ОШИБКА] HeadRoom не установлен — сначала пункт [1].%ESC%[0m
+        pause
+        goto menu
+    )
+    goto toggle_proxy
+)
 if "%choice%"=="7" goto headroom_nuke
 goto menu
 
@@ -258,6 +291,42 @@ echo.
 echo  %ESC%[1;32m+ %ESC%[0m HeadRoom установлен: %HEADROOM_DIR%
 echo  %ESC%[2m  Порт %HEADROOM_PORT%, режим cache, upstream %HEADROOM_UPSTREAM%%ESC%[0m
 echo  %ESC%[2m  Hermes должен указывать на http://127.0.0.1:%HEADROOM_PORT%/v1%ESC%[0m
+echo.
+REM ============================================================================
+REM   ТРОЙНАЯ ПЕРЕСТРАХОВКА: модель + реестр + проверка сжатия
+REM   Если хоть один шаг не удался — установка СЧИТАЕТСЯ ПРОВАЛЕННОЙ.
+REM ============================================================================
+call :hr_ensure_model
+if errorlevel 1 (
+    echo.
+    echo   %ESC%[1;31m[ОШИБКА] Модель Kompress НЕ скачана — сжатие работать НЕ будет!%ESC%[0m
+    echo   %ESC%[33mHeadRoom установлен, но без сжатия. Повтори установку позже.%ESC%[0m
+    pause
+    exit /b 1
+)
+call :hr_set_hf_env
+if errorlevel 1 (
+    echo.
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось прописать HF_HOME службе — сжатие работать НЕ будет!%ESC%[0m
+    pause
+    exit /b 1
+)
+call :hr_restart_service
+if errorlevel 1 (
+    echo.
+    echo   %ESC%[1;31m[ОШИБКА] Служба не перезапустилась после настройки.%ESC%[0m
+    pause
+    exit /b 1
+)
+call :hr_verify_compress
+if errorlevel 1 (
+    echo.
+    echo   %ESC%[1;31m[ОШИБКА] ПРОВЕРКА СЖАТИЯ НЕ ПРОЙДЕНА!%ESC%[0m
+    echo   %ESC%[33mHeadRoom работает, но НЕ сжимает контекст — деньги уходят без экономии.%ESC%[0m
+    pause
+    exit /b 1
+)
+echo   %ESC%[1;32m+ %ESC%[0m Компрессия ПОДТВЕРЖДЕНА: контекст реально сжимается.
 echo.
 REM --- Подключаем Hermes к прокси (model.base_url) ---
 call :hr_enable_proxy
@@ -497,6 +566,101 @@ REM ============================================================================
 :hr_need_restart
 echo.
 echo   %ESC%[1;33m  ВАЖНО: перезапусти Hermes Desktop, чтобы изменения base_url применились.%ESC%[0m
+exit /b 0
+
+REM ============================================================================
+REM   :hr_ensure_model — скачать модель Kompress в HF_HOME (портабельно).
+REM   Скачивает напрямую, при неудаче — через прокси 10809. Проверяет ONNX.
+REM   Выход: 0 = модель на месте, 1 = НЕ скачана (установка провалена).
+REM ============================================================================
+:hr_ensure_model
+if not exist "%HEADROOM_PY%" (
+    echo   %ESC%[1;31m[ОШИБКА] python venv headroom не найден: %HEADROOM_PY%%ESC%[0m
+    exit /b 1
+)
+if not exist "%SCRIPTS_DIR%\py\headroom_download_model.py" (
+    echo   %ESC%[1;31m[ОШИБКА] Не найден скрипт скачивания: %SCRIPTS_DIR%\py\headroom_download_model.py%ESC%[0m
+    exit /b 1
+)
+echo   %ESC%[2m  Модель Kompress (%HEADROOM_HF_MODEL%)...%ESC%[0m
+if not exist "%HEADROOM_HF_HOME%\hub" mkdir "%HEADROOM_HF_HOME%\hub" 2>nul
+set "HF_HOME=%HEADROOM_HF_HOME%"
+"%HEADROOM_PY%" "%SCRIPTS_DIR%\py\headroom_download_model.py"
+if errorlevel 1 (
+    echo   %ESC%[1;31m[ОШИБКА] Модель Kompress не скачана (напрямую и через прокси 10809).%ESC%[0m
+    echo   %ESC%[33mПроверь интернет/прокси и повтори установку.%ESC%[0m
+    exit /b 1
+)
+echo   %ESC%[1;32m+ %ESC%[0m Модель Kompress скачана в %HEADROOM_HF_HOME%
+exit /b 0
+
+REM ============================================================================
+REM   :hr_set_hf_env — прописать HF_HOME службе Headroom (реестр NSSM).
+REM   Через headroom_set_hf_env.ps1 (от админа), с обратной проверкой.
+REM   Выход: 0 = записано и ПРОВЕРЕНО, 1 = не удалось.
+REM ============================================================================
+:hr_set_hf_env
+if not exist "%SCRIPTS_DIR%\py\headroom_set_hf_env.ps1" (
+    echo   %ESC%[1;31m[ОШИБКА] Не найден %SCRIPTS_DIR%\py\headroom_set_hf_env.ps1%ESC%[0m
+    exit /b 1
+)
+echo   %ESC%[2m  Прописываю HF_HOME службе Headroom...%ESC%[0m
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\py\headroom_set_hf_env.ps1" -HeadroomDir "%HEADROOM_DIR%" -HfHome "%HEADROOM_HF_HOME%"
+if errorlevel 1 (
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось записать HF_HOME в реестр службы.%ESC%[0m
+    exit /b 1
+)
+REM --- Дублирующая проверка: читаем реестр напрямую ---
+set "HF_CHECK="
+for /f "delims=" %%u in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2^>nul ^| findstr /C:"HF_HOME="') do set "HF_CHECK=%%u"
+if not defined HF_CHECK (
+    echo   %ESC%[1;31m[ОШИБКА] Проверка реестра не нашла HF_HOME — запись не применилась.%ESC%[0m
+    exit /b 1
+)
+echo   %ESC%[1;32m+ %ESC%[0m HF_HOME прописан и проверен: %HEADROOM_HF_HOME%
+exit /b 0
+
+REM ============================================================================
+REM   :hr_restart_service — перезапуск службы Headroom с ожиданием RUNNING.
+REM   Выход: 0 = служба RUNNING, 1 = не поднялась.
+REM ============================================================================
+:hr_restart_service
+echo   %ESC%[2m  Перезапускаю службу Headroom...%ESC%[0m
+if exist "%HEADROOM_NSSM%" (
+    "%HEADROOM_NSSM%" stop Headroom >nul 2>&1
+    timeout /t 2 /nobreak >nul 2>&1
+    "%HEADROOM_NSSM%" start Headroom >nul 2>&1
+) else (
+    sc stop Headroom >nul 2>&1
+    timeout /t 2 /nobreak >nul 2>&1
+    sc start Headroom >nul 2>&1
+)
+timeout /t 5 /nobreak >nul 2>&1
+set "HR_STATE="
+for /f "delims=" %%u in ('sc query Headroom 2^>nul ^| findstr /C:"RUNNING"') do set "HR_STATE=%%u"
+if not defined HR_STATE (
+    echo   %ESC%[1;31m[ОШИБКА] Служба Headroom не перешла в RUNNING после перезапуска.%ESC%[0m
+    exit /b 1
+)
+echo   %ESC%[1;32m+ %ESC%[0m Служба Headroom RUNNING.
+exit /b 0
+
+REM ============================================================================
+REM   :hr_verify_compress — ЖЁСТКАЯ проверка: health + реальный тест сжатия.
+REM   Выход: 0 = сжатие подтверждено, 1 = НЕ работает (установка провалена).
+REM ============================================================================
+:hr_verify_compress
+if not exist "%SCRIPTS_DIR%\py\headroom_verify_compress.py" (
+    echo   %ESC%[1;31m[ОШИБКА] Не найден скрипт проверки: %SCRIPTS_DIR%\py\headroom_verify_compress.py%ESC%[0m
+    exit /b 1
+)
+echo   %ESC%[2m  Проверяю сжатие (health + реальный тест /v1/compress)...%ESC%[0m
+"%HEADROOM_PY%" "%SCRIPTS_DIR%\py\headroom_verify_compress.py"
+if errorlevel 1 (
+    echo   %ESC%[1;31m[ОШИБКА] Сжатие НЕ работает (noop/degraded).%ESC%[0m
+    exit /b 1
+)
+echo   %ESC%[1;32m+ %ESC%[0m Сжатие подтверждено.
 exit /b 0
 
 REM ============================================================================
