@@ -679,12 +679,12 @@ if exist "%HEADROOM_NSSM%" (
 )
 timeout /t 5 /nobreak >nul 2>&1
 set "HR_STATE="
-for /f "delims=" %%u in ('sc query Headroom 2^>nul ^| findstr /C:"RUNNING"') do set "HR_STATE=%%u"
+for /f "delims=" %%u in ('sc query Headroom 2^>nul ^| findstr /C:"RUNNING" /C:"PAUSED"') do set "HR_STATE=%%u"
 if not defined HR_STATE (
-    echo   %ESC%[1;31m[ОШИБКА] Служба Headroom не перешла в RUNNING после перезапуска.%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Служба Headroom не запустилась ^(нет RUNNING/PAUSED^).%ESC%[0m
     exit /b 1
 )
-echo   %ESC%[1;32m+ %ESC%[0m Служба Headroom RUNNING.
+echo   %ESC%[1;32m+ %ESC%[0m Служба Headroom жива ^(%HR_STATE%^).
 exit /b 0
 
 REM ============================================================================
