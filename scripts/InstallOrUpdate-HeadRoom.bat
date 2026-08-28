@@ -74,6 +74,7 @@ REM ============================================================================
 if /i "%~1"=="install" goto do_install
 if /i "%~1"=="svc_reinstall" goto do_svc_reinstall
 if /i "%~1"=="svc_remove" goto do_svc_remove
+if /i "%~1"=="headroom_nuke" goto headroom_nuke
 
 REM ============================================================================
 REM   Статус HeadRoom
@@ -401,26 +402,30 @@ exit /b 0
 
 REM ============================================================================
 REM   [7] ПОЛНЫЙ СНОС HeadRoom: служба + каталог целиком
+REM   Порядок: ДА → UAC → удаление. Повторный запуск с параметром
+REM   headroom_nuke (после UAC) — подтверждение пропускается.
 REM ============================================================================
 :headroom_nuke
-if "!IS_ADMIN!"=="0" (
-    echo.
-    echo   %ESC%[1;33m  Требуются права администратора — запрашиваю UAC...%ESC%[0m
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Start-Process cmd -Verb RunAs -ArgumentList '/c','""%~f0"" headroom_nuke' -Wait } catch { exit 1 }"
-    if errorlevel 1 (
-        echo   %ESC%[1;31m[ОШИБКА] UAC отклонён.%ESC%[0m
+if /i not "%~1"=="headroom_nuke" (
+    echo   %ESC%[1;33m  ВНИМАНИЕ: будет удалена СЛУЖБА и КАТАЛОГ %HEADROOM_DIR% целиком.%ESC%[0m
+    set "nuke_confirm="
+    set /p "nuke_confirm=%ESC%[31m  Точно снести? Введи ДА: %ESC%[0m"
+    if /i not "%nuke_confirm%"=="ДА" (
+        echo   %ESC%[2m  Отменено.%ESC%[0m
         pause
         goto status
     )
-    goto status
-)
-echo   %ESC%[1;33m  ВНИМАНИЕ: будет удалена СЛУЖБА и КАТАЛОГ %HEADROOM_DIR% целиком.%ESC%[0m
-set "nuke_confirm="
-set /p "nuke_confirm=%ESC%[31m  Точно снести? Введи ДА: %ESC%[0m"
-if /i not "%nuke_confirm%"=="ДА" (
-    echo   %ESC%[2m  Отменено.%ESC%[0m
-    pause
-    goto status
+    if "!IS_ADMIN!"=="0" (
+        echo.
+        echo   %ESC%[1;33m  Требуются права администратора — запрашиваю UAC...%ESC%[0m
+        powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Start-Process cmd -Verb RunAs -ArgumentList '/c','""%~f0"" headroom_nuke' -Wait } catch { exit 1 }"
+        if errorlevel 1 (
+            echo   %ESC%[1;31m[ОШИБКА] UAC отклонён.%ESC%[0m
+            pause
+            goto status
+        )
+        goto status
+    )
 )
 echo   %ESC%[2m  Останавливаю и удаляю службу Headroom...%ESC%[0m
 if exist "%HEADROOM_NSSM%" (
