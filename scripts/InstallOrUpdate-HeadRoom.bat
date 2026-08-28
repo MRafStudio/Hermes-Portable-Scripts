@@ -71,6 +71,9 @@ if errorlevel 1 (set "IS_ADMIN=0") else (set "IS_ADMIN=1")
 REM ============================================================================
 REM   Параметры командной строки (self-elevate: запуск от администратора)
 REM ============================================================================
+REM --- Пакетный режим (параметр задан): никаких pause, ждать некому ---
+set "AUTORUN=0"
+if not "%~1"=="" set "AUTORUN=1"
 if /i "%~1"=="install" goto do_install
 if /i "%~1"=="svc_reinstall" goto do_svc_reinstall
 if /i "%~1"=="svc_remove" goto do_svc_remove
@@ -231,7 +234,7 @@ echo [%date% %time%] Бэкап выполнен >> "%HR_INSTALL_LOG%"
 if not exist "%UV_EXE%" (
     echo   %ESC%[1;31m[ОШИБКА] uv не найден: %UV_EXE%%ESC%[0m
     echo   %ESC%[33mСначала установите uv через меню «Установка / Обновление компонентов».%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 
@@ -251,13 +254,13 @@ if not exist "%HR_RELEASE_JSON%" (
 )
 if not exist "%HR_RELEASE_JSON%" (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось получить последний релиз с GitHub ^(нет сети ни напрямую, ни через прокси 10809^).%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 for /f "delims=" %%u in ('powershell -NoProfile -NonInteractive -Command "$j = Get-Content -Raw '%HR_RELEASE_JSON%' | ConvertFrom-Json; $v = $j.tag_name; Write-Output ('https://github.com/%HEADROOM_REPO%/releases/download/' + $v + '/headroom_ai-' + $v.Substring(1) + '-cp310-abi3-win_amd64.whl')" 2^>nul') do set "HR_WHEEL_URL=%%u"
 if not defined HR_WHEEL_URL (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось разобрать URL wheel из ответа GitHub.%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 echo   %ESC%[1;32m  URL: %HR_WHEEL_URL%%ESC%[0m
@@ -285,7 +288,7 @@ if exist "%HEADROOM_VENV%" (
 "%UV_EXE%" venv "%HEADROOM_VENV%" --python 3.13
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось создать venv.%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 
@@ -294,14 +297,14 @@ echo   %ESC%[2m  Установка headroom ^(это займёт пару ми
 "%UV_EXE%" pip install --python "%HEADROOM_PY%" "headroom-ai[%HEADROOM_EXTRAS%] @ %HR_WHEEL_URL%"
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Установка пакета не удалась.%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 del /q "%HR_WHEEL%" 2>nul
 
 if not exist "%HEADROOM_EXE%" (
     echo   %ESC%[1;31m[ОШИБКА] headroom.exe не найден после установки.%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 for /f "delims=" %%v in ('"%HEADROOM_EXE%" --version 2^>nul') do echo   %ESC%[1;32m+ %ESC%[0m HeadRoom %%v — установлен
@@ -309,7 +312,7 @@ for /f "delims=" %%v in ('"%HEADROOM_EXE%" --version 2^>nul') do echo   %ESC%[1;
 REM --- NSSM (обёртка службы) — скачается автоматически, если нет ---
 call :ensure_nssm
 if errorlevel 1 (
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 
@@ -317,7 +320,7 @@ REM --- Установка службы ---
 call :install_service
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Служба не установлена. Смотрите вывод выше.%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 echo.
@@ -334,21 +337,21 @@ if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] Модель Kompress НЕ скачана — сжатие работать НЕ будет!%ESC%[0m
     echo   %ESC%[33mHeadRoom установлен, но без сжатия. Повтори установку позже.%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 call :hr_set_hf_env
 if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] Не удалось прописать HF_HOME службе — сжатие работать НЕ будет!%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 call :hr_restart_service
 if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] Служба не перезапустилась после настройки.%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 call :hr_verify_compress
@@ -356,7 +359,7 @@ if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] ПРОВЕРКА СЖАТИЯ НЕ ПРОЙДЕНА!%ESC%[0m
     echo   %ESC%[33mHeadRoom работает, но НЕ сжимает контекст — деньги уходят без экономии.%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     exit /b 1
 )
 echo   %ESC%[1;32m+ %ESC%[0m Компрессия ПОДТВЕРЖДЕНА: контекст реально сжимается.
@@ -365,7 +368,7 @@ REM --- Подключаем Hermes к прокси (model.base_url) ---
 call :hr_enable_proxy
 call :hr_need_restart
 echo.
-pause
+if not "%AUTORUN%"=="1" pause
 exit /b 0
 
 REM ============================================================================
@@ -374,7 +377,7 @@ REM ============================================================================
 :svc_reinstall
 if not exist "%HEADROOM_EXE%" (
     echo   %ESC%[1;31m[ОШИБКА] HeadRoom не установлен. Сначала пункт [1].%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     goto status
 )
 if "!IS_ADMIN!"=="0" (
@@ -383,7 +386,7 @@ if "!IS_ADMIN!"=="0" (
     powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Start-Process cmd -Verb RunAs -ArgumentList '/c','""%~f0"" svc_reinstall' -Wait } catch { exit 1 }"
     if errorlevel 1 (
         echo   %ESC%[1;31m[ОШИБКА] UAC отклонён.%ESC%[0m
-        pause
+        if not "%AUTORUN%"=="1" pause
         goto status
     )
     goto status
@@ -394,7 +397,7 @@ goto status
 :do_svc_reinstall
 call :install_service
 if errorlevel 1 pause
-pause
+if not "%AUTORUN%"=="1" pause
 exit /b 0
 
 REM ============================================================================
@@ -407,7 +410,7 @@ if "!IS_ADMIN!"=="0" (
     powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Start-Process cmd -Verb RunAs -ArgumentList '/c','""%~f0"" svc_remove' -Wait } catch { exit 1 }"
     if errorlevel 1 (
         echo   %ESC%[1;31m[ОШИБКА] UAC отклонён.%ESC%[0m
-        pause
+        if not "%AUTORUN%"=="1" pause
         goto status
     )
     goto status
@@ -429,7 +432,7 @@ echo.
 REM --- Возвращаем Hermes на прямой DeepSeek (base_url) ---
 call :hr_disable_proxy
 call :hr_need_restart
-pause
+if not "%AUTORUN%"=="1" pause
 exit /b 0
 
 REM ============================================================================
@@ -444,7 +447,7 @@ if /i not "%~1"=="headroom_nuke" (
     set /p "nuke_confirm=%ESC%[31m  Точно снести? Введи ДА: %ESC%[0m"
     if /i not "%nuke_confirm%"=="ДА" (
         echo   %ESC%[2m  Отменено.%ESC%[0m
-        pause
+        if not "%AUTORUN%"=="1" pause
         goto status
     )
     if "!IS_ADMIN!"=="0" (
@@ -453,7 +456,7 @@ if /i not "%~1"=="headroom_nuke" (
         powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Start-Process cmd -Verb RunAs -ArgumentList '/c','""%~f0"" headroom_nuke' -Wait } catch { exit 1 }"
         if errorlevel 1 (
             echo   %ESC%[1;31m[ОШИБКА] UAC отклонён.%ESC%[0m
-            pause
+            if not "%AUTORUN%"=="1" pause
             goto status
         )
         goto status
@@ -479,7 +482,7 @@ if exist "%HEADROOM_DIR%" (
 )
 echo   %ESC%[1;32m+ %ESC%[0m HeadRoom полностью снесён. Чистая установка — пункт [1].
 call :hr_need_restart
-pause
+if not "%AUTORUN%"=="1" pause
 exit /b 0
 
 REM ============================================================================
@@ -488,17 +491,17 @@ REM ============================================================================
 :stats
 if not exist "%HEADROOM_PY%" (
     echo   %ESC%[1;31m[ОШИБКА] HeadRoom не установлен. Сначала пункт [1].%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     goto status
 )
 if not exist "%HEADROOM_STATS%" (
     echo   %ESC%[1;31m[ОШИБКА] Не найден headroom_stats.py в %SCRIPTS_DIR%\py%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     goto status
 )
 "%HEADROOM_PY%" "%HEADROOM_STATS%"
 echo.
-pause
+if not "%AUTORUN%"=="1" pause
 goto status
 
 REM ============================================================================
@@ -711,7 +714,7 @@ REM ============================================================================
 :toggle_proxy
 if not exist "%HERMES_BIN%" (
     echo   %ESC%[1;31m[ОШИБКА] hermes.exe не найден: %HERMES_BIN%%ESC%[0m
-    pause
+    if not "%AUTORUN%"=="1" pause
     goto status
 )
 call :hr_get_current
@@ -721,7 +724,7 @@ if "!HR_CUR!"=="%HEADROOM_BASE_URL%" (
     call :hr_enable_proxy
 )
 call :hr_need_restart
-pause
+if not "%AUTORUN%"=="1" pause
 goto status
 
 REM ============================================================================
