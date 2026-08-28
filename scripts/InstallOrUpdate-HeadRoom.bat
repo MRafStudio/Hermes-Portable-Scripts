@@ -237,12 +237,26 @@ if not exist "%UV_EXE%" (
 
 if not exist "%HEADROOM_DIR%" mkdir "%HEADROOM_DIR%" 2>nul
 
-REM --- Актуальная версия и URL wheel через GitHub API ---
+REM --- Актуальная версия и URL wheel через GitHub API (curl + fallback на прокси) ---
 echo   %ESC%[2m  Запрашиваю последний релиз %HEADROOM_REPO% ...%ESC%[0m
 set "HR_WHEEL_URL="
-for /f "delims=" %%u in ('powershell -NoProfile -NonInteractive -Command "$v=(Invoke-RestMethod -Uri 'https://api.github.com/repos/%HEADROOM_REPO%/releases/latest' -UseBasicParsing -TimeoutSec 30).tag_name; Write-Output ('https://github.com/%HEADROOM_REPO%/releases/download/' + $v + '/headroom_ai-' + $v.Substring(1) + '-cp310-abi3-win_amd64.whl')" 2^>nul') do set "HR_WHEEL_URL=%%u"
+set "HR_RELEASE_JSON=%TEMP%\headroom_release.json"
+set "CURL_HDR=%SYSTEMROOT%\System32\curl.exe"
+if not exist "%CURL_HDR%" set "CURL_HDR=curl"
+del "%HR_RELEASE_JSON%" 2>nul
+"%CURL_HDR%" -s -L --fail --noproxy "*" -m 30 -o "%HR_RELEASE_JSON%" "https://api.github.com/repos/%HEADROOM_REPO%/releases/latest" 2>nul
+if not exist "%HR_RELEASE_JSON%" (
+    echo   %ESC%[1;33m  GitHub API напрямую недоступен - пробую через прокси 10809...%ESC%[0m
+    "%CURL_HDR%" -s -L --fail -x "http://127.0.0.1:10809" -m 30 -o "%HR_RELEASE_JSON%" "https://api.github.com/repos/%HEADROOM_REPO%/releases/latest" 2>nul
+)
+if not exist "%HR_RELEASE_JSON%" (
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось получить последний релиз с GitHub (нет сети ни напрямую, ни через прокси 10809).%ESC%[0m
+    pause
+    exit /b 1
+)
+for /f "delims=" %%u in ('powershell -NoProfile -NonInteractive -Command "$j = Get-Content -Raw '%HR_RELEASE_JSON%' | ConvertFrom-Json; $v = $j.tag_name; Write-Output ('https://github.com/%HEADROOM_REPO%/releases/download/' + $v + '/headroom_ai-' + $v.Substring(1) + '-cp310-abi3-win_amd64.whl')" 2^>nul') do set "HR_WHEEL_URL=%%u"
 if not defined HR_WHEEL_URL (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось получить последний релиз с GitHub.%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось разобрать URL wheel из ответа GitHub.%ESC%[0m
     pause
     exit /b 1
 )
@@ -308,7 +322,7 @@ if errorlevel 1 (
 )
 echo.
 echo  %ESC%[1;32m+ %ESC%[0m HeadRoom установлен: %HEADROOM_DIR%
-echo  %ESC%[2m  Порт %HEADROOM_PORT%, режим cache, upstream %HEADROOM_UPSTREAM%%ESC%[0m
+echo  %ESC%[2m  Порт %HEADROOM_PORT%, режим token (сжатие), upstream %HEADROOM_UPSTREAM%%ESC%[0m
 echo  %ESC%[2m  Hermes должен указывать на http://127.0.0.1:%HEADROOM_PORT%/v1%ESC%[0m
 echo.
 REM ============================================================================
@@ -632,14 +646,15 @@ if not exist "%SCRIPTS_DIR%\py\headroom_set_hf_env.ps1" (
     exit /b 1
 )
 echo   %ESC%[2m  Прописываю HF_HOME службе Headroom...%ESC%[0m
-REM --- Путь 1: ps1 (с обратной проверкой внутри) ---
+REM   MULTI_SZ пишется ТОЛЬКО через ps1 ([string[]]): reg add НЕ умеет
+REM   ставить null-разделители (\\0 уходит как литеральные символы и
+REM   портит запись). Поэтому ps1 — единственный и обязательный путь.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\py\headroom_set_hf_env.ps1" -HeadroomDir "%HEADROOM_DIR%" -HfHome "%HEADROOM_HF_HOME%"
-reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2>nul | findstr /C:"HF_HOME=" >nul
 if errorlevel 1 (
-    echo   %ESC%[2m  Путь 2: reg add ^(дублирующая запись^)...%ESC%[0m
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra /t REG_MULTI_SZ /d "HEADROOM_WORKSPACE_DIR=%HEADROOM_DIR%\workspace\0HF_HOME=%HEADROOM_HF_HOME%" /f >nul 2>&1
-    reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2>nul | findstr /C:"HF_HOME=" >nul
+    echo   %ESC%[1;31m[ОШИБКА] ps1 не записал HF_HOME ^(exit %errorlevel%^).%ESC%[0m
+    exit /b 1
 )
+reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2>nul | findstr /C:"HF_HOME=" >nul
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Проверка реестра не нашла HF_HOME — запись не применилась.%ESC%[0m
     exit /b 1
@@ -748,7 +763,7 @@ if errorlevel 1 exit /b 1
 echo   %ESC%[2m  Настройка службы Headroom...%ESC%[0m
 "%HEADROOM_NSSM%" stop Headroom >nul 2>&1
 "%HEADROOM_NSSM%" remove Headroom confirm >nul 2>&1
-"%HEADROOM_NSSM%" install Headroom "%HEADROOM_EXE%" proxy --openai-api-url %HEADROOM_UPSTREAM% --port %HEADROOM_PORT% --mode cache
+"%HEADROOM_NSSM%" install Headroom "%HEADROOM_EXE%" proxy --openai-api-url %HEADROOM_UPSTREAM% --port %HEADROOM_PORT% --mode token
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] nssm install не удался.%ESC%[0m
     exit /b 1
@@ -761,7 +776,7 @@ if errorlevel 1 (
 "%HEADROOM_NSSM%" set Headroom DisplayName "Headroom AI proxy"
 "%HEADROOM_NSSM%" set Headroom Description "Compression proxy for LLM (Hermes -> DeepSeek), port %HEADROOM_PORT%"
 "%HEADROOM_NSSM%" set Headroom Start SERVICE_AUTO_START
-"%HEADROOM_NSSM%" set Headroom AppEnvironmentExtra "HEADROOM_WORKSPACE_DIR=%HEADROOM_DIR%\workspace"
+"%HEADROOM_NSSM%" set Headroom AppEnvironmentExtra "HEADROOM_WORKSPACE_DIR=%HEADROOM_DIR%\workspace" "HF_HOME=%HEADROOM_HF_HOME%"
 "%HEADROOM_NSSM%" start Headroom
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Служба не запустилась. Лог: %HEADROOM_DIR%\headroom.err.log%ESC%[0m

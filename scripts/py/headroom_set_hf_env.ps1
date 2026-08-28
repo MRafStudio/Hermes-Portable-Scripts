@@ -1,5 +1,7 @@
-# -*- coding: utf-8 -*-
-# Запись HF_HOME + WORKSPACE_DIR в AppEnvironmentExtra службы Headroom.
+# Запись HF_HOME + WORKSPACE_DIR в AppEnvironmentExtra службы Headroom (NSSM).
+# NSSM читает окружение из AppEnvironmentExtra (ДОПОЛНЯЕТ системное окружение).
+# AppEnvironment (srvany-совместимый) ЗАМЕНЯЕТ окружение целиком — НЕ использовать:
+# без PATH/SystemRoot служба падает на import _overlapped (WinError 10106).
 # Вызывается из InstallOrUpdate-HeadRoom.bat (от админа).
 # Выход: 0 = записано и проверено, 1 = ошибка.
 
@@ -33,7 +35,7 @@ try {
     $check = Get-ItemProperty -Path $svcPath -Name AppEnvironmentExtra
     $joined = [string]::Join("`n", @($check.AppEnvironmentExtra))
     if (-not $joined.Contains("HF_HOME=$HfHome")) {
-        Write-Output "FAIL: HF_HOME не найден после записи"
+        Write-Output "FAIL: HF_HOME not found after write"
         exit 1
     }
     Write-Output "OK: HF_HOME=$HfHome"

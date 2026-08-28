@@ -111,11 +111,15 @@ def warmup() -> None:
 
 
 def main() -> int:
+    # Порядок критичен: модель грузится ЛЕНИВО при первом /v1/compress.
+    # 1) прогрев (первый запрос — noop, модель грузится в фоне)
+    # 2) ожидание ready=true (после прогрева наступит)
+    # 3) боевой замер (второй запрос уже сжимает)
+    warmup()
     ok_health = check_health()
     if not ok_health:
         print("VERIFY_FAIL")
         return 1
-    warmup()
     ok_compress = check_compress()
     if ok_health and ok_compress:
         print("VERIFY_OK")
