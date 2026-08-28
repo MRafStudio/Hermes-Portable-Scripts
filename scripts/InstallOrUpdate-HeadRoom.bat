@@ -610,14 +610,20 @@ if not exist "%SCRIPTS_DIR%\py\headroom_set_hf_env.ps1" (
     exit /b 1
 )
 echo   %ESC%[2m  Прописываю HF_HOME службе Headroom...%ESC%[0m
+REM --- Путь 1: ps1 (с обратной проверкой внутри) ---
 powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\py\headroom_set_hf_env.ps1" -HeadroomDir "%HEADROOM_DIR%" -HfHome "%HEADROOM_HF_HOME%"
 if errorlevel 1 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось записать HF_HOME в реестр службы.%ESC%[0m
-    exit /b 1
+    echo   %ESC%[1;33m  ps1 не сработал — пробую reg add напрямую...%ESC%[0m
 )
-REM --- Дублирующая проверка: читаем реестр напрямую ---
+REM --- Проверка: записалось ли HF_HOME ---
 set "HF_CHECK="
 for /f "delims=" %%u in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2^>nul ^| findstr /C:"HF_HOME="') do set "HF_CHECK=%%u"
+if not defined HF_CHECK (
+    echo   %ESC%[2m  Путь 2: reg add (дублирующая запись)...%ESC%[0m
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra /t REG_MULTI_SZ /d "HEADROOM_WORKSPACE_DIR=%HEADROOM_DIR%\workspace\0HF_HOME=%HEADROOM_HF_HOME%" /f >nul 2>&1
+    set "HF_CHECK="
+    for /f "delims=" %%u in ('reg query "HKLM\SYSTEM\CurrentControlSet\Services\Headroom\Parameters" /v AppEnvironmentExtra 2^>nul ^| findstr /C:"HF_HOME="') do set "HF_CHECK=%%u"
+)
 if not defined HF_CHECK (
     echo   %ESC%[1;31m[ОШИБКА] Проверка реестра не нашла HF_HOME — запись не применилась.%ESC%[0m
     exit /b 1
