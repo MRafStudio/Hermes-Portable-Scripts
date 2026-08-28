@@ -532,76 +532,62 @@ REM ============================================================================
 REM   :hr_enable_proxy — сохранить текущий base_url и переключить Hermes на прокси
 REM ============================================================================
 :hr_enable_proxy
+REM Включить прокси: переключить активного провайдера на deepseek-hr (8787)
+REM и СНЯТЬ глобальный model.base_url (он перекрывает provider-овский).
 call :hr_get_current
-if "!HR_HERMES_OK!"=="0" (
-    echo   %ESC%[1;33m  ВНИМАНИЕ: hermes.exe не найден - настройка base_url пропущена.%ESC%[0m
-    echo   %ESC%[33m  Выполни позже: hermes config set model.base_url %HEADROOM_BASE_URL%%ESC%[0m
+set "HR_ENABLED=0"
+if exist "%HERMES_BIN%" (
+    for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.provider 2^>nul') do set "HR_PROV=%%u"
+)
+echo(%HR_PROV%|findstr /C:"deepseek-hr" >nul 2>&1 && set "HR_ENABLED=1"
+if "!HR_ENABLED!"=="1" (
+    echo   %ESC%[1;32m+ %ESC%[0m Hermes уже работает через прокси ^(provider=deepseek-hr^).
     exit /b 0
 )
-if "!HR_CUR!"=="%HEADROOM_BASE_URL%" (
-    echo   %ESC%[1;32m+ %ESC%[0m Hermes уже настроен на прокси: %HEADROOM_BASE_URL%
+if not exist "%HERMES_BIN%" (
+    echo   %ESC%[1;33m  ВНИМАНИЕ: hermes.exe не найден - переключение пропущено.%ESC%[0m
     exit /b 0
 )
-echo   %ESC%[2m  Сохраняю текущий base_url ^(%HR_CUR%^) и переключаю Hermes на прокси...%ESC%[0m
-> "%HEADROOM_SAVED_URL%" echo %HR_CUR%
-if "!HR_HR_OK!"=="1" (
-    "%HERMES_BIN%" config set providers.deepseek-hr.base_url "%HEADROOM_BASE_URL%" >nul 2>&1
-) else (
-    "%HERMES_BIN%" config set model.base_url "%HEADROOM_BASE_URL%" >nul 2>&1
-)
+echo   %ESC%[2m  Переключаю Hermes на прокси ^(provider=deepseek-hr^)...%ESC%[0m
+"%HERMES_BIN%" config set model.provider deepseek-hr >nul 2>&1
+"%HERMES_BIN%" config set providers.deepseek-hr.base_url "%HEADROOM_BASE_URL%" >nul 2>&1
+REM Снять глобальный model.base_url (перекрывает provider-овский!)
+"%HERMES_BIN%" config unset model.base_url >nul 2>&1
 if errorlevel 1 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось изменить base_url.%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось переключить Hermes на прокси.%ESC%[0m
     exit /b 0
 )
-if "!HR_HR_OK!"=="1" (
-    echo   %ESC%[1;32m+ %ESC%[0m Hermes подключён к прокси: providers.deepseek-hr.base_url = %HEADROOM_BASE_URL%
-) else (
-    echo   %ESC%[1;32m+ %ESC%[0m Hermes подключён к прокси: model.base_url = %HEADROOM_BASE_URL%
-)
+echo   %ESC%[1;32m+ %ESC%[0m Hermes подключён к прокси: provider=deepseek-hr ^(8787^), глобальный base_url снят.
 exit /b 0
 
 REM ============================================================================
 REM   :hr_disable_proxy — вернуть сохранённый base_url (прямой DeepSeek)
 REM ============================================================================
 :hr_disable_proxy
+REM Отключить прокси: вернуть активного провайдера на встроенный deepseek
+REM (прямой api.deepseek.com) — глобальный base_url не нужен для встроенного.
 call :hr_get_current
-if "!HR_HERMES_OK!"=="0" (
-    echo   %ESC%[1;33m  ВНИМАНИЕ: hermes.exe не найден - откат base_url пропущен.%ESC%[0m
+set "HR_ENABLED=0"
+if exist "%HERMES_BIN%" (
+    for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.provider 2^>nul') do set "HR_PROV=%%u"
+)
+echo(%HR_PROV%|findstr /C:"deepseek-hr" >nul 2>&1 && set "HR_ENABLED=1"
+if "!HR_ENABLED!"=="0" (
+    echo   %ESC%[2m  Hermes и так не на прокси — откат не нужен.%ESC%[0m
     exit /b 0
 )
-if not "!HR_CUR!"=="%HEADROOM_BASE_URL%" (
-    echo   %ESC%[2m  Hermes и так не на прокси ^(%HR_CUR%^) - откат не нужен.%ESC%[0m
+if not exist "%HERMES_BIN%" (
+    echo   %ESC%[1;33m  ВНИМАНИЕ: hermes.exe не найден - откат пропущен.%ESC%[0m
+    echo   %ESC%[33m  Верни вручную: hermes config set model.provider deepseek%ESC%[0m
     exit /b 0
 )
-if not exist "%HEADROOM_SAVED_URL%" (
-    echo   %ESC%[1;33m  Предупреждение: сохранённый base_url не найден.%ESC%[0m
-    if "!HR_HR_OK!"=="1" (
-        echo   %ESC%[33m  Откат не выполнен. Верни вручную: hermes config set providers.deepseek-hr.base_url https://api.deepseek.com/v1%ESC%[0m
-    ) else (
-        echo   %ESC%[33m  Откат не выполнен. Верни вручную: hermes config set model.base_url https://api.deepseek.com/v1%ESC%[0m
-    )
-    exit /b 0
-)
-set "HR_SAVED="
-for /f "delims=" %%u in ('type "%HEADROOM_SAVED_URL%" 2^>nul') do set "HR_SAVED=%%u"
-if not defined HR_SAVED (
-    echo   %ESC%[1;33m  Предупреждение: файл %HEADROOM_SAVED_URL% пуст - откат не выполнен.%ESC%[0m
-    exit /b 0
-)
-if "!HR_HR_OK!"=="1" (
-    "%HERMES_BIN%" config set providers.deepseek-hr.base_url "%HR_SAVED%" >nul 2>&1
-) else (
-    "%HERMES_BIN%" config set model.base_url "%HR_SAVED%" >nul 2>&1
-)
+echo   %ESC%[2m  Возвращаю Hermes на прямой DeepSeek ^(provider=deepseek^)...%ESC%[0m
+"%HERMES_BIN%" config set model.provider deepseek >nul 2>&1
 if errorlevel 1 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось восстановить base_url.%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось вернуть провайдера.%ESC%[0m
     exit /b 0
 )
-if "!HR_HR_OK!"=="1" (
-    echo   %ESC%[1;32m+ %ESC%[0m Hermes возвращён: providers.deepseek-hr.base_url = %HR_SAVED%
-) else (
-    echo   %ESC%[1;32m+ %ESC%[0m Hermes возвращён: model.base_url = %HR_SAVED%
-)
+echo   %ESC%[1;32m+ %ESC%[0m Hermes возвращён на прямой DeepSeek ^(provider=deepseek^).
 exit /b 0
 
 REM ============================================================================
