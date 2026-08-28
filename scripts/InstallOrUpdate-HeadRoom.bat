@@ -29,6 +29,7 @@ set "HEADROOM_NSSM=%HEADROOM_DIR%\nssm\nssm.exe"
 set "HEADROOM_NSSM_ZIP=%TEMP%\nssm-2.24.zip"
 set "HEADROOM_PORT=8787"
 set "HEADROOM_UPSTREAM=https://api.deepseek.com"
+set "HEADROOM_EXTRAS=proxy,ml,code"
 set "HEADROOM_STATS=%SCRIPTS_DIR%\py\headroom_stats.py"
 set "HEADROOM_REPO=headroomlabs-ai/headroom"
 set "HEADROOM_NSSM_URL=https://nssm.cc/release/nssm-2.24.zip"
@@ -128,16 +129,18 @@ echo       %ESC%[2mСвежий wheel из GitHub, venv, служба с авт�
 echo.
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mПереустановить службу%ESC%[0m
 echo       %ESC%[2mЕсли прокси не стартует или путь установки изменился%ESC%[0m
-echo.
+
 if !HEADROOM_SVC! equ 1 (
+echo.
 echo   %ESC%[1;31m[3]%ESC%[0m %ESC%[1;31mУдалить службу%ESC%[0m
 echo       %ESC%[2mПрокси остановится — сжатие отключится до переустановки%ESC%[0m
+echo.
+echo   %ESC%[1;31m[7]%ESC%[0m %ESC%[1;31mПОЛНЫЙ СНОС HeadRoom%ESC%[0m
+echo       %ESC%[2mСлужба + каталог целиком. Чистая переустановка через [1]%ESC%[0m
 )
 echo.
 echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mСтатус и экономия%ESC%[0m
 echo       %ESC%[2mСводка: запросы, сэкономленные токены, деньги%ESC%[0m
-echo.
-echo   %ESC%[1;37m[5]%ESC%[0m %ESC%[1mОткрыть папку установки%ESC%[0m
 echo.
 echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mПодключить/Отключить прокси в Hermes%ESC%[0m
 echo       %ESC%[2mТумблер: model.base_url на прокси ^(или обратно на DeepSeek^)%ESC%[0m
@@ -153,8 +156,8 @@ if "%choice%"=="1" goto install
 if "%choice%"=="2" goto svc_reinstall
 if "%choice%"=="3" goto svc_remove
 if "%choice%"=="4" goto stats
-if "%choice%"=="5" goto open_dir
 if "%choice%"=="6" goto toggle_proxy
+if "%choice%"=="7" goto headroom_nuke
 goto menu
 
 REM ============================================================================
@@ -209,6 +212,10 @@ if errorlevel 1 exit /b 1
 
 REM --- Создание venv (python 3.13, скачается uv'ом при необходимости) ---
 echo   %ESC%[2m  Создание виртуального окружения...%ESC%[0m
+if exist "%HEADROOM_VENV%" (
+    echo   %ESC%[2m  Чищу старый venv — обновление экстров ^(proxy,ml,code^) гарантировано...%ESC%[0m
+    rmdir /s /q "%HEADROOM_VENV%"
+)
 "%UV_EXE%" venv "%HEADROOM_VENV%" --python 3.13
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось создать venv.%ESC%[0m
@@ -218,7 +225,7 @@ if errorlevel 1 (
 
 REM --- Установка пакета из wheel ---
 echo   %ESC%[2m  Установка headroom ^(это займёт пару минут — зависимости тяжелые^)...%ESC%[0m
-"%UV_EXE%" pip install --python "%HEADROOM_PY%" "headroom-ai[proxy] @ %HR_WHEEL_URL%"
+"%UV_EXE%" pip install --python "%HEADROOM_PY%" "headroom-ai[%HEADROOM_EXTRAS%] @ %HR_WHEEL_URL%"
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Установка пакета не удалась.%ESC%[0m
     pause
@@ -324,6 +331,52 @@ pause
 exit /b 0
 
 REM ============================================================================
+REM   [7] ПОЛНЫЙ СНОС HeadRoom: служба + каталог целиком
+REM ============================================================================
+:headroom_nuke
+if "!IS_ADMIN!"=="0" (
+    echo.
+    echo   %ESC%[1;33m  Требуются права администратора — запрашиваю UAC...%ESC%[0m
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Start-Process cmd -Verb RunAs -ArgumentList '/c','""%~f0"" headroom_nuke' -Wait } catch { exit 1 }"
+    if errorlevel 1 (
+        echo   %ESC%[1;31m[ОШИБКА] UAC отклонён.%ESC%[0m
+        pause
+        goto status
+    )
+    goto status
+)
+echo   %ESC%[1;33m  ВНИМАНИЕ: будет удалена СЛУЖБА и КАТАЛОГ %HEADROOM_DIR% целиком.%ESC%[0m
+set "nuke_confirm="
+set /p "nuke_confirm=%ESC%[31m  Точно снести? Введи ДА: %ESC%[0m"
+if /i not "%nuke_confirm%"=="ДА" (
+    echo   %ESC%[2m  Отменено.%ESC%[0m
+    pause
+    goto status
+)
+echo   %ESC%[2m  Останавливаю и удаляю службу Headroom...%ESC%[0m
+if exist "%HEADROOM_NSSM%" (
+    "%HEADROOM_NSSM%" stop Headroom >nul 2>&1
+    "%HEADROOM_NSSM%" remove Headroom confirm >nul 2>&1
+) else (
+    sc stop Headroom >nul 2>&1
+    sc delete Headroom >nul 2>&1
+)
+echo   %ESC%[1;32m+ %ESC%[0m Служба удалена.
+REM --- Сначала возвращаем Hermes на прямой DeepSeek (пока saved_base_url.txt жив) ---
+call :hr_disable_proxy
+echo   %ESC%[2m  Удаляю каталог %HEADROOM_DIR% ...%ESC%[0m
+if exist "%HEADROOM_DIR%" (
+    rmdir /s /q "%HEADROOM_DIR%"
+    echo   %ESC%[1;32m+ %ESC%[0m Каталог удалён.
+) else (
+    echo   %ESC%[2m  Каталог и так отсутствует.%ESC%[0m
+)
+echo   %ESC%[1;32m+ %ESC%[0m HeadRoom полностью снесён. Чистая установка — пункт [1].
+call :hr_need_restart
+pause
+exit /b 0
+
+REM ============================================================================
 REM   [4] Статус и экономия
 REM ============================================================================
 :stats
@@ -343,22 +396,22 @@ pause
 goto status
 
 REM ============================================================================
-REM   [5] Открыть папку установки
-REM ============================================================================
-:open_dir
-if not exist "%HEADROOM_DIR%" mkdir "%HEADROOM_DIR%" 2>nul
-explorer "%HEADROOM_DIR%"
-goto status
-
-REM ============================================================================
 REM   :hr_get_current — текущий model.base_url в HR_CUR; HR_HERMES_OK=1 если hermes есть
+REM   Каноничная схема: провайдер deepseek-hr.base_url (а НЕ глобальный model.base_url!)
 REM ============================================================================
 :hr_get_current
 set "HR_HERMES_OK=0"
 set "HR_CUR="
+set "HR_HR_OK=0"
 if exist "%HERMES_BIN%" (
-    for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.base_url 2^>nul') do set "HR_CUR=%%u"
-    if defined HR_CUR set "HR_HERMES_OK=1"
+    for /f "delims=" %%u in ('"%HERMES_BIN%" config get providers.deepseek-hr.base_url 2^>nul ^| findstr /V /C:"not set"') do set "HR_CUR=%%u"
+    if defined HR_CUR (
+        set "HR_HR_OK=1"
+        set "HR_HERMES_OK=1"
+    ) else (
+        for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.base_url 2^>nul ^| findstr /V /C:"not set"') do set "HR_CUR=%%u"
+        if defined HR_CUR set "HR_HERMES_OK=1"
+    )
 )
 exit /b 0
 
@@ -378,12 +431,20 @@ if "!HR_CUR!"=="%HEADROOM_BASE_URL%" (
 )
 echo   %ESC%[2m  Сохраняю текущий base_url ^(%HR_CUR%^) и переключаю Hermes на прокси...%ESC%[0m
 > "%HEADROOM_SAVED_URL%" echo %HR_CUR%
-"%HERMES_BIN%" config set model.base_url "%HEADROOM_BASE_URL%" >nul 2>&1
+if "!HR_HR_OK!"=="1" (
+    "%HERMES_BIN%" config set providers.deepseek-hr.base_url "%HEADROOM_BASE_URL%" >nul 2>&1
+) else (
+    "%HERMES_BIN%" config set model.base_url "%HEADROOM_BASE_URL%" >nul 2>&1
+)
 if errorlevel 1 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось изменить model.base_url.%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось изменить base_url.%ESC%[0m
     exit /b 0
 )
-echo   %ESC%[1;32m+ %ESC%[0m Hermes подключён к прокси: %HEADROOM_BASE_URL%
+if "!HR_HR_OK!"=="1" (
+    echo   %ESC%[1;32m+ %ESC%[0m Hermes подключён к прокси: providers.deepseek-hr.base_url = %HEADROOM_BASE_URL%
+) else (
+    echo   %ESC%[1;32m+ %ESC%[0m Hermes подключён к прокси: model.base_url = %HEADROOM_BASE_URL%
+)
 exit /b 0
 
 REM ============================================================================
@@ -401,7 +462,11 @@ if not "!HR_CUR!"=="%HEADROOM_BASE_URL%" (
 )
 if not exist "%HEADROOM_SAVED_URL%" (
     echo   %ESC%[1;33m  Предупреждение: сохранённый base_url не найден.%ESC%[0m
-    echo   %ESC%[33m  Откат не выполнен. Верни вручную: hermes config set model.base_url https://api.deepseek.com/v1%ESC%[0m
+    if "!HR_HR_OK!"=="1" (
+        echo   %ESC%[33m  Откат не выполнен. Верни вручную: hermes config set providers.deepseek-hr.base_url https://api.deepseek.com/v1%ESC%[0m
+    ) else (
+        echo   %ESC%[33m  Откат не выполнен. Верни вручную: hermes config set model.base_url https://api.deepseek.com/v1%ESC%[0m
+    )
     exit /b 0
 )
 set "HR_SAVED="
@@ -410,12 +475,20 @@ if not defined HR_SAVED (
     echo   %ESC%[1;33m  Предупреждение: файл %HEADROOM_SAVED_URL% пуст - откат не выполнен.%ESC%[0m
     exit /b 0
 )
-"%HERMES_BIN%" config set model.base_url "%HR_SAVED%" >nul 2>&1
+if "!HR_HR_OK!"=="1" (
+    "%HERMES_BIN%" config set providers.deepseek-hr.base_url "%HR_SAVED%" >nul 2>&1
+) else (
+    "%HERMES_BIN%" config set model.base_url "%HR_SAVED%" >nul 2>&1
+)
 if errorlevel 1 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось восстановить model.base_url.%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось восстановить base_url.%ESC%[0m
     exit /b 0
 )
-echo   %ESC%[1;32m+ %ESC%[0m Hermes возвращён на прямой доступ: %HR_SAVED%
+if "!HR_HR_OK!"=="1" (
+    echo   %ESC%[1;32m+ %ESC%[0m Hermes возвращён: providers.deepseek-hr.base_url = %HR_SAVED%
+) else (
+    echo   %ESC%[1;32m+ %ESC%[0m Hermes возвращён: model.base_url = %HR_SAVED%
+)
 exit /b 0
 
 REM ============================================================================
