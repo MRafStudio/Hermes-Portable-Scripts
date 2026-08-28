@@ -47,6 +47,8 @@ REM   Параметры плагинов
 REM ============================================================================
 set "LLAMA_MANAGER_DIR=%DATA_DIR%\llama-manager"
 set "LLAMA_MANAGER_EXE=%LLAMA_MANAGER_DIR%\LlamaCppWindowsManager.exe"
+set "HEADROOM_DIR=%DATA_DIR%\HeadRoom"
+set "HEADROOM_EXE=%HEADROOM_DIR%\.venv\Scripts\headroom.exe"
 
 REM ============================================================================
 REM   Статусы плагинов
@@ -71,6 +73,14 @@ REM Версия менеджера — из метаданных exe (запу�
 set "LLAMA_MANAGER_VER=?"
 if exist "%LLAMA_MANAGER_EXE%" (
     for /f "delims=" %%v in ('powershell -NoProfile -NonInteractive -Command "(Get-Item -LiteralPath '%LLAMA_MANAGER_EXE%').VersionInfo.FileVersion" 2^>nul') do set "LLAMA_MANAGER_VER=%%v"
+)
+
+REM Статус HeadRoom
+set "HEADROOM_INSTALLED=0"
+set "HEADROOM_VER=?"
+if exist "%HEADROOM_EXE%" (
+    set "HEADROOM_INSTALLED=1"
+    for /f "delims=" %%v in ('"%HEADROOM_EXE%" --version 2^>nul') do set "HEADROOM_VER=%%v"
 )
 
 set "MEMOS_INSTALLED=0"
@@ -108,6 +118,11 @@ if !MEMOS_INSTALLED! equ 1 (
 ) else (
     echo   %ESC%[1;33m. %ESC%[0m MemOS — память агента: не установлен
 )
+if !HEADROOM_INSTALLED! equ 1 (
+    echo   %ESC%[1;32m+ %ESC%[0m HeadRoom %ESC%[2m^(v!HEADROOM_VER!^)%ESC%[0m — прокси сжатия контекста
+) else (
+    echo   %ESC%[1;33m. %ESC%[0m HeadRoom — прокси сжатия контекста: не установлен
+)
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlamaCppWindowsManager — локальный сервер LLM%ESC%[0m
 echo       %ESC%[2mУстановка/обновление, модели, служба — через менеджер%ESC%[0m
@@ -119,15 +134,19 @@ if !MEMOS_INSTALLED! equ 1 (
     echo       %ESC%[2mУстановить: L1/L2/L3 память, гибридный поиск, viewer :18800%ESC%[0m
 )
 echo.
+echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mHeadRoom — прокси сжатия контекста%ESC%[0m
+echo       %ESC%[2mСжатие контекста до LLM: экономия токенов ^(служба :8787^)%ESC%[0m
+echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-2): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-3): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
 if "%choice%"=="1" goto llama_menu
 if "%choice%"=="2" goto install_memos
+if "%choice%"=="3" goto install_headroom
 goto menu
 
 
@@ -261,6 +280,14 @@ REM ============================================================================
 set "RETURN_MENU=menu"
 call "%SCRIPTS_DIR%\Backup-Now.bat"
 call "%SCRIPTS_DIR%\InstallOrUpdate-Memos.bat"
+goto status
+
+REM ============================================================================
+REM   [3] HeadRoom — прокси сжатия контекста (отдельный скрипт)
+REM ============================================================================
+:install_headroom
+set "RETURN_MENU=menu"
+call "%SCRIPTS_DIR%\InstallOrUpdate-HeadRoom.bat"
 goto status
 
 REM ============================================================================
