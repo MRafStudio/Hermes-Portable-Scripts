@@ -536,6 +536,14 @@ if exist "%HERMES_BIN%" (
 echo(%HR_PROV%|findstr /C:"deepseek-hr" >nul 2>&1 && set "HR_ENABLED=1"
 if "!HR_ENABLED!"=="1" (
     echo   %ESC%[1;32m+ %ESC%[0m Hermes уже работает через прокси ^(provider=deepseek-hr^).
+REM Глобальный base_url -> headroom, иначе встроенный deepseek сбивает маршрут
+"%HERMES_BIN%" config set model.base_url http://127.0.0.1:%HEADROOM_PORT%/v1 >nul 2>&1
+if errorlevel 1 (
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось переключить глобальный model.base_url на headroom.%ESC%[0m
+    echo   %ESC%[33m  Выполни вручную: hermes config set model.base_url http://127.0.0.1:%HEADROOM_PORT%/v1%ESC%[0m
+    exit /b 1
+)
+echo   %ESC%[1;32m+ %ESC%[0m Глобальный base_url -> http://127.0.0.1:%HEADROOM_PORT%/v1 (headroom)
     exit /b 0
 )
 if not exist "%HERMES_BIN%" (
@@ -576,6 +584,9 @@ if exist "%HERMES_BIN%" (
 echo(%HR_PROV%|findstr /C:"deepseek-hr" >nul 2>&1 && set "HR_ENABLED=1"
 if "!HR_ENABLED!"=="0" (
     echo   %ESC%[2m  Hermes и так не на прокси — откат не нужен.%ESC%[0m
+REM Глобальный base_url -> прямой DeepSeek (headroom отключён)
+"%HERMES_BIN%" config set model.base_url https://api.deepseek.com/v1 >nul 2>&1
+echo   %ESC%[1;32m+ %ESC%[0m Глобальный base_url -> https://api.deepseek.com/v1 ^(прямой DeepSeek^)
     exit /b 0
 )
 if not exist "%HERMES_BIN%" (
