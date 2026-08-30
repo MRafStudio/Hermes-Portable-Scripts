@@ -146,8 +146,8 @@ echo       %ESC%[2mСлужба + каталог целиком. Чистая п
 )
 if !HEADROOM_INSTALLED! equ 1 (
 echo.
-echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mСтатус и экономия%ESC%[0m
-echo       %ESC%[2mСводка: запросы, сэкономленные токены, деньги%ESC%[0m
+echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mОткрыть Dashboard%ESC%[0m
+echo       %ESC%[2mОткрывает веб-панель статистики Headroom в браузере%ESC%[0m
 echo.
 echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mПодключить/Отключить прокси в Hermes%ESC%[0m
 echo       %ESC%[2mТумблер: model.base_url на прокси ^(или обратно на DeepSeek^)%ESC%[0m
@@ -478,7 +478,7 @@ if not "%AUTORUN%"=="1" pause
 exit /b 0
 
 REM ============================================================================
-REM   [4] Статус и экономия
+REM   [4] Открыть Dashboard
 REM ============================================================================
 :stats
 if not exist "%HEADROOM_PY%" (
@@ -486,13 +486,8 @@ if not exist "%HEADROOM_PY%" (
     if not "%AUTORUN%"=="1" pause
     goto status
 )
-if not exist "%HEADROOM_STATS%" (
-    echo   %ESC%[1;31m[ОШИБКА] Не найден headroom_stats.py в %SCRIPTS_DIR%\py%ESC%[0m
-    if not "%AUTORUN%"=="1" pause
-    goto status
-)
-"%HEADROOM_PY%" "%HEADROOM_STATS%"
-echo.
+echo   %ESC%[1;32mОткрываю Headroom Dashboard...%ESC%[0m
+start "" "http://127.0.0.1:8787/dashboard"
 if not "%AUTORUN%"=="1" pause
 goto status
 
