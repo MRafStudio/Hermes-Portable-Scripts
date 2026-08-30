@@ -801,6 +801,9 @@ if errorlevel 1 (
     exit /b 1
 )
 sc query Headroom | findstr STATE
+REM --- Применяем runtime_env настройки headroom (Effort Router, Output Shaper, Mechanical Effort, Read Min Chars) ---
+timeout /t 3 /nobreak >nul 2>&1
+"%CURL_HDR%" -s -m 8 -X POST http://127.0.0.1:8787/admin/runtime-env -H "Content-Type: application/json" -d "{\"HEADROOM_INTERCEPT_READ_MIN_CHARS\":\"2000\",\"HEADROOM_EFFORT_ROUTER\":\"1\",\"HEADROOM_MECHANICAL_EFFORT\":\"low\",\"HEADROOM_OUTPUT_SHAPER\":\"1\"}" >nul 2>&1
 exit /b 0
 
 REM ============================================================================
