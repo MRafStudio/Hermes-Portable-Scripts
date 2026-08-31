@@ -789,7 +789,7 @@ if errorlevel 1 (
 "%HEADROOM_NSSM%" set Headroom DisplayName "Headroom AI proxy"
 "%HEADROOM_NSSM%" set Headroom Description "Compression proxy for LLM (Hermes -> DeepSeek), port %HEADROOM_PORT%"
 "%HEADROOM_NSSM%" set Headroom Start SERVICE_AUTO_START
-"%HEADROOM_NSSM%" set Headroom AppEnvironmentExtra "HEADROOM_WORKSPACE_DIR=%HEADROOM_DIR%\workspace" "HF_HOME=%HEADROOM_HF_HOME%"
+"%HEADROOM_NSSM%" set Headroom AppEnvironmentExtra "HEADROOM_WORKSPACE_DIR=%HEADROOM_DIR%\workspace" "HF_HOME=%HEADROOM_HF_HOME%" "HEADROOM_INTERCEPT_READ_MIN_CHARS=4096" "HEADROOM_EFFORT_ROUTER=1" "HEADROOM_MECHANICAL_EFFORT=low" "HEADROOM_OUTPUT_SHAPER=1"
 "%HEADROOM_NSSM%" start Headroom
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Служба не запустилась. Лог: %HEADROOM_DIR%\headroom.err.log%ESC%[0m
@@ -798,7 +798,7 @@ if errorlevel 1 (
 sc query Headroom | findstr STATE
 REM --- Применяем runtime_env настройки headroom (Effort Router, Output Shaper, Mechanical Effort, Read Min Chars) ---
 timeout /t 3 /nobreak >nul 2>&1
-"%CURL_HDR%" -s -m 8 -X POST http://127.0.0.1:8787/admin/runtime-env -H "Content-Type: application/json" -d "{\"HEADROOM_INTERCEPT_READ_MIN_CHARS\":\"2000\",\"HEADROOM_EFFORT_ROUTER\":\"1\",\"HEADROOM_MECHANICAL_EFFORT\":\"low\",\"HEADROOM_OUTPUT_SHAPER\":\"1\"}" >nul 2>&1
+"%CURL_HDR%" -s -m 8 -X POST http://127.0.0.1:8787/admin/runtime-env -H "Content-Type: application/json" -d "{\"HEADROOM_INTERCEPT_READ_MIN_CHARS\":\"4096\",\"HEADROOM_EFFORT_ROUTER\":\"1\",\"HEADROOM_MECHANICAL_EFFORT\":\"low\",\"HEADROOM_OUTPUT_SHAPER\":\"1\"}" >nul 2>&1
 exit /b 0
 
 REM ============================================================================
