@@ -57,7 +57,7 @@ def main():
         lt.get("compression_savings_usd", 0)))
     print("Вход: %d токенов, $%.5f" % (
         lt.get("total_input_tokens", 0), lt.get("total_input_cost_usd", 0)))
-    print("\nПодробная статистика:  http://127.0.0.1:8787/stats-history")
+    print("\nПодробная статистика:  http://127.0.0.1:8787/dashboard")
 
 
 if __name__ == "__main__":
