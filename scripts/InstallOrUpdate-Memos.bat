@@ -86,6 +86,7 @@ echo       %ESC%[2mРучное редактирование: Notepad++ или �
 echo.
 echo   %ESC%[1;36m[4]%ESC%[0m %ESC%[1mОткрыть MemOS Dashboard%ESC%[0m
 echo       %ESC%[2mУправление настройками и памятью%ESC%[0m
+echo.
 echo   %ESC%[1;31m[8]%ESC%[0m %ESC%[1;31mУдалить MemOS полностью%ESC%[0m
 if !MEMOS_INSTALLED! equ 1 (
     echo       %ESC%[2mБД памяти, настройки и модели будут удалены БЕЗВОЗВРАТНО%ESC%[0m
