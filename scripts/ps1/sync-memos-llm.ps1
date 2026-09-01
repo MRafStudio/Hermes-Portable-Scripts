@@ -1,4 +1,4 @@
-# sync-memos-llm.ps1 - синхронизация активной LLM Hermes в конфиг MemOS (llm/l3Llm/skillEvolver).
+﻿# sync-memos-llm.ps1 - синхронизация активной LLM Hermes в конфиг MemOS (llm/l3Llm/skillEvolver).
 # Единая функция настройки кристаллизации памяти под ТЕКУЩУЮ модель Hermes (источник истины =
 # конфиг Hermes: model.provider / model.default / model.base_url). Вызывается из
 # Start-Llama-IfNeeded.bat ПОСЛЕ синхронизации конфига Hermes (сценарии А и Б2).
@@ -68,7 +68,7 @@ function Set-MemosApiKey([string]$Key) {
     $cfgPath = Join-Path $RuntimeHome "config.yaml"
     if (-not (Test-Path $cfgPath)) { return }
     $raw = Get-Content -Path $cfgPath -Raw -Encoding UTF8
-    $raw = [regex]::Replace($raw, '(apiKey:\s*)(.*)', ('${1}"' + $Key + '"'))
+    $raw = [regex]::Replace($raw, '(?s)(llm:.*?apiKey:\s*)([^\r\n]*)', ('${1}"' + $Key + '"'))
     [System.IO.File]::WriteAllText($cfgPath, $raw, (New-Object System.Text.UTF8Encoding $false))
 }
 
