@@ -139,7 +139,10 @@ Remove-Item -LiteralPath $packDir -Force -Recurse -ErrorAction SilentlyContinue
 # --- 2. npm install (+ build только если dist НЕ приложен к тарболу) ---
 Write-Host "npm install (native modules, may take a while)..."
 Push-Location $RuntimeHome
-Invoke-Npm @("install", "--no-audit", "--no-fund")
+# ERESOLVE upstream-баг (2.0.18): dsh-tools@rc.6 тянет dsh-user-approval@^0.1.0-rc.6,
+# npm берёт rc.8, а тот требует peer dsh-agent@^0.1.0-rc.8 (в devDeps пинится rc.6).
+# dsh-* — dev-инструменты DeepSeek harness, для Hermes-адаптера не нужны.
+Invoke-Npm @("install", "--no-audit", "--no-fund", "--legacy-peer-deps")
 # --- npm 11+ блокирует install-скрипты native-модулей по умолчанию: без prebuild-бинарей
 #     better-sqlite3 / onnxruntime / sharp не работают - rebuild скачает prebuilds ---
 $nativePkgs = @("better-sqlite3", "onnxruntime-node", "sharp", "protobufjs", "esbuild")
@@ -149,7 +152,7 @@ try {
     Write-Host "npm approve-scripts: skipped (npm < 11.16)"
 }
 try {
-    Invoke-Npm (@("rebuild", "--no-audit", "--no-fund") + $nativePkgs)
+    Invoke-Npm (@("rebuild", "--no-audit", "--no-fund", "--legacy-peer-deps") + $nativePkgs)
 } catch {
     Write-Host "npm rebuild (native prebuilds): skipped"
 }
