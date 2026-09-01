@@ -84,6 +84,8 @@ echo.
 echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть конфигурацию ^(config.yaml^)%ESC%[0m
 echo       %ESC%[2mРучное редактирование: Notepad++ или Блокнот%ESC%[0m
 echo.
+echo   %ESC%[1;36m[4]%ESC%[0m %ESC%[1mОткрыть MemOS Dashboard%ESC%[0m
+echo       %ESC%[2mУправление настройками и памятью%ESC%[0m
 echo   %ESC%[1;31m[8]%ESC%[0m %ESC%[1;31mУдалить MemOS полностью%ESC%[0m
 if !MEMOS_INSTALLED! equ 1 (
     echo       %ESC%[2mБД памяти, настройки и модели будут удалены БЕЗВОЗВРАТНО%ESC%[0m
@@ -99,6 +101,7 @@ if "%choice%"=="0" exit /b 0
 if "%choice%"=="1" goto install_memos
 if "%choice%"=="2" goto fix_memos
 if "%choice%"=="3" goto open_config
+if "%choice%"=="4" goto open_dashboard
 if "%choice%"=="8" goto uninstall_memos
 goto menu
 
@@ -207,6 +210,9 @@ goto status
 REM ============================================================================
 REM   [3] Открыть config.yaml (Notepad++ если установлен, иначе Блокнот)
 REM ============================================================================
+:open_dashboard
+start "" "http://127.0.0.1:18800/"
+goto menu
 :open_config
 set "CFG_PATH=%HERMES_HOME%\memos-plugin\config.yaml"
 if not exist "%CFG_PATH%" (
