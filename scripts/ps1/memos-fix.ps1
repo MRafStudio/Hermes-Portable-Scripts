@@ -305,9 +305,9 @@ if ($viewerOk) {
             Write-Host "  LLM parameters will be configured on first Hermes launch (Start-Llama-IfNeeded.bat)."
         }
         if ($cryLlm) {
-            $patch.llm = $cryLlm
-            $patch.l3Llm = $cryLlm
-            $patch.skillEvolver = $cryLlm
+            $patch.llm = @{} + $cryLlm
+            $patch.l3Llm = @{} + $cryLlm
+            $patch.skillEvolver = @{} + $cryLlm
         } elseif ($llmProvider -ne "local_only") {
             $patch.llm = @{ provider = "local_only" }
         }
@@ -386,7 +386,7 @@ if ($viewerOk) {
         if ($useDeepSeek -and $dsKey) {
             $cfgPath = Join-Path $RuntimeHome "config.yaml"
             $raw = Get-Content -Path $cfgPath -Raw -Encoding UTF8
-            $raw = [regex]::Replace($raw, '(apiKey:\s*)(?:\*{3}|"")', ('${1}"' + $dsKey + '"'))
+            $raw = [regex]::Replace($raw, '(?s)(llm:.*?apiKey:\s*)(?:\*{3}|"[^"]*")', ('${1}"' + $dsKey + '"'))
             Set-Content -Path $cfgPath -Value $raw -Encoding UTF8 -NoNewline
             Write-Host "  apiKey: written directly (bypass writer masking)"
             $fixed += "apikey"
