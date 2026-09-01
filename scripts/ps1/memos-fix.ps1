@@ -565,6 +565,28 @@ try {
 # viewer daemon оставляем работать (не убиваем): при старте Hermes-сессии
 # ensure_viewer_daemon увидит :18800 занятым MemOS и не запустит второй.
 
+# --- 8. Скиллы MemOS: копируем из scripts\skills в скиллы Hermes, если ещё нет ---
+$srcSkillsRoot = Join-Path $RootDir "scripts\skills"
+$dstSkillsRoot = Join-Path $HermesHome "skills"
+if (Test-Path $srcSkillsRoot) {
+    Get-ChildItem -Path $srcSkillsRoot -Directory | ForEach-Object {
+        $catDir = $_
+        Get-ChildItem -Path $catDir.FullName -Directory | ForEach-Object {
+            $skillName = $_.Name
+            $dstSkill = Join-Path $dstSkillsRoot (Join-Path $catDir.Name $skillName)
+            if (-not (Test-Path $dstSkill)) {
+                try {
+                    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $dstSkill) | Out-Null
+                    Copy-Item -Path $_.FullName -Destination $dstSkill -Recurse -Force
+                    Write-Host "  Skill installed: $($catDir.Name)\$skillName"
+                } catch {
+                    Write-Host "  WARN: skill copy failed: $($catDir.Name)\$skillName - $($_.Exception.Message)"
+                }
+            }
+        }
+    }
+}
+
 Write-Host ""
 if ($dbOk -and $viewerOkFinal) {
     if ($fixed.Count -gt 0) {

@@ -235,9 +235,9 @@ if ($isUpdate) {
     if (Test-Path $HermesExe) {
         $curProvider = (& $HermesExe config get memory.provider 2>$null | Out-String).Trim()
     }
-    if ($curProvider -notmatch "memtensor") {
+    if ($curProvider -and $curProvider -notmatch "memtensor") {
         $wantActivate = $false
-        Write-Host "MemOS installed but DISABLED in Hermes (memory.provider not set) - skipping activation."
+        Write-Host "MemOS installed but DISABLED in Hermes (memory.provider=$curProvider) - skipping activation."
         Write-Host "Enable later with: hermes config set memory.provider memtensor"
     }
 }
