@@ -23,7 +23,8 @@
 
 param(
     [Parameter(Mandatory = $true)]
-    [string]$RootDir
+    [string]$RootDir,
+    [string]$LlmMode = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -188,6 +189,47 @@ if (-not (Test-Path $PluginDir)) {
 #     (LLM через сам Hermes). Локальная LLM для этого НЕ используется (медленно).
 $pluginCfg = Join-Path $RuntimeHome "config.yaml"
 if (-not (Test-Path $pluginCfg)) {
+    # --- LLM для кристаллизации L2/L3 (по желанию): DeepSeek / локальная OpenAI-совместимая (Ollama) / нет ---
+    $LlmProvider = "local_only"
+    $LlmEndpoint = ""
+    $LlmApiKey = "***"
+    $LlmModel = ""
+    $LlmExtra = ""
+    if (-not $LlmMode -and -not [Console]::IsInputRedirected) {
+        $LlmChoice = Read-Host "Кристаллизация L2/L3 через LLM? [D]eepSeek / [O]llama / [N]ет (по умолчанию N)"
+        $LlmMode = $LlmChoice.ToUpper()
+    }
+    if ($LlmMode -eq "D" -or $LlmMode -eq "DEEPSEEK") {
+        $LlmProvider = "openai_compatible"
+        $LlmEndpoint = "https://api.deepseek.com/v1"
+        $LlmModel = Read-Host "DeepSeek модель (Enter = deepseek-chat)"
+        if (-not $LlmModel) { $LlmModel = "deepseek-chat" }
+        $LlmApiKey = Read-Host "DeepSeek API ключ (sk-...)"
+    } elseif ($LlmMode -eq "O" -or $LlmMode -eq "OLLAMA") {
+        $LlmProvider = "openai_compatible"
+        $LlmEndpoint = Read-Host "Ollama endpoint (Enter = http://localhost:11434/v1)"
+        if (-not $LlmEndpoint) { $LlmEndpoint = "http://localhost:11434/v1" }
+        $LlmModel = Read-Host "Ollama модель (например qwen2.5:14b)"
+        $LlmApiKey = "ollama"
+    }
+    if ($LlmProvider -eq "openai_compatible") {
+        $LlmExtra = @"
+skillEvolver:
+  fallbackToHost: false
+  timeoutMs: 600000
+  maxTokens: 8192
+  model: $LlmModel
+  provider: openai_compatible
+  endpoint: $LlmEndpoint
+l3Llm:
+  fallbackToHost: false
+  timeoutMs: 600000
+  maxTokens: 8192
+  model: $LlmModel
+  provider: openai_compatible
+  endpoint: $LlmEndpoint
+"@
+    }
     Write-Host "Writing plugin config.yaml (local embedder, no forced LLM, embedTraces=true, lightweight, telemetry OFF)..."
     @"
 version: 1
@@ -198,10 +240,10 @@ embedding:
   apiKey: ""
   model: ${RuntimeHome}\models\all-MiniLM-L6-v2
 llm:
-  provider: local_only
-  endpoint: ""
-  apiKey: ""
-  model: ""
+  provider: $LlmProvider
+  endpoint: "$LlmEndpoint"
+  apiKey: $LlmApiKey
+  model: "$LlmModel"
   maxTokens: 65536
   timeoutMs: 180000
 storage:
@@ -224,6 +266,7 @@ logging:
   level: info
   detailedView: false
 "@ | Set-Content -Path $pluginCfg -Encoding UTF8
+    if ($LlmExtra) { Add-Content -Path $pluginCfg -Value "`n$LlmExtra" -Encoding UTF8 }
 } else {
     Write-Host "Plugin config.yaml exists - keeping user settings (re-run memos-fix.ps1 to realign)."
 }
