@@ -68,7 +68,9 @@ function Set-MemosApiKey([string]$Key) {
     $cfgPath = Join-Path $RuntimeHome "config.yaml"
     if (-not (Test-Path $cfgPath)) { return }
     $raw = Get-Content -Path $cfgPath -Raw -Encoding UTF8
-    $raw = [regex]::Replace($raw, '(?s)(llm:.*?apiKey:\s*)([^\r\n]*)', ('${1}"' + $Key + '"'))
+                foreach ($secKey in @("llm", "skillEvolver", "l3Llm")) {
+                $raw = [regex]::Replace($raw, ('(?s)(' + $secKey + ':.*?apiKey:\s*)([^\r\n]*)'), ('${1}"' + $Key + '"'))
+            }
     [System.IO.File]::WriteAllText($cfgPath, $raw, (New-Object System.Text.UTF8Encoding $false))
 }
 

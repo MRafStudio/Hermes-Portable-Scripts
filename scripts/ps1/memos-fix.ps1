@@ -239,43 +239,43 @@ if ($viewerOk) {
         # (б) иначе спросить: ввести ключ (кристаллизация через deepseek) или отказаться (local_only).
         $useDeepSeek = $false
         $dsKey = ""
-        # Ключ уже настроен в config.yaml? (реальный, не маскировка '***')
-        $existingKey = ""
         $cfgPath2 = Join-Path $RuntimeHome "config.yaml"
+        $llmProv = ""; $llmModel = ""; $llmEndpoint = ""; $existingKey = ""
         if (Test-Path $cfgPath2) {
             $rawCfg = Get-Content -Path $cfgPath2 -Raw -Encoding UTF8
-            if ($rawCfg -match 'apiKey:\s*"?(sk-[^"
-\n]+)"?') { $existingKey = $Matches[1].Trim() }
+            if ($rawCfg -match '(?s)llm:.*?provider:\s*"?([^"\r\n]+)"?') { $llmProv = $Matches[1].Trim() }
+            if ($rawCfg -match '(?s)llm:.*?model:\s*"?([^"\r\n]*)"?') { $llmModel = $Matches[1].Trim() }
+            if ($rawCfg -match '(?s)llm:.*?apiKey:\s*"?([^"\r\n]+)"?') { $existingKey = $Matches[1].Trim() }
+            if ($rawCfg -match '(?s)llm:.*?endpoint:\s*"?([^"\r\n]+)"?') { $llmEndpoint = $Matches[1].Trim() }
         }
-        if ($existingKey.Length -gt 10) {
-            $tail = $existingKey.Substring([Math]::Max(0, $existingKey.Length - 4))
-            Write-Host "  Crystallization: deepseek key already configured (sk-...$tail)"
-            Write-Host "  Use deepseek? (Y - yes, N - switch to local llama-server) [Y]: " -ForegroundColor Yellow -NoNewline
-            $resp2 = Read-Host
-            if ($resp2 -match "^[nN]") {
-                Write-Host "  Switching crystallization to local llama-server"
+        if ($llmProv -ne "" -and $llmProv -ne "local_only") {
+            # (А) параметры кристаллизации УЖЕ заданы в config.yaml - показываем и едем дальше
+            if ($existingKey.Length -gt 10) {
+                $tail = $existingKey.Substring([Math]::Max(0, $existingKey.Length - 4))
+                Write-Host "  Crystallization: already configured (provider=$llmProv, model=$llmModel, apiKey=sk-...$tail) - skip"
             } else {
-                $useDeepSeek = $true
-                $dsKey = $existingKey
-                Write-Host "  Replace deepseek key? (Y - enter new, N - keep existing) [N]: " -ForegroundColor Yellow -NoNewline
-                $resp2b = Read-Host
-                if ($resp2b -match "^[yY]") {
-                    Write-Host "  Enter new deepseek API key (sk-...): " -ForegroundColor Yellow -NoNewline
-                    $dsKey = Read-Host
-                    if ($dsKey.Trim() -eq "") { $dsKey = $existingKey; Write-Host "  Empty input - keeping existing key." }
-                }
+                Write-Host "  Crystallization: already configured (provider=$llmProv, local model, endpoint=$llmEndpoint) - skip"
             }
+            $useDeepSeek = ($existingKey.Length -gt 10)
+            $dsKey = $existingKey
         } elseif ($env:DEEPSEEK_API_KEY -and $env:DEEPSEEK_API_KEY.Trim() -ne "") {
+            # (б) ключ из окружения - без вопросов
             $useDeepSeek = $true
             $dsKey = $env:DEEPSEEK_API_KEY.Trim()
             Write-Host "  Crystallization: deepseek (DEEPSEEK_API_KEY from env)"
         } else {
-            Write-Host "  Crystallization via deepseek? (Y - enter key, N - use local llama-server) [N]: " -ForegroundColor Yellow -NoNewline
-            $resp = Read-Host
-            if ($resp -match "^[yY]") {
-                Write-Host "  Enter deepseek API key (sk-...): " -ForegroundColor Yellow -NoNewline
-                $dsKey = Read-Host
-                if ($dsKey.Trim() -ne "") { $useDeepSeek = $true }
+            # (Б) параметры НЕ заданы - блок вопросов как в install-memos.ps1
+            $LlmMode = ""
+            $LlmChoice = Read-Host "  Кристаллизация L2/L3 через LLM? [D]eepSeek / [O]llama / [N]ет (по умолчанию N)"
+            if ($LlmChoice) { $LlmMode = $LlmChoice.ToUpper() }
+            if ($LlmMode -eq "D" -or $LlmMode -eq "DEEPSEEK") {
+                $LlmModel = Read-Host "  DeepSeek модель (Enter = deepseek-chat)"
+                if (-not $LlmModel) { $LlmModel = "deepseek-chat" }
+                $dsKey = Read-Host "  DeepSeek API ключ (sk-...)"
+                $dsKey = $dsKey.Trim()
+                if ($dsKey -ne "") { $useDeepSeek = $true }
+            } elseif ($LlmMode -eq "O" -or $LlmMode -eq "OLLAMA") {
+                Write-Host "  Switching crystallization to local ollama (пропишет Start-Llama-IfNeeded.bat)"
             }
         }
         # LLM-схема кристаллизации (важно! по архитектуре MemOS):
@@ -293,11 +293,11 @@ if ($viewerOk) {
             $cryLlm = @{
                 provider = "openai_compatible"
                 endpoint = "https://api.deepseek.com/v1"
-                # apiKey НЕ шлём в PATCH: writer плагина МАСКИРУЕТ его (пишет '***' -
+                # apiKey НЕ шлём в PATCH: writer маскирует его (пишет '***' -
                 # невалидный YAML для 2.0.15 - daemon падает!). Ключ пишем НАПРЯМУЮ после PATCH.
-                model = "deepseek-chat"
+                model = if ($LlmModel) { $LlmModel } else { "deepseek-chat" }
             }
-            Write-Host "  Crystallization: deepseek (llm + l3Llm + skillEvolver, model=deepseek-chat)"
+            Write-Host "  Crystallization: deepseek (llm + l3Llm + skillEvolver, model=$(if ($LlmModel) { $LlmModel } else { "deepseek-chat" }))"
         } else {
             # Локальную llama при установке НЕ настраиваем: конфиг Hermes ещё пуст
             # (или пользователь не выбрал локальную LLM). Параметры LLM (llm/l3Llm/skillEvolver)
@@ -386,7 +386,9 @@ if ($viewerOk) {
         if ($useDeepSeek -and $dsKey) {
             $cfgPath = Join-Path $RuntimeHome "config.yaml"
             $raw = Get-Content -Path $cfgPath -Raw -Encoding UTF8
-            $raw = [regex]::Replace($raw, '(?s)(llm:.*?apiKey:\s*)(?:\*{3}|"[^"]*")', ('${1}"' + $dsKey + '"'))
+            foreach ($secKey in @("llm", "skillEvolver", "l3Llm")) {
+                $raw = [regex]::Replace($raw, ('(?s)(' + $secKey + ':.*?apiKey:\s*)(?:\*{3}|"[^"]*"|\S+)'), ('${1}"' + $dsKey + '"'))
+            }
             Set-Content -Path $cfgPath -Value $raw -Encoding UTF8 -NoNewline
             Write-Host "  apiKey: written directly (bypass writer masking)"
             $fixed += "apikey"

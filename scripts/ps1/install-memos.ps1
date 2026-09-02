@@ -220,6 +220,7 @@ skillEvolver:
   maxTokens: 8192
   model: $LlmModel
   provider: openai_compatible
+  apiKey: "$LlmApiKey"
   endpoint: $LlmEndpoint
 l3Llm:
   fallbackToHost: false
@@ -227,6 +228,7 @@ l3Llm:
   maxTokens: 8192
   model: $LlmModel
   provider: openai_compatible
+  apiKey: "$LlmApiKey"
   endpoint: $LlmEndpoint
 "@
     }
