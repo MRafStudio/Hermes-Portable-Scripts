@@ -78,24 +78,28 @@ if !MEMOS_INSTALLED! equ 1 (
     echo       %ESC%[2mПолная установка: L1/L2/L3 память, гибридный поиск, viewer :18800%ESC%[0m
 )
 echo.
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mПроверка и настройка%ESC%[0m
-echo       %ESC%[2mСамопроверка, подъём viewer, кристаллизация DeepSeek (по желанию)%ESC%[0m
-echo.
-echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть конфигурацию ^(config.yaml^)%ESC%[0m
-echo       %ESC%[2mРучное редактирование: Notepad++ или Блокнот%ESC%[0m
-echo.
-echo   %ESC%[1;36m[4]%ESC%[0m %ESC%[1mОткрыть MemOS Dashboard%ESC%[0m
-echo       %ESC%[2mУправление настройками и памятью%ESC%[0m
-echo.
-echo   %ESC%[1;31m[8]%ESC%[0m %ESC%[1;31mУдалить MemOS полностью%ESC%[0m
 if !MEMOS_INSTALLED! equ 1 (
+    echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mПроверка и настройка%ESC%[0m
+    echo       %ESC%[2mСамопроверка, подъём viewer, кристаллизация DeepSeek ^(по желанию^)%ESC%[0m
+    echo.
+    echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть конфигурацию ^(config.yaml^)%ESC%[0m
+    echo       %ESC%[2mРучное редактирование: Notepad++ или Блокнот%ESC%[0m
+    echo.
+    echo   %ESC%[1;36m[4]%ESC%[0m %ESC%[1mОткрыть MemOS Dashboard%ESC%[0m
+    echo       %ESC%[2mУправление настройками и памятью%ESC%[0m
+    echo.
+    echo   %ESC%[1;31m[8]%ESC%[0m %ESC%[1;31mУдалить MemOS полностью%ESC%[0m
     echo       %ESC%[2mБД памяти, настройки и модели будут удалены БЕЗВОЗВРАТНО%ESC%[0m
 )
 echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад%ESC%[0m
 echo.
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-3, 8): %ESC%[0m"
+if !MEMOS_INSTALLED! equ 1 (
+    set /p "choice=%ESC%[33mВыберите действие (0-4, 8): %ESC%[0m"
+) else (
+    set /p "choice=%ESC%[33mВыберите действие (0-1): %ESC%[0m"
+)
 set "choice=%choice: =%"
 
 if "%choice%"=="0" exit /b 0
