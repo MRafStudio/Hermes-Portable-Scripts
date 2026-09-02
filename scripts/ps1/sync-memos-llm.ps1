@@ -98,7 +98,7 @@ if ($modelProvider -eq "llama" -and $modelBaseUrl -ne "") {
         }
     }
     if ($ep -ne "") {
-        $cry = @{ provider = "openai_compatible"; endpoint = $ep; model = $modelDefault; fallbackToHost = $false }
+        $cry = @{ provider = "openai_compatible"; endpoint = $ep; model = "deepseek-chat"; fallbackToHost = $false }
     }
 }
 if ($null -eq $cry) {
