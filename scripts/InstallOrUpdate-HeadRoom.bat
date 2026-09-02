@@ -521,7 +521,7 @@ REM ============================================================================
 :hr_enable_proxy
 REM Включить прокси: переключить активного провайдера на deepseek-hr (8787),
 REM СНЯТЬ глобальный model.base_url (перекрывает provider-овский) и поставить
-REM модель deepseek-v4-flash (её headroom и сжимает). Прежние значения
+REM модель deepseek-chat (её headroom и сжимает). Прежние значения
 REM сохраняются в saved_provider.txt / saved_model.txt для отката при сносе.
 call :hr_get_current
 set "HR_ENABLED=0"
@@ -550,14 +550,14 @@ for /f "delims=" %%u in ('"%HERMES_BIN%" config get model.default 2^>nul') do se
 > "%HEADROOM_DIR%\saved_model.txt" echo !HR_SAVED_MODEL!
 "%HERMES_BIN%" config set model.provider deepseek-hr >nul 2>&1
 "%HERMES_BIN%" config set providers.deepseek-hr.base_url "%HEADROOM_BASE_URL%" >nul 2>&1
-"%HERMES_BIN%" config set model.default deepseek-v4-flash >nul 2>&1
+"%HERMES_BIN%" config set model.default deepseek-chat >nul 2>&1
 REM Снять глобальный model.base_url (перекрывает provider-овский!)
 "%HERMES_BIN%" config unset model.base_url >nul 2>&1
 if errorlevel 1 (
     echo   %ESC%[1;31m[ОШИБКА] Не удалось переключить Hermes на прокси.%ESC%[0m
     exit /b 0
 )
-echo   %ESC%[1;32m+ %ESC%[0m Hermes подключён к прокси: provider=deepseek-hr, модель deepseek-v4-flash, глобальный base_url снят.
+echo   %ESC%[1;32m+ %ESC%[0m Hermes подключён к прокси: provider=deepseek-hr, модель deepseek-chat, глобальный base_url снят.
 exit /b 0
 
 REM ============================================================================

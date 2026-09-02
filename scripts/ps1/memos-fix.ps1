@@ -295,9 +295,9 @@ if ($viewerOk) {
                 endpoint = "https://api.deepseek.com/v1"
                 # apiKey НЕ шлём в PATCH: writer плагина МАСКИРУЕТ его (пишет '***' -
                 # невалидный YAML для 2.0.15 - daemon падает!). Ключ пишем НАПРЯМУЮ после PATCH.
-                model = "deepseek-v4-flash"
+                model = "deepseek-chat"
             }
-            Write-Host "  Crystallization: deepseek (llm + l3Llm + skillEvolver, model=deepseek-v4-flash)"
+            Write-Host "  Crystallization: deepseek (llm + l3Llm + skillEvolver, model=deepseek-chat)"
         } else {
             # Локальную llama при установке НЕ настраиваем: конфиг Hermes ещё пуст
             # (или пользователь не выбрал локальную LLM). Параметры LLM (llm/l3Llm/skillEvolver)
