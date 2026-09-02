@@ -77,8 +77,8 @@ if !MEMOS_INSTALLED! equ 1 (
 ) else (
     echo       %ESC%[2mПолная установка: L1/L2/L3 память, гибридный поиск, viewer :18800%ESC%[0m
 )
-echo.
 if !MEMOS_INSTALLED! equ 1 (
+    echo.
     echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mПроверка и настройка%ESC%[0m
     echo       %ESC%[2mСамопроверка, подъём viewer, кристаллизация DeepSeek ^(по желанию^)%ESC%[0m
     echo.
