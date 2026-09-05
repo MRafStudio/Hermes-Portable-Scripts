@@ -160,7 +160,8 @@ export const ru = defineLocale({
       microphonePermission: 'Доступ к микрофону запрещён.',
       openaiRejectedApiKey: 'OpenAI отклонил API-ключ.',
       openaiRejectedApiKeyWithStatus: status => `OpenAI отклонил API-ключ (${status} invalid_api_key).`,
-      openaiTtsNeedsKey: 'Для TTS OpenAI нужен VOICE_TOOLS_OPENAI_KEY или OPENAI_API_KEY.'
+      openaiTtsNeedsKey: 'Для TTS OpenAI нужен VOICE_TOOLS_OPENAI_KEY или OPENAI_API_KEY.',
+      codeSkewRestartRequired: 'Этот бэкенд работает на устаревшем коде после обновления. Перезапустите его, чтобы загрузить новый код.'
     },
     voice: {
       configureSpeechToText: 'Настройте распознавание речи для голосового режима.',
@@ -582,6 +583,8 @@ export const ru = defineLocale({
       },
       backdropTitle: 'Фон чата',
       backdropDesc: 'Едва заметное изображение статуи позади разговора.',
+      userBubbleTitle: 'Пузырь сообщения',
+      userBubbleDesc: 'Насколько прозрачны ваши собственные сообщения. При 0 — непрозрачные; при 100 остается только контур.',
       introSplashTitle: 'Приветственная заставка',
       introSplashDesc: 'Фирменная надпись и приглашение, отображаемые в пустом чате.',
       reactionsTitle: 'Реакции на сообщения',
@@ -1088,6 +1091,11 @@ export const ru = defineLocale({
       reasoning: 'Рассуждение',
       reasoningOff: 'Выкл',
       defaultsFailed: 'Не удалось сохранить модели по умолчанию',
+      loadFailed: 'Не удалось загрузить модели',
+      restartRequired: 'Этот бэкенд работает на устаревшем коде после обновления. Перезапустите его, чтобы загрузить новый код.',
+      restartBackend: 'Перезапустить бэкенд',
+      restartingBackend: 'Перезапуск бэкенда...',
+      restartFailed: 'Не удалось перезапустить бэкенд',
       auxiliaryTitle: 'Вспомогательные модели',
       resetAllToMain: 'Сбросить все на основную',
       auxiliaryDesc: 'Вспомогательные задачи по умолчанию выполняются на основной модели. Назначьте отдельную модель для любой задачи, чтобы переопределить.',
@@ -1108,6 +1116,124 @@ export const ru = defineLocale({
         review: { label: 'Ревью', hint: '/review субагент-рецензент' },
         curator: { label: 'Куратор', hint: 'Проверка использования навыков' }
       }
+    },
+    localModels: {
+      title: 'Локальные модели',
+      runtimeTitle: 'Локальная среда выполнения',
+      runtimeReady: backend => `Готово · ${backend}`,
+      serverRunning: 'Работает',
+      runtimeInstalled: 'Среда выполнения llama.cpp установлена',
+      runtimeInstalledDetail: (tag, backend) =>
+        `Сборка ${tag}, бэкенд ${backend}. Hermes запускает сервер и управляет им за вас.`,
+      installTitle: 'Установить локальную среду выполнения',
+      installDetail:
+        'Загружает движок инференса llama.cpp (несколько сотен МБ). Скачанные модели работают полностью на этом компьютере — без учётной записи, ничего не покидает ваш компьютер.',
+      installAction: 'Установить среду выполнения',
+      installing: 'Установка среды выполнения…',
+      installFailed: 'Ошибка установки среды выполнения',
+      hardwareTitle: 'Этот компьютер',
+      hardwareLoading: 'Проверка оборудования…',
+      vram: label => `Видеопамять ${label}`,
+      ram: label => `ОЗУ ${label}`,
+      unifiedMemory: 'Объединённая память',
+      modelsTitle: 'Модели',
+      recommended: 'Рекомендуется',
+      /* The Recommended badge's tooltip, keyed by the resolver branch that
+         made the pick. Qualitative on purpose: predictions order candidates,
+         they are not promises to print. */
+      recommendedReason: {
+        'best-quality-resident':
+          'Самая качественная модель, полностью работающая на вашем GPU на полной скорости. Выбор учитывает баланс качества и прогнозируемой скорости на этом оборудовании.',
+        'speed-gated-quality':
+          'Более качественная модель подходит для этого компьютера, но будет отвечать слишком медленно из-за пропускной способности памяти — это лучшая модель, остающаяся быстрой.',
+        'fastest-resident':
+          'Ни одна модель не достигает полной скорости на этом оборудовании; эта ближе всего к этому, работая полностью в видеопамяти.',
+        'least-painful-spilled': 'Ни одна модель не помещается полностью в видеопамять — эта лучше всего работает из системной ОЗУ.'
+      } as Record<string, string>,
+      downloaded: 'Скачано',
+      downloadAction: size => `Скачать · ${size}`,
+      downloadProgress: (done, total) => `Загрузка ${done} из ${total}`,
+      downloadDoneToast: model => `${model} готова.`,
+      installDoneToast: 'Локальная среда выполнения установлена и готова.',
+      quickstartTitle: 'Запустить модель на этом компьютере',
+      quickstartDetail: (model, size) =>
+        `Один клик настраивает всё: локальный движок, ${model} (загрузка ${size}) и модель по умолчанию для новых чатов. Ничего не покидает этот компьютер.`,
+      quickstartDetailReady: model =>
+        `Один клик делает ${model} моделью по умолчанию для новых чатов. Всё работает на этом компьютере.`,
+      quickstartAction: 'Настроить для меня',
+      quickstartConfigure: 'Настроить…',
+      quickstartDoneToast: model => `${model} настроена — новые чаты работают на этом компьютере.`,
+      quickstartFailed: 'Ошибка настройки локальной модели',
+      quickstartStageEngine: 'Движок',
+      quickstartStageModel: 'Модель',
+      quickstartStageFinish: 'Готово',
+      useAction: 'Использовать',
+      activePill: 'По умолчанию',
+      updateTitle: 'Доступно обновление движка',
+      updateDetail: (next, current) =>
+        `Готова более новая сборка llama.cpp (${next}) — у вас ${current}. Модели продолжают работать во время загрузки.`,
+      updateAction: 'Обновить движок',
+      updating: 'Обновление движка…',
+      upToDateTitle: 'Движок актуален',
+      upToDateDetail: (tag, backend) => `Работает llama.cpp ${tag} (${backend}) — последняя сборка, поставляемая с Hermes.`,
+      updateToast: next => `Доступна более новая сборка локального движка (${next}). Обновите через Настройки → Локальные модели.`,
+      activeDetail: 'Новые чаты используют эту модель — она загружается при отправке первого сообщения',
+      activeNotLoaded: 'Загружается при первом сообщении',
+      loadedPill: 'В памяти',
+      placementResident: 'полностью в GPU',
+      placementSpilled: 'частично в ОЗУ',
+      placementResidentTip: 'Полностью работает в видеопамяти при данном окне контекста — полная скорость.',
+      placementSpilledTip:
+        'Часть этой модели работает из системной ОЗУ — это работает, но медленнее. Более компактная сборка или меньший контекст поместились бы полностью.',
+      loadingPill: 'Загрузка…',
+      ejectTip: 'Освободить видеопамять (загрузится снова при следующем сообщении)',
+      ejected: 'Модель выгружена — видеопамять освобождена.',
+      ejectFailed: 'Не удалось выгрузить модель',
+      stopServer: 'Выключить',
+      startServer: 'Включить',
+      runtimeRunningDetail:
+        'Локальный сервер работает. Его выключение освободит всю видеопамять и остановит использование локальных моделей в новых чатах, пока вы не включите его снова.',
+      serverStopped: 'Локальный сервер остановлен — видеопамять освобождена.',
+      serverStarted: 'Локальный сервер работает.',
+      serverStopFailed: 'Не удалось остановить локальный сервер',
+      serverStartFailed: 'Не удалось запустить локальный сервер',
+      activating: 'Запуск…',
+      activateFailed: model => `Не удалось переключиться на ${model}`,
+      activateDoneToast: model => `В новых чатах используется ${model}.`,
+      downloadFailed: model => `Ошибка загрузки ${model}`,
+      pillFitsGpu: 'Помещается в GPU',
+      pillUsesRam: 'Использует системную ОЗУ',
+      pillTooBig: 'Слишком велико для этого компьютера',
+      browseTitle: 'Найти больше моделей',
+      browseHint:
+        'Поиск по всему Hugging Face. Модели, которые вы скачиваете здесь, автоматически подбираются по размеру под ваш компьютер, но не протестированы нами.',
+      browsePlaceholder: 'Поиск моделей по имени или автору…',
+      browseSearching: 'Поиск в Hugging Face',
+      browseListing: 'Чтение файлов модели',
+      browseShowFiles: 'Показать файлы',
+      browseRefresh: 'Обновить',
+      browseDownloads: 'загрузок',
+      browseLikes: 'лайков',
+      browseGated: 'требуется вход в Hugging Face',
+      browseNoGguf: 'Совместимые файлы модели не найдены.',
+      browseFitUnknown: 'Совместимость неизвестна',
+      browseAlreadyDownloaded: 'Уже скачано.',
+      addedByYou: 'Добавлено вами',
+      browseDownloadStarted: 'Загрузка {name}',
+      browseDownloadAria: 'Скачать {name}',
+      sideloadButton: 'Добавить файл модели',
+      sideloadTitle: 'Выберите файл модели GGUF',
+      sideloadDone: 'Добавлено {name}.',
+      sideloadAlreadyPresent: 'Уже в вашей библиотеке.',
+      pillFullContext: max => `Полный контекст ${max}`,
+      pillFullContextTip: 'Работает с полным окном контекста модели с самого начала',
+      pillUpTo: max => `До ${max} контекста`,
+      pillGrowsTip: 'Автоматически увеличивается, когда разговору нужно больше места',
+      pillVision: 'Видит изображения',
+      deleteAction: 'Удалить модель',
+      deleteConfirm: model => `Удалить ${model} с диска?`,
+      deleted: model => `${model} удалена.`,
+      deleteFailed: 'Ошибка удаления'
     },
     providers: {
       connectAccount: 'Подключить аккаунт',
@@ -1246,6 +1372,26 @@ export const ru = defineLocale({
         selectedMessage: backend => `Команды терминала теперь выполняются через ${backend}. Применяется к новым сессиям.`,
         failedSelect: backend => `Не удалось выбрать ${backend}`,
         needsSetupHint: 'Вы можете выбрать этот бэкенд сейчас — команды будут завершаться с ошибкой, пока настройка не будет завершена.'
+      },
+      browserRealProfile: {
+        label: 'Использовать мой реальный профиль браузера',
+        description:
+          "Копирует логины и куки вашего браузера по умолчанию в управляемый снимок, с которым работает агент. Ваш активный профиль никогда не открывается напрямую. Применяется к новым сессиям.",
+        enabledTitle: 'Просмотр с реальным профилем включен',
+        enabledMessage: 'Новые сессии будут просматривать страницы, используя снимок профиля вашего браузера по умолчанию.',
+        disabledTitle: 'Просмотр с реальным профилем выключен',
+        disabledMessage: 'Снимок профиля будет удален; новые сессии будут использовать чистый браузер.',
+        failedSave: 'Не удалось сохранить настройку реального профиля',
+        prompt: {
+          title: 'Сохранять авторизацию на ваших сайтах',
+          body: 'Позвольте Hermes просматривать страницы с помощью снимка вашего профиля браузера по умолчанию, чтобы сайты открывались уже с выполненным входом.',
+          bulletSnapshot: 'Куки и данные для входа копируются в управляемый снимок.',
+          bulletLiveProfile: 'Ваш активный профиль браузера никогда не открывается напрямую.',
+          bulletLocal: 'Ничего не покидает этот компьютер.',
+          dontShowAgain: "Больше не показывать",
+          notNow: 'Не сейчас',
+          enable: 'Использовать мой профиль'
+        }
       }
     }
   },
@@ -1306,6 +1452,8 @@ export const ru = defineLocale({
     archive: 'Архивировать',
     skillArchivedTitle: 'Навык заархивирован',
     skillArchivedMessage: 'Навык перемещён в архив.',
+    officialCatalog: 'Доступно для установки',
+    officialPill: 'Официальный',
     hub: {
       searchPlaceholder: 'Поиск по каталогу навыков',
       search: 'Поиск',
@@ -1902,6 +2050,7 @@ export const ru = defineLocale({
     defaultBadge: 'По умолчанию',
     rename: 'Переименовать',
     renameMenu: 'Переименовать профиль',
+    exportMenu: 'Экспорт…',
     editSoul: 'Редактировать SOUL.md',
     copySetup: 'Копировать настройку',
     copying: 'Копирование…',
@@ -2731,6 +2880,8 @@ export const ru = defineLocale({
     connected: 'Подключено',
     featuredPitch: 'Одна подписка, 300+ передовых моделей — рекомендуемый способ использования Hermes',
     fireworksPitch: 'Прямой API модели — модели нового поколения, размещённые на Fireworks',
+    localModelsTitle: 'Запуск моделей локально',
+    localModelsPitch: 'Учётная запись не требуется — скачайте модель и запустите её на этом компьютере',
     openRouterPitch: 'Один ключ, сотни моделей — надёжный вариант по умолчанию',
     apiKeyOptions: {
       fireworks: {
@@ -2767,6 +2918,8 @@ export const ru = defineLocale({
     connectedProvider: provider => `${provider} подключён`,
     connectedPicking: provider => `${provider} подключён. Выбор модели по умолчанию…`,
     signInFailed: 'Ошибка входа',
+    signInExpired:
+      'Срок действия сеанса входа истек в ожидании авторизации. Обычно это означает, что страница входа зависла в открытой вкладке (проблема на стороне сервера) — завершите вход там, а затем попробуйте снова. Если ошибка повторяется, используйте ключ API или резервный вариант через CLI.',
     pickDifferentProvider: 'Выбрать другого провайдера',
     signInWith: provider => `Войти через ${provider}`,
     openedBrowser: provider => `Мы открыли ${provider} в вашем браузере.`,
@@ -2802,6 +2955,9 @@ export const ru = defineLocale({
     noModels: 'Модели не найдены.',
     addProvider: 'Добавить провайдера',
     loadFailed: 'Не удалось загрузить платформы мессенджеров',
+    loadingIntoMemory: 'Загрузка в память',
+    downloading: 'Скачивание',
+    localDownloadsHeading: 'Локальные',
     noAuthenticatedProviders: 'Нет авторизованных провайдеров.',
     pro: 'Про',
     proNeedsSubscription: 'Про-модели требуют платную подписку Nous.',
@@ -2907,13 +3063,17 @@ export const ru = defineLocale({
       resetStatusbar: 'Сбросить по умолчанию',
       toggleApprovalMode: 'Режим подтверждений',
       toggleBackendVersion: 'Версия бэкенда',
+      toggleCacheHitRate: 'Процент попаданий в кэш',
       toggleCommandCenter: 'Командный центр',
       toggleContextUsage: 'Использование контекста',
       toggleRunningTimer: 'Время текущего шага',
       toggleSessionTimer: 'Время сессии',
       toggleTerminal: 'Терминал',
+      toggleTokensPerSecond: 'Токенов в секунду',
       toggleVersion: 'Версия и обновления',
       toggleWorkspace: 'Рабочая область',
+      cacheHitRateTitle: 'Процент попаданий в кэш промптов за эту сессию — кэшированные токены стоят дешевле, поэтому чем выше показатель, тем дешевле',
+      tokensPerSecondTitle: 'Выходных токенов в секунду, усреднённое значение за последние 10 вызовов модели',
       agents: 'Агенты',
       closeAgents: 'Закрыть агентов',
       openAgents: 'Открыть агентов',
@@ -2928,6 +3088,15 @@ export const ru = defineLocale({
       openStarmap: 'Открыть граф памяти',
       turnRunning: 'Выполняется',
       contextUsage: 'Использование контекста',
+      systemResources: {
+        title: 'Системные ресурсы',
+        loading: 'Ресурсы…',
+        gpuUtilization: 'Загрузка GPU',
+        gpuMemory: 'Память GPU',
+        ram: 'ОЗУ',
+        unifiedNote: 'Объединённая память — GPU и система используют этот общий пул.',
+        toggle: 'Системные ресурсы'
+      },
       contextUsagePanel: {
         categories: {
           conversation: 'Разговор',
@@ -3092,7 +3261,17 @@ export const ru = defineLocale({
       loadFailedConsole: (code, message) => `Загрузка не удалась${code ? ` (${code})` : ''}: ${message}`,
       unreachableDescription: 'Страница предпросмотра недоступна.',
       openTarget: url => `Открыть ${url}`,
-      fallbackTitle: 'Предпросмотр'
+      fallbackTitle: 'Предпросмотр',
+      annotate: 'Аннотировать',
+      annotateOn: 'Завершить аннотацию',
+      annotateNeedPage: 'Сначала откройте страницу во встроенном браузере.',
+      annotateFailed: 'Не удалось запустить режим аннотирования',
+      commenting: 'Комментирование',
+      addComments: count => (count === 1 ? 'Добавить 1 комментарий' : `Добавить ${count} комментариев`),
+      commentPlaceholder: 'Добавить комментарий...',
+      commentTitle: n => `Комментарий ${n}`,
+      saveComment: 'Сохранить',
+      cancelComment: 'Отменить комментарий'
     }
   },
 
@@ -3174,6 +3353,8 @@ export const ru = defineLocale({
       loadingSession: 'Загрузка сессии',
       showEarlier: 'Показать ранние сообщения',
       loadingResponse: 'Hermes загружает ответ',
+      loadingLocalModel: model => `Загрузка ${model} в память`,
+      processingPrompt: 'Обработка запроса',
       resumeWhenBackgroundDone: count =>
         count === 1
           ? 'Возобновится после завершения фоновой задачи'
@@ -3500,7 +3681,8 @@ export const ru = defineLocale({
       },
       'model-switch': {
         title: 'Смена модели в процессе',
-        text: 'Название модели — это кнопка. Меняйте её, когда меняется характер задачи.'
+        text: 'Название модели — это кнопка. Меняйте её, когда меняется характер задачи.',
+        action: 'Настроить'
       },
       'right-pane': {
         title: 'Рабочая панель',
