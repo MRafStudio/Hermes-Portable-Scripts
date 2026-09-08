@@ -45,10 +45,13 @@ REM   Проверка прав администратора (служба + fir
 REM ============================================================================
 net session >nul 2>&1
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Требуются права администратора!%ESC%[0m
-    echo   %ESC%[33mЗапустите Start.bat от имени администратора ^(ПКМ -^> Запуск от имени администратора^).%ESC%[0m
-    echo.
-    pause
+    echo   %ESC%[1;33m  Требуются права администратора — запрашиваю UAC...%ESC%[0m
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Start-Process cmd -Verb RunAs -ArgumentList '/c','""%~f0"" %~1 %~2' -Wait } catch { exit 1 }"
+    if !errorlevel! neq 0 (
+        echo   %ESC%[1;31m[ОШИБКА] UAC отклонён — установка службы отменена.%ESC%[0m
+        echo.
+        pause
+    )
     exit /b 1
 )
 
@@ -65,13 +68,19 @@ if not exist "%PYTHON_EXE%" (
     exit /b 1
 )
 if not exist "%REPO_DIR%\hermes_cli\web_dist\index.html" (
-    echo   %ESC%[1;31m[ОШИБКА] web_dist не найден: %REPO_DIR%\hermes_cli\web_dist%ESC%[0m
-    echo   %ESC%[33mУстановите [1] Hermes Web или Desktop, чтобы собрать web UI.%ESC%[0m
-    echo.
-    pause
-    exit /b 1
+    if exist "%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist\index.html" (
+        echo   %ESC%[1;33m- %ESC%[0mweb_dist не собран — копирую из Desktop-сборки...
+        if not exist "%REPO_DIR%\hermes_cli\web_dist" mkdir "%REPO_DIR%\hermes_cli\web_dist" 2>nul
+        xcopy /e /y /q "%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist\*" "%REPO_DIR%\hermes_cli\web_dist\" >nul
+    )
+    if not exist "%REPO_DIR%\hermes_cli\web_dist\index.html" (
+        echo   %ESC%[1;31m[ОШИБКА] web_dist не найден: %REPO_DIR%\hermes_cli\web_dist%ESC%[0m
+        echo   %ESC%[33mУстановите [1] Hermes Web или Desktop, чтобы собрать web UI.%ESC%[0m
+        echo.
+        pause
+        exit /b 1
+    )
 )
-
 echo   %ESC%[1;32m+%ESC%[0m Python: %PYTHON_EXE%
 echo   %ESC%[1;32m+%ESC%[0m Web dist: %REPO_DIR%\hermes_cli\web_dist
 echo.
@@ -395,5 +404,65 @@ echo   %ESC%[1;33mДалее:%ESC%[0m
 echo     - Проверьте подключение с другого ПК: пункт [3] Гайд.
 echo     - Для нескольких инстансов используйте разные имена служб и порты.
 echo.
+
+REM ============================================================================
+REM   Messenger Gateway (единая служба шлюзов: VK Workspace, Telegram, ...)
+REM   Ставится всегда, вместе со службой Hermes. hermes gateway run сам видит
+REM   все включённые платформы-плагины из конфига — ничего не «зашиваем».
+REM ============================================================================
+set "GW_SVC=HermesMessengerGateway (%ROOT_DIR:\=_%)"
+set "GW_LOG=HermesMessengerGateway_D_Hermes"
+echo.
+
+REM --- Убираем старую службу шлюза, если была (через sc, не nssm!) ---
+sc query "!GW_SVC!" >nul 2>&1
+if !errorlevel! equ 0 (
+    echo   %ESC%[1;33m- %ESC%[0mУдаляю предыдущую службу шлюзов "!GW_SVC!"...
+    sc stop "!GW_SVC!" >nul 2>&1
+    timeout /t 2 /nobreak >nul 2>&1
+    sc delete "!GW_SVC!" >nul 2>&1
+    timeout /t 2 /nobreak >nul 2>&1
+)
+
+echo   %ESC%[1;33m-%ESC%[0m Установка службы шлюзов "!GW_SVC!"...
+"%NSSM_EXE%" install "!GW_SVC!" "%HERMES_CLI%" gateway run --replace >nul 2>&1
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;31m[ОШИБКА] nssm install шлюза не удался.%ESC%[0m
+) else (
+    "%NSSM_EXE%" set "!GW_SVC!" AppDirectory "%HERMES_HOME%" >nul
+    "%NSSM_EXE%" set "!GW_SVC!" AppEnvironmentExtra "HERMES_HOME=%HERMES_HOME%" "HOME=%DATA_DIR%\home" "USERPROFILE=%DATA_DIR%\home" "APPDATA=%DATA_DIR%\appdata" "LOCALAPPDATA=%DATA_DIR%\localappdata" "MEMOS_HOME=%HERMES_HOME%\memos-plugin" "TEMP=%DATA_DIR%\temp" "PYTHONIOENCODING=utf-8" >nul
+    "%NSSM_EXE%" set "!GW_SVC!" AppStdout "%DATA_DIR%\temp\service-!GW_LOG!.log" >nul
+    "%NSSM_EXE%" set "!GW_SVC!" AppStderr "%DATA_DIR%\temp\service-!GW_LOG!.log" >nul
+    "%NSSM_EXE%" set "!GW_SVC!" AppRotateFiles 1 >nul
+    "%NSSM_EXE%" set "!GW_SVC!" AppRotateBytes 10485760 >nul
+    "%NSSM_EXE%" set "!GW_SVC!" AppExit Default Restart >nul
+    "%NSSM_EXE%" set "!GW_SVC!" Start SERVICE_AUTO_START >nul
+    sc description "!GW_SVC!" "Hermes Messenger Gateway (VK Workspace, Telegram, ...) for Hermes Portable instance: %ROOT_DIR%" >nul 2>&1
+
+    echo  --------------------------------------------------------------------------------
+    echo   %ESC%[1;32m+ Служба шлюзов "!GW_SVC!" установлена.%ESC%[0m
+
+    REM --- Запуск (через sc start — nssm start не берёт имена со скобками) ---
+    echo   %ESC%[1;33m-%ESC%[0m Запускаю службу шлюзов "!GW_SVC!"...
+    sc start "!GW_SVC!" >nul 2>&1
+    set /a WT=0
+    :wait_gw_run
+    sc query "!GW_SVC!" 2>nul | findstr /i "RUNNING" >nul 2>&1
+    if !errorlevel! equ 0 goto gw_running
+    set /a WT+=1
+    if !WT! lss 60 (
+        timeout /t 1 /nobreak >nul 2>&1
+        goto wait_gw_run
+    )
+    :gw_running
+    sc query "!GW_SVC!" 2>nul | findstr /i "RUNNING" >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo   %ESC%[1;32m+ Служба шлюзов "!GW_SVC!" запущена и работает.%ESC%[0m
+    ) else (
+        echo   %ESC%[1;33m. %ESC%[0mСлужба шлюзов "!GW_SVC!" установлена, но НЕ запустилась.
+        echo   %ESC%[33m  Лог: %DATA_DIR%\temp\service-!GW_LOG!.log%ESC%[0m
+    )
+    echo  --------------------------------------------------------------------------------
+)
 pause
 exit /b 0
