@@ -93,6 +93,15 @@ if exist "%HERMES_HOME%\memos-plugin\package.json" (
     )
 )
 
+REM Статус VK WorkSpace плагина
+set "VK_INSTALLED=0"
+if exist "%HERMES_HOME%\plugins\vk_workspace\plugin.yaml" set "VK_INSTALLED=1"
+set "VK_ENABLED=0"
+if exist "%PY%" (
+    "%PY%" "%SCRIPTS_DIR%\py\vk_plugin_config.py" enabled "%HERMES_HOME%\config.yaml" >nul 2>&1
+    if !errorlevel! equ 0 set "VK_ENABLED=1"
+)
+
 REM Возврат: в главное меню расширений или в подменю Llama
 goto %RETURN_MENU%
 
@@ -123,6 +132,15 @@ if !HEADROOM_INSTALLED! equ 1 (
 ) else (
     echo   %ESC%[1;33m. %ESC%[0m HeadRoom — прокси сжатия контекста: не установлен
 )
+if !VK_INSTALLED! equ 1 (
+    if !VK_ENABLED! equ 1 (
+        echo   %ESC%[1;32m+ %ESC%[0m VK WorkSpace %ESC%[2m^(плагин шлюза^)%ESC%[0m — установлен и включён
+    ) else (
+        echo   %ESC%[1;33m. %ESC%[0m VK WorkSpace %ESC%[2m^(плагин шлюза^)%ESC%[0m — установлен, но не включён
+    )
+) else (
+    echo   %ESC%[1;33m. %ESC%[0m VK WorkSpace %ESC%[2m^(плагин шлюза^)%ESC%[0m — не установлен
+)
 echo.
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mLlamaCppWindowsManager — локальный сервер LLM%ESC%[0m
 echo       %ESC%[2mУстановка/обновление, модели, служба — через менеджер%ESC%[0m
@@ -137,16 +155,20 @@ echo.
 echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mHeadRoom — прокси сжатия контекста%ESC%[0m
 echo       %ESC%[2mСжатие контекста до LLM: экономия токенов ^(служба :8787^)%ESC%[0m
 echo.
+echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mVK WorkSpace — плагин шлюза мессенджера%ESC%[0m
+echo       %ESC%[2mУстановка с GitHub, токен бота, включение ^(служба — вместе с Hermes^)%ESC%[0m
+echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-3): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-4): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
 if "%choice%"=="1" goto llama_menu
 if "%choice%"=="2" goto install_memos
 if "%choice%"=="3" goto install_headroom
+if "%choice%"=="4" goto install_vk
 goto menu
 
 
@@ -288,6 +310,14 @@ REM ============================================================================
 :install_headroom
 set "RETURN_MENU=menu"
 call "%SCRIPTS_DIR%\InstallOrUpdate-HeadRoom.bat"
+goto status
+
+REM ============================================================================
+REM   [4] VK WorkSpace — плагин шлюза (отдельный скрипт)
+REM ============================================================================
+:install_vk
+set "RETURN_MENU=menu"
+call "%SCRIPTS_DIR%\InstallOrUpdate-VkWorkspace.bat"
 goto status
 
 REM ============================================================================
