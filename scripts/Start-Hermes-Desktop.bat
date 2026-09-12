@@ -177,6 +177,28 @@ if exist "%PYTHON_EXE%" (
     "%PYTHON_EXE%" "%SCRIPTS_DIR%\py\set_desktop_connection.py" "%UD_DIR%" "!REMOTE_URL!" "!REMOTE_HOST!" "%APPDATA%\Hermes" >nul 2>&1
 )
 
+REM ============================================================================
+REM   ПРЕДОХРАНИТЕЛЬ: пустышки + маркер песочницы Chromium
+REM   Пустышка — процесс Hermes.exe НАШЕГО профиля, живущий БЕЗ окна: он держит
+REM   single-instance lock, поэтому новый старт молча умирает, а два таких
+REM   старта подряд приложение читает как boot-loop и залипает в режиме
+REM   --no-sandbox (окно после этого не появляется вообще). Гвард снимает
+REM   пустышки, сбрасывает отравленный маркер, а при живом окне поднимает его
+REM   и отменяет лишний запуск (exit 10). Файл: scripts\ps1\guard-hermes-desktop.ps1
+REM ============================================================================
+if not exist "%SCRIPTS_DIR%\ps1\guard-hermes-desktop.ps1" goto :guard_done
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\guard-hermes-desktop.ps1" -RootDir "%ROOT_DIR%" -UserDataDir "!UD_DIR!"
+if errorlevel 10 (
+    echo.
+    echo   %ESC%[1;33m! Hermes уже запущен — второе окно не появится ^(single-instance^).%ESC%[0m
+    echo   %ESC%[2m  Окно поднято на передний план. Закройте текущий Hermes и запустите снова.%ESC%[0m
+    echo.
+    REM Пауза 5 с без timeout — timeout падает при перенаправленном вводе
+    ping -n 6 127.0.0.1 >nul 2>&1
+    exit /b 0
+)
+:guard_done
+
 if "!CONSOLE!"=="1" (
     start /min "Hermes Desktop Console" cmd /c "%SCRIPTS_DIR%\Start-Hermes-Desktop-Console.bat"
 ) else (

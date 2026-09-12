@@ -72,6 +72,24 @@ if not exist "%HERMES_EXE%" (
     exit /b 1
 )
 
+REM ============================================================================
+REM   ПРЕДОХРАНИТЕЛЬ: пустышки + маркер песочницы Chromium
+REM   При запуске из Start-Hermes-Desktop.bat уже отработал; здесь — для прямого
+REM   запуска этого файла. Файл: scripts\ps1\guard-hermes-desktop.ps1
+REM ============================================================================
+if not exist "%SCRIPTS_DIR%\ps1\guard-hermes-desktop.ps1" goto :guard_done
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\guard-hermes-desktop.ps1" -RootDir "%ROOT_DIR%"
+if errorlevel 10 (
+    echo.
+    echo   Hermes уже запущен — второе окно не появится ^(single-instance^).
+    echo   Окно поднято на передний план. Закройте текущий Hermes и запустите снова.
+    echo.
+    REM Пауза 5 с без timeout — timeout падает при перенаправленном вводе
+    ping -n 6 127.0.0.1 >nul 2>&1
+    exit /b 0
+)
+:guard_done
+
 REM Рабочая директория Hermes — изолированный профиль data\home,
 REM а не наследованный откуда попало (иначе сессии/файлы падают в системный профиль)!
 REM --- Очистка логов: только текущий запуск ---
