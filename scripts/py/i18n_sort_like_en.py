@@ -28,7 +28,7 @@ def line_start(src, pos):
 
 
 class Child(object):
-    __slots__ = ("key", "key_raw", "kind", "key_pos", "val_start", "val_end", "children")
+    __slots__ = ("key", "key_raw", "kind", "key_pos", "val_start", "val_end", "children", "as_suffix")
 
     def __init__(self, key, key_raw, kind, key_pos, val_start, val_end):
         self.key = key
@@ -38,6 +38,7 @@ class Child(object):
         self.val_start = val_start
         self.val_end = val_end
         self.children = None
+        self.as_suffix = ""
 
 
 class Parser(object):
@@ -131,6 +132,39 @@ class Parser(object):
                 continue
             self.i += 1
 
+    def read_as_suffix(self):
+        """Читает ' as <Type>' после значения (TS-приведение) или возвращает пусто."""
+        save = self.i
+        self.skip_ws()
+        if self.s[self.i:self.i + 2] != "as":
+            self.i = save
+            return ""
+        nxt = self.s[self.i + 2:self.i + 3]
+        if nxt.isalnum() or nxt in ("_", "$"):
+            self.i = save
+            return ""
+        self.i += 2
+        depth = 0
+        while self.i < self.n:
+            c = self.s[self.i]
+            if c in ("'", '"', "`"):
+                self.read_raw_string()
+                continue
+            if c in ("(", "[", "{", "<"):
+                depth += 1
+                self.i += 1
+                continue
+            if c in (")", "]", "}", ">"):
+                if depth == 0:
+                    break
+                depth -= 1
+                self.i += 1
+                continue
+            if c == "," and depth == 0:
+                break
+            self.i += 1
+        return self.s[save:self.i]
+
     def parse_object(self):
         """self.i — сразу после '{'. Возвращает (children, close_pos)."""
         children = []
@@ -168,6 +202,10 @@ class Parser(object):
                 val_start = self.i
                 self.skip_scalar()
                 child = Child(key, key_raw, "leaf", key_pos, val_start, self.i)
+            suffix = self.read_as_suffix()
+            if suffix:
+                child.as_suffix = suffix
+                child.val_end = self.i
             children.append(child)
         return children, max(self.n - 1, 0)
 
@@ -215,12 +253,12 @@ def render(children, src, en_map, path, indent, drop_orphans, dropped, lines):
                 lines.append(indent + c.key_raw + ": {" + LF)
                 render(c.children, src, en_map, (path + "." + c.key) if path else c.key,
                        indent + "  ", drop_orphans, dropped, lines)
-                lines.append(indent + "}," + LF)
+                lines.append(indent + "}" + (c.as_suffix or "") + "," + LF)
             else:
                 lines.append(indent + c.key_raw + ": {}," + LF)
         else:
-            val = src[c.val_start:c.val_end]
-            lines.append(indent + c.key_raw + ": " + val + "," + LF)
+            val = src[c.val_start:c.val_end].rstrip()
+            lines.append(indent + c.key_raw + ": " + val + (c.as_suffix or "") + "," + LF)
 
 
 def collect_leaves(text, marker):
@@ -233,7 +271,7 @@ def collect_leaves(text, marker):
             if c.kind == "obj" and c.children is not None:
                 walk(c.children, kp)
             else:
-                res[kp] = text[c.val_start:c.val_end]
+                res[kp] = text[c.val_start:c.val_end].strip()
     walk(children, "")
     return res
 

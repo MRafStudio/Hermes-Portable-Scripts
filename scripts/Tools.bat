@@ -333,6 +333,23 @@ if errorlevel 2 (
 )
 
 echo.
+REM --- Проверка синтаксиса TS перед сборкой (esbuild из node_modules) ---
+set "ESB=%REPO_DIR%\node_modules\@esbuild\win32-x64\esbuild.exe"
+if exist "!ESB!" (
+    echo   %ESC%[1;33m  -   Проверка синтаксиса локализации...%ESC%[0m
+    "!ESB!" "%SCRIPTS_DIR%\ru-locale\ru.ts" --outfile="%DATA_DIR%\temp\ru-check.js" --log-level=warning >nul 2>&1
+    if !errorlevel! neq 0 (
+        echo   %ESC%[1;31m  [ОШИБКА] ru.ts не компилируется — сборка отменена, ничего не собрано.%ESC%[0m
+        "!ESB!" "%SCRIPTS_DIR%\ru-locale\ru.ts" --outfile="%DATA_DIR%\temp\ru-check.js" --log-level=warning
+        echo.
+        pause
+        goto menu
+    )
+    echo   %ESC%[1;32m  +   Синтаксис ru.ts в порядке%ESC%[0m
+) else (
+    echo   %ESC%[2m       ^(esbuild не найден — проверка синтаксиса пропущена^)%ESC%[0m
+)
+
 call "%SCRIPTS_DIR%\Rebuild-Desktop.bat" 1
 if errorlevel 1 (
     echo.
