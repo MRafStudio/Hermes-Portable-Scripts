@@ -235,6 +235,43 @@ def truncate(text, limit=60):
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
+def flat_value(kind, text):
+    """Значение для плоского файла: строки — как есть (в одну строку), остальное — маркер."""
+    if kind in ("string", "template", "number"):
+        return " ".join(str(text).split())
+    if kind == "fn":
+        return "<функция>"
+    if kind == "other":
+        return " ".join(str(text).split()) or "<пусто>"
+    return "<%s>" % kind
+
+
+def write_flat(path, leaves, title):
+    """Плоский список ключей: 'ключ = текст', отсортирован по ключу."""
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write("# %s — %d ключей (отсортировано по ключу)\n" % (title, len(leaves)))
+        for k in sorted(leaves):
+            kind, text = leaves[k]
+            f.write("%s = %s\n" % (k, flat_value(kind, text)))
+    return len(leaves)
+
+
+def write_missing(path, missing, en):
+    """Список непереведённых ключей по секциям: 'ключ = английский текст'."""
+    by_sec = {}
+    for k in missing:
+        by_sec.setdefault(k.split(".", 1)[0].split("[", 1)[0], []).append(k)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write("# НЕ ПЕРЕВЕДЁННЫЕ ключи: %d\n" % len(missing))
+        f.write("# Перевод вписывать в scripts\\ru-locale\\ru.ts (формат оверрайдов defineLocale)\n")
+        for sec in sorted(by_sec):
+            keys = sorted(by_sec[sec])
+            f.write("\n# --- %s (%d) ---\n" % (sec, len(keys)))
+            for k in keys:
+                f.write("%s = %s\n" % (k, " ".join(str(en[k][1]).split())))
+    return len(missing)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Сравнение ключей en.ts (эталон) и ru.ts (оверрайды)")
     ap.add_argument("--en", default=DEFAULT_EN, help="путь к en.ts (эталон)")
@@ -242,6 +279,7 @@ def main():
     ap.add_argument("--text", action="store_true", help="показывать английский текст непереведённых ключей")
     ap.add_argument("--same", action="store_true", help="показать ключи с идентичным текстом en/ru (возможный неперевод)")
     ap.add_argument("--limit", type=int, default=25, help="сколько ключей печатать в списке (0 = все)")
+    ap.add_argument("--flatten", metavar="DIR", help="записать нормализованные en.flat/ru.flat/missing.flat в каталог DIR (для WinMerge)")
     ap.add_argument("--json", action="store_true", help="вывод в JSON")
     args = ap.parse_args()
 
@@ -272,6 +310,25 @@ def main():
         e, r = en_sec.get(sec, 0), ru_sec.get(sec, 0)
         if e != r or e == 0:
             sec_rows.append((sec, e, r, r - e))
+
+    if args.flatten:
+        out = os.path.abspath(args.flatten)
+        os.makedirs(out, exist_ok=True)
+        n_en = write_flat(os.path.join(out, "en.flat"), en, "%s (эталон)" % os.path.basename(args.en))
+        n_ru = write_flat(os.path.join(out, "ru.flat"), ru, "%s (перевод)" % os.path.basename(args.ru))
+        n_miss = write_missing(os.path.join(out, "missing.flat"), missing, en)
+        top = ", ".join("%s %d" % (s, -d) for s, e, r, d in sorted(sec_rows, key=lambda x: x[3])[:6]) if sec_rows else "нет"
+        print("  en: секций %d, ключей %d" % (len(en_sections), len(en)))
+        print("  ru: секций %d, ключей %d" % (len(ru_sections), len(ru)))
+        print("  НЕ ПЕРЕВЕДЕНО: %d  |  ОСИРОТЕВШИХ: %d  |  ИДЕНТИЧНЫХ (возм.): %d" %
+              (len(missing), len(extra), len(same)))
+        print("  Крупнейшие дыры: %s" % top)
+        print()
+        print("  Файлы для WinMerge (каталог %s):" % out)
+        print("    en.flat      — %d ключей (эталон)" % n_en)
+        print("    ru.flat      — %d ключей (перевод)" % n_ru)
+        print("    missing.flat — %d непереведённых (ключ = англ. текст)" % n_miss)
+        return 0
 
     if args.json:
         print(json.dumps({

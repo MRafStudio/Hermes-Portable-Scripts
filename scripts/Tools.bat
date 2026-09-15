@@ -50,7 +50,7 @@ echo  %ESC%[1;36m##                                                             
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
 
-echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mСравнить/изменить файлы RU локализации%ESC%[0m %ESC%[2m— WinMerge: en.ts vs ru.ts%ESC%[0m
+echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mСравнить ключи RU локализации%ESC%[0m %ESC%[2m— WinMerge: en.flat vs ru.flat%ESC%[0m
 echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mОткрыть файл .env%ESC%[0m %ESC%[2m— %HERMES_HOME%\.env%ESC%[0m
 echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть файл config.yaml%ESC%[0m %ESC%[2m— %HERMES_HOME%\config.yaml%ESC%[0m
 echo.
@@ -74,18 +74,22 @@ if "%choice%"=="8" goto clean_hermes_repo
 goto menu
 
 REM ============================================================================
-REM   [1] Сравнить файлы локализации — WinMerge: en.ts vs ru.ts
+REM   [1] Сравнить ключи локализации — WinMerge: en.flat vs ru.flat
+REM   Компаратор scripts\py\compare_i18n_keys.py строит нормализованные списки
+REM   ключей ('ключ = текст', по алфавиту) — построчный диф становится осмысленным
+REM   (прямое сравнение en.ts/ru.ts бессмысленно: разные форматы обёрток).
 REM ============================================================================
 :compare_locale_en
 cls
 echo.
-echo   %ESC%[1;33mСравнение файлов локализации...%ESC%[0m
+echo   %ESC%[1;33mСравнение ключей локализации (en.ts эталон vs ru.ts перевод)...%ESC%[0m
 echo.
 
 set "EN_FILE=%SCRIPTS_DIR%\en-locale\en.ts"
 set "RU_FILE=%SCRIPTS_DIR%\ru-locale\ru.ts"
+set "COMPARE_PY=%SCRIPTS_DIR%\py\compare_i18n_keys.py"
+set "COMPARE_DIR=%DATA_DIR%\temp\i18n-compare"
 
-REM Проверяем наличие файлов
 if not exist "%EN_FILE%" (
     echo   %ESC%[1;31m[ОШИБКА] Файл не найден: %EN_FILE%%ESC%[0m
     echo   %ESC%[33m       Сначала запустите InstallOrUpdate-RU.bat для загрузки en.ts%ESC%[0m
@@ -102,6 +106,29 @@ if not exist "%RU_FILE%" (
     goto menu
 )
 
+if not exist "%COMPARE_PY%" (
+    echo   %ESC%[1;31m[ОШИБКА] Не найден компаратор ключей: %COMPARE_PY%%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+REM Python: venv репозитория, иначе системный
+set "PY_CMD="%REPO_DIR%\venv\Scripts\python.exe""
+if not exist "%REPO_DIR%\venv\Scripts\python.exe" set "PY_CMD=python"
+
+echo   %ESC%[1;33m  i   Строю нормализованные списки ключей...%ESC%[0m
+echo.
+%PY_CMD% "%COMPARE_PY%" --en "%EN_FILE%" --ru "%RU_FILE%" --flatten "%COMPARE_DIR%"
+if errorlevel 1 (
+    echo.
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось построить списки ключей.%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+echo.
+
 REM Ищем WinMerge
 set "WINMERGE_EXE="
 if exist "C:\Program Files\WinMerge\WinMergeU.exe" (
@@ -114,25 +141,26 @@ if not defined WINMERGE_EXE (
     echo   %ESC%[1;31m[ОШИБКА] WinMerge не найден%ESC%[0m
     echo   %ESC%[33m       Установите WinMerge: https://winmerge.org/%ESC%[0m
     echo.
-    echo   %ESC%[2m       Или откройте файлы вручную:%ESC%[0m
-    echo   %ESC%[2m         %EN_FILE%%ESC%[0m
-    echo   %ESC%[2m         %RU_FILE%%ESC%[0m
+    echo   %ESC%[2m       Списки ключей готовы — откройте вручную:%ESC%[0m
+    echo   %ESC%[2m         %COMPARE_DIR%\en.flat     — эталон%ESC%[0m
+    echo   %ESC%[2m         %COMPARE_DIR%\ru.flat     — перевод%ESC%[0m
+    echo   %ESC%[2m         %COMPARE_DIR%\missing.flat — список для доперевода%ESC%[0m
     echo.
     pause
     goto menu
 )
 
-echo   %ESC%[1;32m  +   WinMerge найден: %WINMERGE_EXE%%ESC%[0m
-echo   %ESC%[2m       en.ts: %EN_FILE%%ESC%[0m
-echo   %ESC%[2m       ru.ts: %RU_FILE%%ESC%[0m
+echo   %ESC%[1;32m  +   Открываю WinMerge: en.flat vs ru.flat%ESC%[0m
+echo   %ESC%[2m       Непереведённые — строки, которые есть слева и отсутствуют справа%ESC%[0m
+echo   %ESC%[2m       Список для доперевода: %COMPARE_DIR%\missing.flat%ESC%[0m
+echo   %ESC%[2m       Перевод вписывать в: %RU_FILE%%ESC%[0m
+echo   %ESC%[2m       После правок: InstallOrUpdate-RU.bat, затем [5] — пересборка Desktop%ESC%[0m
 echo.
 
-start "" "%WINMERGE_EXE%" "%EN_FILE%" "%RU_FILE%"
+start "" "%WINMERGE_EXE%" "%COMPARE_DIR%\en.flat" "%COMPARE_DIR%\ru.flat"
 
 goto menu
 
-REM ============================================================================
-REM   [2] Открыть файл .env
 REM ============================================================================
 :open_env
 cls
