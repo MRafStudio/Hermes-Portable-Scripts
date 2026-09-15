@@ -236,13 +236,19 @@ def truncate(text, limit=60):
 
 
 def flat_value(kind, text):
-    """Значение для плоского файла: строки — как есть (в одну строку), остальное — маркер."""
+    """Значение для плоского файла (lossless: слэши и переносы экранируются)."""
     if kind in ("string", "template", "number"):
-        return " ".join(str(text).split())
+        s = str(text).replace(chr(92), chr(92) * 2)
+        for ch, rep in ((chr(13), chr(92) + "r"), (chr(10), chr(92) + "n"), (chr(9), chr(92) + "t")):
+            s = s.replace(ch, rep)
+        return s
     if kind == "fn":
         return "<функция>"
     if kind == "other":
-        return " ".join(str(text).split()) or "<пусто>"
+        s = str(text).replace(chr(92), chr(92) * 2)
+        for ch, rep in ((chr(13), chr(92) + "r"), (chr(10), chr(92) + "n"), (chr(9), chr(92) + "t")):
+            s = s.replace(ch, rep)
+        return s or "<пусто>"
     return "<%s>" % kind
 
 
