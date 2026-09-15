@@ -228,7 +228,48 @@ def en_order(children, path, out):
             en_order(c.children, (path + "." + c.key) if path else c.key, out)
 
 
-def reorder(children, en_map, path, drop_orphans, dropped):
+def en_positions(children, path, out):
+    """Позиция каждого пути в обходе en (преордер): объекты — перед своими детьми."""
+    for c in children:
+        kp = (path + "." + c.key) if path else c.key
+        out[kp] = len(out)
+        if c.kind == "obj" and c.children is not None:
+            en_positions(c.children, kp, out)
+    return out
+
+
+def anchor(child, path, en_pos):
+    """Позиция ребёнка в en-порядке: для объекта — минимальная позиция его листьев."""
+    kp = (path + "." + child.key) if path else child.key
+    if child.kind == "obj" and child.children:
+        best = None
+        for sub in child.children:
+            a = anchor(sub, kp, en_pos)
+            if a is not None and (best is None or a < best):
+                best = a
+        return best
+    return en_pos.get(kp)
+
+
+def reorder(children, en_map, path, drop_orphans, dropped, en_pos=None):
+    if en_pos:
+        pos = {}
+        unknown = []
+        for c in children:
+            a = anchor(c, path, en_pos)
+            if a is None:
+                unknown.append(c)
+            else:
+                pos[c.key] = a
+        known = sorted(pos, key=lambda k: pos[k])
+        res = [c for k in known for c in children if c.key == k]
+        if drop_orphans:
+            for c in unknown:
+                dropped.append((path + "." + c.key) if path else c.key)
+        else:
+            res.extend(unknown)
+        return res
+    order = en_map.get(path)
     order = en_map.get(path)
     if order is None:
         return list(children)
@@ -246,13 +287,28 @@ def reorder(children, en_map, path, drop_orphans, dropped):
     return known
 
 
-def render(children, src, en_map, path, indent, drop_orphans, dropped, lines):
-    for c in reorder(children, en_map, path, drop_orphans, dropped):
+def flat_prefixes(children):
+    """Префиксы «плоских» ключей (имя с точкой) у данного уровня."""
+    out = set()
+    for c in children:
+        if "." in c.key:
+            out.add(c.key.split(".", 1)[0])
+    return out
+
+
+def render(children, src, en_map, path, indent, drop_orphans, dropped, lines, en_pos=None):
+    flats = flat_prefixes(children)
+    for c in reorder(children, en_map, path, drop_orphans, dropped, en_pos):
+        if (c.kind == "obj" and c.children and len(c.children) == 1 and c.key in flats):
+            sub = c.children[0]
+            val = src[sub.val_start:sub.val_end].rstrip()
+            lines.append(indent + "'" + c.key + "." + sub.key + "': " + val + "," + LF)
+            continue
         if c.kind == "obj" and c.children is not None:
             if c.children:
                 lines.append(indent + c.key_raw + ": {" + LF)
                 render(c.children, src, en_map, (path + "." + c.key) if path else c.key,
-                       indent + "  ", drop_orphans, dropped, lines)
+                       indent + "  ", drop_orphans, dropped, lines, en_pos)
                 lines.append(indent + "}" + (c.as_suffix or "") + "," + LF)
             else:
                 lines.append(indent + c.key_raw + ": {}," + LF)
@@ -295,10 +351,11 @@ def main():
 
     en_map = {}
     en_order(en_children, "", en_map)
+    en_pos = en_positions(en_children, "", {})
 
     dropped = []
     lines = []
-    render(ru_children, ru_src, en_map, "", "  ", args.drop_orphans, dropped, lines)
+    render(ru_children, ru_src, en_map, "", "  ", args.drop_orphans, dropped, lines, en_pos)
 
     header = ru_src[:line_start(ru_src, ru_children[0].key_pos)]
     tail = ru_src[line_start(ru_src, ru_close):]
