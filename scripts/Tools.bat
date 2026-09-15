@@ -51,26 +51,31 @@ echo  %ESC%[1;36m###############################################################
 echo.
 
 echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mСравнить ключи RU локализации%ESC%[0m %ESC%[2m— WinMerge: en.flat vs ru.flat%ESC%[0m
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mОткрыть файл .env%ESC%[0m %ESC%[2m— %HERMES_HOME%\.env%ESC%[0m
-echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть файл config.yaml%ESC%[0m %ESC%[2m— %HERMES_HOME%\config.yaml%ESC%[0m
+echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mСравнить исходники en.ts vs ru.ts%ESC%[0m %ESC%[2m— WinMerge (прямое сравнение)%ESC%[0m
+echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть файл .env%ESC%[0m %ESC%[2m— %HERMES_HOME%\.env%ESC%[0m
+echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mОткрыть файл config.yaml%ESC%[0m %ESC%[2m— %HERMES_HOME%\config.yaml%ESC%[0m
 echo.
-echo   %ESC%[1;37m[5]%ESC%[0m %ESC%[1mПересобрать Hermes Desktop и запустить%ESC%[0m %ESC%[2m— Пересборка с RU локализацией%ESC%[0m
+echo   %ESC%[1;37m[5]%ESC%[0m %ESC%[1mПересобрать Hermes Desktop и запустить%ESC%[0m %ESC%[2m— с бэкапом текущего рабочего состояния%ESC%[0m
+echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mОткатить русификацию к бэкапу%ESC%[0m %ESC%[2m— вернуть рабочие файлы и сборку%ESC%[0m
 echo.
-echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1;31mОчистить репозиторий%ESC%[0m %ESC%[2m— Удалить hermes-agent (данные сохраняются)%ESC%[0m
+echo   %ESC%[1;37m[7]%ESC%[0m %ESC%[1;31mОчистить репозиторий%ESC%[0m %ESC%[2m— Удалить hermes-agent (данные сохраняются)%ESC%[0m
 echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
+echo.
 
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-3, 5, 8): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-7): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
 if "%choice%"=="1" goto compare_locale_en
-if "%choice%"=="2" goto open_env
-if "%choice%"=="3" goto open_config_yaml
+if "%choice%"=="2" goto compare_locale_ts
+if "%choice%"=="3" goto open_env
+if "%choice%"=="4" goto open_config_yaml
 if "%choice%"=="5" goto build_desktop
-if "%choice%"=="8" goto clean_hermes_repo
+if "%choice%"=="6" goto rollback_ru
+if "%choice%"=="7" goto clean_hermes_repo
 goto menu
 
 REM ============================================================================
@@ -162,6 +167,66 @@ start "" "%WINMERGE_EXE%" "%COMPARE_DIR%\en.flat" "%COMPARE_DIR%\ru.flat"
 goto menu
 
 REM ============================================================================
+REM   [2] Сравнить исходники — WinMerge: en.ts vs ru.ts (прямое сравнение)
+REM   Нужно потому, что сборщик копирует именно ru.ts в репозиторий Hermes:
+REM   все изменённые строки обязаны попасть в ru.ts.
+REM ============================================================================
+:compare_locale_ts
+cls
+echo.
+echo   %ESC%[1;33mСравнение исходников локализации ^(en.ts vs ru.ts^)...%ESC%[0m
+echo.
+
+set "EN_TS=%SCRIPTS_DIR%\en-locale\en.ts"
+set "RU_TS=%SCRIPTS_DIR%\ru-locale\ru.ts"
+
+if not exist "%EN_TS%" (
+    echo   %ESC%[1;31m[ОШИБКА] Файл не найден: %EN_TS%%ESC%[0m
+    echo   %ESC%[33m       Сначала запустите InstallOrUpdate-RU.bat для загрузки en.ts%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+if not exist "%RU_TS%" (
+    echo   %ESC%[1;31m[ОШИБКА] Файл не найден: %RU_TS%%ESC%[0m
+    echo   %ESC%[33m       Убедитесь, что ru.ts находится в scripts\ru-locale\%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+REM Ищем WinMerge
+set "WINMERGE_EXE="
+if exist "C:\Program Files\WinMerge\WinMergeU.exe" (
+    set "WINMERGE_EXE=C:\Program Files\WinMerge\WinMergeU.exe"
+) else if exist "C:\Program Files (x86)\WinMerge\WinMergeU.exe" (
+    set "WINMERGE_EXE=C:\Program Files (x86)\WinMerge\WinMergeU.exe"
+)
+
+if not defined WINMERGE_EXE (
+    echo   %ESC%[1;31m[ОШИБКА] WinMerge не найден%ESC%[0m
+    echo   %ESC%[33m       Установите WinMerge: https://winmerge.org/%ESC%[0m
+    echo.
+    echo   %ESC%[2m       Или откройте файлы вручную:%ESC%[0m
+    echo   %ESC%[2m         %EN_TS%%ESC%[0m
+    echo   %ESC%[2m         %RU_TS%%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+echo   %ESC%[1;32m  +   WinMerge найден: %WINMERGE_EXE%%ESC%[0m
+echo   %ESC%[2m       en.ts: %EN_TS%%ESC%[0m
+echo   %ESC%[2m       ru.ts: %RU_TS%%ESC%[0m
+echo   %ESC%[1;33m  !   ru.ts должен получить все изменённые строки — именно его копирует сборщик.%ESC%[0m
+echo.
+
+start "" "%WINMERGE_EXE%" "%EN_TS%" "%RU_TS%"
+
+goto menu
+
+REM ============================================================================
 :open_env
 cls
 echo.
@@ -224,7 +289,9 @@ echo.
 echo   %ESC%[1;33mСборка Hermes Desktop...%ESC%[0m
 echo.
 
-echo   %ESC%[1;33m  i   Будет выполнена ПЕРЕСБОРКА с текущими изменениями.%ESC%[0m
+echo   %ESC%[1;33m  i   Перед сборкой будет сделан БЭКАП рабочего состояния:%ESC%[0m
+echo   %ESC%[2m       - файлы локализации ^(scripts\ru-locale, i18n^)%ESC%[0m
+echo   %ESC%[2m       - текущая готовая сборка ^(release^) — для отката пунктом [6]%ESC%[0m
 echo.
 set "confirm="
 set /p "confirm=%ESC%[33mПродолжить? (y/n): %ESC%[0m"
@@ -234,17 +301,121 @@ if /I not "%confirm%"=="y" (
     goto menu
 )
 
+REM --- Hermes должен быть закрыт: иначе сборку (release) не сохранить ---
+tasklist /FI "IMAGENAME eq Hermes.exe" 2>nul | findstr /I "Hermes.exe" >nul
+if !errorlevel! equ 0 (
+    echo.
+    echo   %ESC%[1;33m  !   Hermes Desktop запущен.%ESC%[0m
+    echo   %ESC%[2m       Для бэкапа сборки его нужно закрыть — иначе откат будет без сборки.%ESC%[0m
+    set "killh="
+    set /p "killh=%ESC%[33mЗакрыть Hermes сейчас? (y/n): %ESC%[0m"
+    if /I "!killh!"=="y" (
+        taskkill /IM Hermes.exe /F >nul 2>&1
+        echo   %ESC%[1;32m  +   Hermes закрыт.%ESC%[0m
+        call "%SCRIPTS_DIR%\SmartPause.bat" 2
+    ) else (
+        echo   %ESC%[1;33m  .   Продолжаем без сохранения сборки.%ESC%[0m
+    )
+)
+
+set "BK_PY=%SCRIPTS_DIR%\py\ru_locale_backup.py"
+set "PY_CMD="%REPO_DIR%\venv\Scripts\python.exe""
+if not exist "%REPO_DIR%\venv\Scripts\python.exe" set "PY_CMD=python"
+
+echo.
+echo   %ESC%[1;33m  -   Бэкап рабочего состояния...%ESC%[0m
+%PY_CMD% "%BK_PY%" backup --quiet
+if errorlevel 2 (
+    echo   %ESC%[1;33m  !   Сборка не сохранена — откат [6] вернёт только файлы локализации.%ESC%[0m
+)
+
+echo.
 call "%SCRIPTS_DIR%\Rebuild-Desktop.bat" 1
 if errorlevel 1 (
+    echo.
     echo   %ESC%[1;31m  [ОШИБКА] Сборка не удалась.%ESC%[0m
-	pause
+    echo   %ESC%[1;33m  →   Запустите пункт [6] — откат к рабочему бэкапу.%ESC%[0m
+    pause
 ) else (
     echo   %ESC%[1;32m  +   Сборка завершена успешно%ESC%[0m
 )
 goto menu
 
 REM ============================================================================
-REM   [8] Очистить репозиторий
+REM   [6] Откатить русификацию к последнему бэкапу
+REM   Возвращает файлы локализации и готовую сборку из бэкапа, сделанного в [5].
+REM ============================================================================
+:rollback_ru
+cls
+echo.
+echo   %ESC%[1;33mОткат русификации к последнему бэкапу...%ESC%[0m
+echo.
+
+set "BK_PY=%SCRIPTS_DIR%\py\ru_locale_backup.py"
+set "PY_CMD="%REPO_DIR%\venv\Scripts\python.exe""
+if not exist "%REPO_DIR%\venv\Scripts\python.exe" set "PY_CMD=python"
+
+if not exist "%BK_PY%" (
+    echo   %ESC%[1;31m[ОШИБКА] Не найден скрипт бэкапа: %BK_PY%%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+echo   %ESC%[2m       Состояние бэкапа:%ESC%[0m
+%PY_CMD% "%BK_PY%" status --quiet
+if errorlevel 1 (
+    echo.
+    echo   %ESC%[1;31m[ОШИБКА] Бэкап не найден — откатывать нечего.%ESC%[0m
+    echo   %ESC%[2m       Бэкап создаётся автоматически в пункте [5] перед сборкой.%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+echo.
+set "confirm="
+set /p "confirm=%ESC%[33mОткатить к этому бэкапу? (y/n): %ESC%[0m"
+if /I not "%confirm%"=="y" (
+    echo   %ESC%[1;33mОтменено.%ESC%[0m
+    pause
+    goto menu
+)
+
+REM Hermes должен быть закрыт: сборку нужно вернуть на место
+tasklist /FI "IMAGENAME eq Hermes.exe" 2>nul | findstr /I "Hermes.exe" >nul
+if !errorlevel! equ 0 (
+    echo.
+    echo   %ESC%[1;33m  !   Hermes Desktop запущен — закрываю для отката...%ESC%[0m
+    taskkill /IM Hermes.exe /F >nul 2>&1
+    call "%SCRIPTS_DIR%\SmartPause.bat" 2
+)
+
+echo.
+%PY_CMD% "%BK_PY%" restore --quiet
+if errorlevel 1 (
+    echo.
+    echo   %ESC%[1;31m[ОШИБКА] Откат не удался.%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+echo.
+echo   %ESC%[1;32m  +   Откат выполнен.%ESC%[0m
+echo   %ESC%[2m       Файлы локализации и сборка возвращены к рабочему состоянию.%ESC%[0m
+echo.
+set "runh="
+set /p "runh=%ESC%[33mЗапустить Hermes сейчас? (y/n): %ESC%[0m"
+if /I "!runh!"=="y" (
+    call "%SCRIPTS_DIR%\Start-Hermes-Desktop.bat" 1
+)
+echo.
+pause
+goto menu
+
+REM ============================================================================
+REM   [7] Очистить репозиторий
 REM ============================================================================
 :clean_hermes_repo
 cls
