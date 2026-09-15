@@ -146,9 +146,11 @@ def main():
     # ---------- 5) ru-constants против en ----------
     try:
         import i18n_mirror_constants as MC
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(args.en))))
-        en_const = os.path.join(root, "data", "hermes", "hermes-agent", "apps", "desktop",
-                                "src", "app", "settings", "constants.ts")
+        en_const = os.path.join(os.path.dirname(os.path.abspath(args.en)), "en-constants.ts")
+        if not os.path.exists(en_const):
+            root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(args.en))))
+            en_const = os.path.join(root, "data", "hermes", "hermes-agent", "apps", "desktop",
+                                    "src", "app", "settings", "constants.ts")
         ru_const = os.path.join(os.path.dirname(os.path.abspath(args.ru)), "ru-constants.ts")
         if os.path.exists(en_const) and os.path.exists(ru_const):
             en_const_src = open(en_const, encoding="utf-8").read()

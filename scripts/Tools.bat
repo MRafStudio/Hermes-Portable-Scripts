@@ -61,13 +61,14 @@ echo.
 echo   %ESC%[1;37m[7]%ESC%[0m %ESC%[1;31mОчистить репозиторий%ESC%[0m %ESC%[2m— Удалить hermes-agent (данные сохраняются)%ESC%[0m
 echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mПроверка русификации%ESC%[0m %ESC%[2m— структура + esbuild + порядок (workflow)%ESC%[0m
 echo   %ESC%[1;37m[9]%ESC%[0m %ESC%[1mВыровнять ru.ts как зеркало en.ts%ESC%[0m %ESC%[2m— 1:1 построчно (полнота + порядок)%ESC%[0m
+echo   %ESC%[1;37m[10]%ESC%[0m %ESC%[1mРусификация: полный цикл (workflow)%ESC%[0m %ESC%[2m— эталоны, зеркала, проверка, сборка%ESC%[0m
 echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 echo.
 
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-9): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-10): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
@@ -80,6 +81,7 @@ if "%choice%"=="6" goto rollback_ru
 if "%choice%"=="7" goto clean_hermes_repo
 if "%choice%"=="8" goto verify_i18n
 if "%choice%"=="9" goto mirror_i18n
+if "%choice%"=="10" goto ru_workflow
 goto menu
 
 REM ============================================================================
@@ -300,13 +302,16 @@ echo   %ESC%[1;33m  i   Перед сборкой будет сделан БЭК
 echo   %ESC%[2m       - файлы локализации ^(scripts\ru-locale, i18n^)%ESC%[0m
 echo   %ESC%[2m       - текущая готовая сборка ^(release^) — для отката пунктом [6]%ESC%[0m
 echo.
-set "confirm="
-set /p "confirm=%ESC%[33mПродолжить? (y/n): %ESC%[0m"
-if /I not "%confirm%"=="y" (
-    echo   %ESC%[1;33mОтменено.%ESC%[0m
-    pause
-    goto menu
+if not defined SKIP_CONFIRM (
+    set "confirm="
+    set /p "confirm=%ESC%[33mПродолжить? (y/n): %ESC%[0m"
+    if /I not "!confirm!"=="y" (
+        echo   %ESC%[1;33mОтменено.%ESC%[0m
+        pause
+        goto menu
+    )
 )
+set "SKIP_CONFIRM="
 
 REM --- Hermes должен быть закрыт: иначе сборку (release) не сохранить ---
 tasklist /FI "IMAGENAME eq Hermes.exe" 2>nul | findstr /I "Hermes.exe" >nul
@@ -510,6 +515,55 @@ if errorlevel 1 (
 echo.
 pause
 goto menu
+
+REM ============================================================================
+REM   [10] Русификация: полный цикл (workflow)
+REM   Эталоны -> зеркало ru.ts -> зеркало констант -> регистрация -> проверка
+REM   -> копирование в репозиторий -> тестовая сборка Electron.
+REM   В конце спрашивает про боевую пересборку release (бэкап + сборка + запуск).
+REM ============================================================================
+:ru_workflow
+cls
+echo.
+echo   %ESC%[1;33mРусификация: полный цикл (RU-WORKFLOW.md)...%ESC%[0m
+echo   %ESC%[2m  [1] эталоны  [2] зеркало ru.ts  [3] зеркало констант  [4] регистрация%ESC%[0m
+echo   %ESC%[2m  [5] проверка  [6] копирование в репозиторий  [7] тестовая сборка Electron%ESC%[0m
+echo.
+
+set "WF_PY=%SCRIPTS_DIR%\py\ru_workflow.py"
+set "PY_CMD="%REPO_DIR%\venv\Scripts\python.exe""
+if not exist "%REPO_DIR%\venv\Scripts\python.exe" set "PY_CMD=python"
+
+if not exist "%WF_PY%" (
+    echo   %ESC%[1;31m[ОШИБКА] Не найден %WF_PY%%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+%PY_CMD% "%WF_PY%"
+if errorlevel 1 (
+    echo.
+    echo   %ESC%[1;31m  !   Цикл не пройден — боевую сборку не запускаем.%ESC%[0m
+    echo   %ESC%[2m      Переводы правьте здесь: %SCRIPTS_DIR%\ru-locale\ru.ts и ru-constants.ts%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+echo.
+echo   %ESC%[1;32m  +   Цикл пройден: локали в репозитории, Electron компилируется.%ESC%[0m
+echo.
+set "go="
+set /p "go=%ESC%[33mВыполнить боевую пересборку Desktop (бэкап + release + перезапуск)? (y/n): %ESC%[0m"
+if /I not "%go%"=="y" (
+    echo   %ESC%[1;33mБоевая сборка отложена — её можно запустить пунктом [5].%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+set "SKIP_CONFIRM=1"
+goto build_desktop
 
 REM ============================================================================
 REM   [7] Очистить репозиторий
