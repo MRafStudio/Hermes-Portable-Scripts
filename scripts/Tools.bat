@@ -59,13 +59,14 @@ echo   %ESC%[1;37m[5]%ESC%[0m %ESC%[1mПересобрать Hermes Desktop и �
 echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mОткатить русификацию к бэкапу%ESC%[0m %ESC%[2m— вернуть рабочие файлы и сборку%ESC%[0m
 echo.
 echo   %ESC%[1;37m[7]%ESC%[0m %ESC%[1;31mОчистить репозиторий%ESC%[0m %ESC%[2m— Удалить hermes-agent (данные сохраняются)%ESC%[0m
+echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mПроверка русификации%ESC%[0m %ESC%[2m— структура + esbuild + порядок (workflow)%ESC%[0m
 echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 echo.
 
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-7): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-8): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
@@ -76,6 +77,7 @@ if "%choice%"=="4" goto open_config_yaml
 if "%choice%"=="5" goto build_desktop
 if "%choice%"=="6" goto rollback_ru
 if "%choice%"=="7" goto clean_hermes_repo
+if "%choice%"=="8" goto verify_i18n
 goto menu
 
 REM ============================================================================
@@ -429,6 +431,38 @@ set "runh="
 set /p "runh=%ESC%[33mЗапустить Hermes сейчас? (y/n): %ESC%[0m"
 if /I "!runh!"=="y" (
     call "%SCRIPTS_DIR%\Start-Hermes-Desktop.bat" 1
+)
+echo.
+pause
+goto menu
+
+REM ============================================================================
+REM   [8] Проверка русификации — структура + esbuild + порядок (ядро workflow)
+REM ============================================================================
+:verify_i18n
+cls
+echo.
+echo   %ESC%[1;33mПроверка русификации (workflow-тест)...%ESC%[0m
+echo.
+
+set "VERIFY_PY=%SCRIPTS_DIR%\py\i18n_verify.py"
+set "PY_CMD="%REPO_DIR%\venv\Scripts\python.exe""
+if not exist "%REPO_DIR%\venv\Scripts\python.exe" set "PY_CMD=python"
+
+if not exist "%VERIFY_PY%" (
+    echo   %ESC%[1;31m[ОШИБКА] Не найден %VERIFY_PY%%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+%PY_CMD% "%VERIFY_PY%"
+if errorlevel 1 (
+    echo.
+    echo   %ESC%[1;31m  !   Есть ошибки — сборку не запускать (см. RU-WORKFLOW.md).%ESC%[0m
+) else (
+    echo.
+    echo   %ESC%[1;32m  +   Можно собирать: пункт [5]%ESC%[0m
 )
 echo.
 pause
