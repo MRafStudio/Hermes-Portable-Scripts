@@ -60,13 +60,14 @@ echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mОткатить русификацию к
 echo.
 echo   %ESC%[1;37m[7]%ESC%[0m %ESC%[1;31mОчистить репозиторий%ESC%[0m %ESC%[2m— Удалить hermes-agent (данные сохраняются)%ESC%[0m
 echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mПроверка русификации%ESC%[0m %ESC%[2m— структура + esbuild + порядок (workflow)%ESC%[0m
+echo   %ESC%[1;37m[9]%ESC%[0m %ESC%[1mВыровнять ru.ts как зеркало en.ts%ESC%[0m %ESC%[2m— 1:1 построчно (полнота + порядок)%ESC%[0m
 echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
 echo.
 
 set "choice="
-set /p "choice=%ESC%[33mВыберите действие (0-8): %ESC%[0m"
+set /p "choice=%ESC%[33mВыберите действие (0-9): %ESC%[0m"
 set "choice=%choice: =%"
 
 if "%choice%"=="0" goto exit
@@ -78,6 +79,7 @@ if "%choice%"=="5" goto build_desktop
 if "%choice%"=="6" goto rollback_ru
 if "%choice%"=="7" goto clean_hermes_repo
 if "%choice%"=="8" goto verify_i18n
+if "%choice%"=="9" goto mirror_i18n
 goto menu
 
 REM ============================================================================
@@ -463,6 +465,47 @@ if errorlevel 1 (
 ) else (
     echo.
     echo   %ESC%[1;32m  +   Можно собирать: пункт [5]%ESC%[0m
+)
+echo.
+pause
+goto menu
+
+REM ============================================================================
+REM   [9] Выровнять ru.ts как зеркало en.ts — тот же набор ключей и порядок (1:1)
+REM ============================================================================
+:mirror_i18n
+cls
+echo.
+echo   %ESC%[1;33mПриводю ru.ts к зеркалу en.ts (полнота + порядок + построчность)...%ESC%[0m
+echo.
+
+set "MIRROR_PY=%SCRIPTS_DIR%\py\i18n_mirror.py"
+set "PY_CMD="%REPO_DIR%\venv\Scripts\python.exe""
+if not exist "%REPO_DIR%\venv\Scripts\python.exe" set "PY_CMD=python"
+
+if not exist "%MIRROR_PY%" (
+    echo   %ESC%[1;31m[ОШИБКА] Не найден %MIRROR_PY%%ESC%[0m
+    echo.
+    pause
+    goto menu
+)
+
+echo   %ESC%[2m       Непереведённые ключи попадут с английским текстом (их найдёт [8]).%ESC%[0m
+echo   %ESC%[2m       Копия текущего файла: ru.ts.pre-mirror%ESC%[0m
+echo.
+set "confirm="
+set /p "confirm=%ESC%[33mВыполнить? (y/n): %ESC%[0m"
+if /I not "!confirm!"=="y" (
+    echo   %ESC%[1;33mОтменено.%ESC%[0m
+    pause
+    goto menu
+)
+
+%PY_CMD% "%MIRROR_PY%"
+if errorlevel 1 (
+    echo   %ESC%[1;31m  !   Не удалось собрать зеркало (см. сообщение выше).%ESC%[0m
+) else (
+    echo   %ESC%[1;32m  +   Готово. Теперь: [8] — проверка, [5] — сборка.%ESC%[0m
 )
 echo.
 pause
