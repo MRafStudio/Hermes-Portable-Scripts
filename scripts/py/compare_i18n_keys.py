@@ -112,6 +112,38 @@ class LocaleParser:
         return (path + "." + key) if path else key
 
     # ---------- структурный обход ----------
+    def skip_as_suffix(self):
+        """Пропускает TS-приведение ' as <Type>' после значения (as Record<...> и т.п.)."""
+        save = self.i
+        self.skip_ws()
+        if self.s[self.i:self.i + 2] != "as":
+            self.i = save
+            return
+        nxt = self.s[self.i + 2:self.i + 3]
+        if nxt.isalnum() or nxt in ("_", "$"):
+            self.i = save
+            return
+        self.i += 2
+        depth = 0
+        while self.i < self.n:
+            ch = self.s[self.i]
+            if ch in "'\"`":
+                self.read_string()
+                continue
+            if ch in "([{<":
+                depth += 1
+                self.i += 1
+                continue
+            if ch in ")]}>":
+                if depth == 0:
+                    break
+                depth -= 1
+                self.i += 1
+                continue
+            if ch == "," and depth == 0:
+                break
+            self.i += 1
+
     def parse_object(self, path):
         assert self.s[self.i] == "{"
         self.i += 1
@@ -134,6 +166,7 @@ class LocaleParser:
                 # геттер/метод — пропускаем тело до }
                 pass
             self.parse_value(self.join(path, key))
+            self.skip_as_suffix()
 
     def parse_array(self, path):
         assert self.s[self.i] == "["

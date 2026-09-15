@@ -181,6 +181,38 @@ class Parser(object):
             self.parse_value("!" + path + "[" + str(idx) + "]")
             idx += 1
 
+    def skip_as_suffix(self):
+        """Пропускает TS-приведение ' as <Type>' после значения (as Record<...> и т.п.)."""
+        save = self.i
+        self.skip_ws()
+        if self.s[self.i:self.i + 2] != "as":
+            self.i = save
+            return
+        nxt = self.s[self.i + 2:self.i + 3]
+        if nxt.isalnum() or nxt in ("_", "$"):
+            self.i = save
+            return
+        self.i += 2
+        depth = 0
+        while self.i < self.n:
+            ch = self.s[self.i]
+            if ch in "'\"`":
+                self.read_string()
+                continue
+            if ch in "([{<":
+                depth += 1
+                self.i += 1
+                continue
+            if ch in ")]}>":
+                if depth == 0:
+                    break
+                depth -= 1
+                self.i += 1
+                continue
+            if ch == "," and depth == 0:
+                break
+            self.i += 1
+
     def parse_object(self, path):
         open_pos = self.i - 1
         while self.i < self.n:
@@ -204,6 +236,7 @@ class Parser(object):
                 self.i += 1
             kpath = (path + "." + key) if path else key
             self.parse_value(kpath)
+            self.skip_as_suffix()
 
 
 def find_root(src, marker):
@@ -285,6 +318,8 @@ def main():
     ap.add_argument("--ru", default="scripts/ru-locale/ru.ts", help="путь к ru.ts")
     ap.add_argument("--en", default="scripts/en-locale/en.ts", help="путь к en.ts (для --prune)")
     ap.add_argument("--prune", action="store_true", help="удалять ключи, которых нет в en.ts")
+    ap.add_argument("--only-new", action="store_true",
+                    help="применять только отсутствующие в ru.ts ключи (существующие переводы не трогать)")
     ap.add_argument("--dry-run", action="store_true", help="ничего не писать, только показать план")
     ap.add_argument("--out", help="записать результат в другой файл (по умолчанию — в ru.ts, .bak рядом)")
     args = ap.parse_args()
@@ -297,6 +332,7 @@ def main():
     missing_parent = []
 
     # 1) замены существующих значений (только строки/шаблоны — функции и ссылки не трогаем)
+    replaced_list = []
     for path, text in updates.items():
         leaf = rp.leaves.get(path)
         if leaf is None or path.startswith("!"):
@@ -304,8 +340,19 @@ def main():
         if leaf.kind not in ("string", "template"):
             continue
         style = src[leaf.val_start] if leaf.val_start < len(src) else None
+        raw_old = src[leaf.val_start:leaf.val_end].strip()
+        if len(raw_old) >= 2 and raw_old[0] in ("'", '"', "`") and raw_old[-1] == raw_old[0]:
+            old_text = raw_old[1:-1]
+        else:
+            old_text = raw_old
+        old_plain = old_text.replace(BS + BS, BS).replace(BS + "n", LF).replace(BS + "r", CR).replace(BS + "t", TAB)
+        if old_plain == text:
+            continue  # перевод не меняется — не трогаем строку вовсе
+        replaced_list.append((path, old_plain, text))
         edits.append((leaf.val_start, leaf.val_end, escape_ts(text, style)))
         replaced += 1
+    if args.only_new:
+        updates = {k: v for k, v in updates.items() if k not in rp.leaves}
 
     # 2) добавление новых ключей, сгруппированных по родителю
     adds = {}
@@ -405,6 +452,10 @@ def main():
 
     print("Замен: %d | Добавлений: %d | Удалений (prune): %d | Пропущено (в массивах): %d" %
           (replaced, added, pruned, skipped_arrays))
+    if replaced_list:
+        print("Изменённые переводы (первые 10):")
+        for pth, o, n in replaced_list[:10]:
+            print("  %s: %s  ->  %s" % (pth, o[:60], n[:60]))
     if missing_parent:
         print("ВНИМАНИЕ, нет родителя: %s" % ", ".join(missing_parent))
     print("Записано: %s%s" % (target, "" if args.out else " (бэкап: %s.bak)" % args.ru))
