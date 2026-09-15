@@ -1,5 +1,8 @@
-# \scripts\ps1\patch_catalog.ps1
-# Hermes Portable — Патч для catalog.ts
+﻿# \scripts\ps1\patch_catalog.ps1
+# Hermes Portable - Патч для catalog.ts: подключает русские переводы.
+# Идемпотентен: "import { ru }" уже есть -> exit 1 (ничего не меняем).
+# Стиль апстрима: импорт встаёт в алфавитном порядке (перед "import type"),
+# элемент TRANSLATIONS - последним.
 # ============================================================================
 param(
     [Parameter(Mandatory=$true)]
@@ -18,28 +21,42 @@ if ($content.Contains("import { ru }")) {
     exit 1
 }
 
-# 1. Add import
-$oldImport = "import { zhHant } from './zh-hant'"
-$newImport = "import { zhHant } from './zh-hant'`r`nimport { ru } from './ru'"
+$nl = "`n"
+if ($content.Contains("`r`n")) { $nl = "`r`n" }
 
-if ($content.Contains($oldImport)) {
-    $content = $content.Replace($oldImport, $newImport)
-} else {
-    Write-Error "Could not find zhHant import"
+function Insert-ListItem {
+    param([string]$Text, [int]$Idx, [string]$Block)
+    $i = $Idx - 1
+    while ($i -ge 0 -and ($Text[$i] -eq " " -or $Text[$i] -eq "`t" -or $Text[$i] -eq "`r" -or $Text[$i] -eq "`n")) { $i-- }
+    if ($i -lt 0) { return $null }
+    if ($Text[$i] -eq ",") {
+        $pos = $i + 1
+        return $Text.Substring(0, $pos) + $Block + $Text.Substring($pos)
+    }
+    return $Text.Substring(0, $i + 1) + "," + $Block + $Text.Substring($i + 1)
+}
+
+# --- 1) импорт: перед "import type" (алфавитный порядок сохраняется) ---
+$anchor = "import type {"
+$idx = $content.IndexOf($anchor)
+if ($idx -lt 0) {
+    Write-Error "Could not find 'import type' anchor in catalog.ts"
+    exit 2
+}
+$content = $content.Insert($idx, "import { ru } from './ru'" + $nl)
+
+# --- 2) элемент TRANSLATIONS: последним ---
+$lastBrace = $content.LastIndexOf("}")
+if ($lastBrace -lt 0 -or $content.Substring($lastBrace + 1).Trim().Length -ne 0) {
+    Write-Error "Could not find the closing brace of TRANSLATIONS"
+    exit 2
+}
+$content = Insert-ListItem -Text $content -Idx $lastBrace -Block ($nl + "  ru")
+if ($null -eq $content) {
+    Write-Error "Could not locate the last TRANSLATIONS entry"
     exit 2
 }
 
-# 2. Add ru to catalog
-$oldCatalog = "  zh,"
-$newCatalog = "  zh,`r`n  ru,"
-
-if ($content.Contains($oldCatalog)) {
-    $content = $content.Replace($oldCatalog, $newCatalog)
-} else {
-    Write-Error "Could not find zh in catalog"
-    exit 2
-}
-
-$content | Set-Content $FilePath -NoNewline -Encoding UTF8
-Write-Host "catalog.ts patched."
+[System.IO.File]::WriteAllText($FilePath, $content, (New-Object System.Text.UTF8Encoding($false)))
+Write-Host "catalog.ts patched (ru wired into TRANSLATIONS)."
 exit 0

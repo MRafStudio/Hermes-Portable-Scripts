@@ -1,5 +1,8 @@
-# \scripts\ps1\patch_languages.ps1
-# Hermes Portable — Патч для languages.ts
+﻿# \scripts\ps1\patch_languages.ps1
+# Hermes Portable - Патч для languages.ts: регистрирует русский язык.
+# Идемпотентен: "id: 'ru'" уже есть -> exit 1 (ничего не меняем).
+# Стиль апстрима: запись идёт ПОСЛЕДНЕЙ в LOCALE_OPTIONS, имя берётся из
+# LOCALE_ENDONYMS (ключ 'ru' гарантирован патчем patch_types.ps1).
 # ============================================================================
 param(
     [Parameter(Mandatory=$true)]
@@ -18,40 +21,58 @@ if ($content.Contains("id: 'ru'")) {
     exit 1
 }
 
-# 1. Add ru to LOCALE_OPTIONS (first, before 'en')
-$oldEnBlock = "  {`r`n    id: 'en',`r`n    name: 'English',"
-$newEnBlock = "  {`r`n    id: 'ru',`r`n    name: 'Russian',`r`n    englishName: 'Russian',`r`n    configValue: 'ru'`r`n  },`r`n  {`r`n    id: 'en',`r`n    name: 'English',"
+$nl = "`n"
+if ($content.Contains("`r`n")) { $nl = "`r`n" }
 
-if ($content.Contains($oldEnBlock)) {
-    $content = $content.Replace($oldEnBlock, $newEnBlock)
-} else {
-    $oldEnBlockUnix = "  {`n    id: 'en',`n    name: 'English',"
-    if ($content.Contains($oldEnBlockUnix)) {
-        $newEnBlockUnix = "  {`n    id: 'ru',`n    name: 'Russian',`n    englishName: 'Russian',`n    configValue: 'ru'`n  },`n  {`n    id: 'en',`n    name: 'English',"
-        $content = $content.Replace($oldEnBlockUnix, $newEnBlockUnix)
-    } else {
-        Write-Error "Could not find 'en' locale block"
-        exit 2
+function Insert-ListItem {
+    param([string]$Text, [int]$Idx, [string]$Block)
+    # отступаем от закрывающей скобки к концу последнего элемента списка
+    $i = $Idx - 1
+    while ($i -ge 0 -and ($Text[$i] -eq " " -or $Text[$i] -eq "`t" -or $Text[$i] -eq "`r" -or $Text[$i] -eq "`n")) { $i-- }
+    if ($i -lt 0) { return $null }
+    if ($Text[$i] -eq ",") {
+        $pos = $i + 1
+        return $Text.Substring(0, $pos) + $Block + $Text.Substring($pos)
     }
+    return $Text.Substring(0, $i + 1) + "," + $Block + $Text.Substring($i + 1)
 }
 
-# 2. Add ru aliases to LOCALE_ALIASES (first, before 'en')
-$oldAlias = "  en: 'en',`r`n  'en-us': 'en',"
-$newAlias = "  ru: 'ru',`r`n  'ru-ru': 'ru',`r`n  ru_ru: 'ru',`r`n  'russkiy': 'ru',`r`n  en: 'en',`r`n  'en-us': 'en',"
-
-if ($content.Contains($oldAlias)) {
-    $content = $content.Replace($oldAlias, $newAlias)
-} else {
-    $oldAliasUnix = "  en: 'en',`n  'en-us': 'en',"
-    if ($content.Contains($oldAliasUnix)) {
-        $newAliasUnix = "  ru: 'ru',`n  'ru-ru': 'ru',`n  ru_ru: 'ru',`n  'russkiy': 'ru',`n  en: 'en',`n  'en-us': 'en',"
-        $content = $content.Replace($oldAliasUnix, $newAliasUnix)
-    } else {
-        Write-Error "Could not find 'en' alias"
-        exit 2
-    }
+# --- 1) LOCALE_OPTIONS: запись идёт последней ---
+$idx = $content.IndexOf("] as const")
+if ($idx -lt 0) {
+    Write-Error "Could not find LOCALE_OPTIONS end ('] as const')"
+    exit 2
+}
+$entry = $nl + "  {" + $nl + "    id: 'ru'," + $nl + "    name: LOCALE_ENDONYMS.ru," +
+         $nl + "    englishName: 'Russian'," + $nl + "    configValue: 'ru'" + $nl + "  }"
+$content = Insert-ListItem -Text $content -Idx $idx -Block $entry
+if ($null -eq $content) {
+    Write-Error "Could not locate the last LOCALE_OPTIONS entry"
+    exit 2
 }
 
-$content | Set-Content $FilePath -NoNewline -Encoding UTF8
-Write-Host "languages.ts patched (ru first)."
+# --- 2) LOCALE_ALIASES: набор алиасов идёт последним ---
+$anchor2 = "const LOCALE_ALIASES"
+$i2 = $content.IndexOf($anchor2)
+if ($i2 -lt 0) {
+    Write-Error "Could not find LOCALE_ALIASES in languages.ts"
+    exit 2
+}
+$open2 = $content.IndexOf("{", $i2)
+$close2 = $content.IndexOf("}", $open2)
+if ($open2 -lt 0 -or $close2 -lt 0) {
+    Write-Error "Could not find the LOCALE_ALIASES body"
+    exit 2
+}
+$aliasBlock = $nl + "  ru: 'ru'," + $nl + "  'ru-ru': 'ru'," + $nl + "  ru_ru: 'ru'," + $nl +
+              "  'ru-by': 'ru'," + $nl + "  'ru-kz': 'ru'," + $nl + "  russian: 'ru'," + $nl +
+              "  'russian-russian': 'ru'," + $nl + "  русский: 'ru'," + $nl + "  руский: 'ru'"
+$content = Insert-ListItem -Text $content -Idx $close2 -Block $aliasBlock
+if ($null -eq $content) {
+    Write-Error "Could not locate the last LOCALE_ALIASES entry"
+    exit 2
+}
+
+[System.IO.File]::WriteAllText($FilePath, $content, (New-Object System.Text.UTF8Encoding($false)))
+Write-Host "languages.ts patched (ru registered)."
 exit 0

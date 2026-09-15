@@ -1,5 +1,8 @@
-# \scripts\ps1\patch_types.ps1
-# Hermes Portable — Патч для types.ts
+﻿# \scripts\ps1\patch_types.ps1
+# Hermes Portable - Патч для types.ts: добавляет 'ru' в union типа Locale.
+# Идемпотентен: 'ru' уже есть -> exit 1 (ничего не меняем).
+# Список языков НЕ фиксируется: 'ru' дописывается в конец union, какие бы языки
+# ни добавил апстрим (например, 'ar').
 # ============================================================================
 param(
     [Parameter(Mandatory=$true)]
@@ -18,16 +21,21 @@ if ($content.Contains("'ru'")) {
     exit 1
 }
 
-$oldLine = "export type Locale = 'en' | 'zh' | 'zh-hant' | 'ja'"
-$newLine = "export type Locale = 'en' | 'zh' | 'zh-hant' | 'ja' | 'ru'"
-
-if ($content.Contains($oldLine)) {
-    $content = $content.Replace($oldLine, $newLine)
-} else {
-    Write-Error "Could not find Locale type definition"
+$m = [regex]::Match($content, "export type Locale = ([^\r\n]+)")
+if (-not $m.Success) {
+    Write-Error "Could not find 'export type Locale' in types.ts"
     exit 2
 }
 
-$content | Set-Content $FilePath -NoNewline -Encoding UTF8
-Write-Host "types.ts patched."
+$list = $m.Groups[1].Value.TrimEnd()
+if ($list -notmatch "^('.*?'\s*\|\s*)+'[^']*'$") {
+    Write-Error "Unexpected Locale union format: $list"
+    exit 2
+}
+
+$newList = $list + " | 'ru'"
+$content = $content.Remove($m.Groups[1].Index, $m.Groups[1].Length).Insert($m.Groups[1].Index, $newList)
+
+[System.IO.File]::WriteAllText($FilePath, $content, (New-Object System.Text.UTF8Encoding($false)))
+Write-Host "types.ts patched (ru appended to Locale)."
 exit 0
