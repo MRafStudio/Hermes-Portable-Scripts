@@ -81,10 +81,10 @@ if not exist "%RU_LOCALE_DIR%\ru-constants.ts" (
 echo   %ESC%[1;32m  +   Файлы локализации найдены.%ESC%[0m
 
 REM ============================================================================
-REM   ШАГ 2/4: Копирование en.ts из репозитория
+REM   ШАГ 2/4: Копирование эталонов (en.ts + constants.ts) из репозитория
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[2/4]%ESC%[0m %ESC%[1mКопирование en.ts из репозитория...%ESC%[0m
+echo   %ESC%[1;33m[2/4]%ESC%[0m %ESC%[1mКопирование эталонов en (en.ts + constants.ts)...%ESC%[0m
 
 REM --- en.ts ---
 if exist "%I18N_DIR%\en.ts" (
@@ -107,6 +107,27 @@ if exist "%I18N_DIR%\en.ts" (
     echo   %ESC%[1;32m  +   en.ts загружен ^(!EN_SIZE! байт^).%ESC%[0m
 )
 
+REM --- constants.ts (эталон подписей и описаний полей для ru-constants.ts) ---
+if exist "%SETTINGS_DIR%\constants.ts" (
+    copy /Y "%SETTINGS_DIR%\constants.ts" "%EN_LOCALE_DIR%\en-constants.ts" >nul
+    for %%F in ("%EN_LOCALE_DIR%\en-constants.ts") do set "EN_CONST_SIZE=%%~zF"
+    echo   %ESC%[1;32m  +   en-constants.ts скопирован из репозитория ^(!EN_CONST_SIZE! байт^).%ESC%[0m
+) else (
+    echo   %ESC%[1;33m  [i]  constants.ts не найден в репозитории. Пробуем скачать...%ESC%[0m
+    set "EN_CONST_URL=https://raw.githubusercontent.com/NousResearch/hermes-agent/main/apps/desktop/src/app/settings/constants.ts"
+    curl -fsSL -o "%EN_LOCALE_DIR%\en-constants.ts" "%EN_CONST_URL%"
+    if !errorlevel! neq 0 (
+        echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить constants.ts%ESC%[0m
+        goto error_exit
+    )
+    for %%F in ("%EN_LOCALE_DIR%\en-constants.ts") do set "EN_CONST_SIZE=%%~zF"
+    if !EN_CONST_SIZE! lss 100 (
+        echo   %ESC%[1;31m[ОШИБКА] constants.ts пустой или битый ^(!EN_CONST_SIZE! байт^).%ESC%[0m
+        goto error_exit
+    )
+    echo   %ESC%[1;32m  +   en-constants.ts загружен ^(!EN_CONST_SIZE! байт^).%ESC%[0m
+)
+echo.
 :apply_ru
 REM ============================================================================
 REM   ШАГ 3/4: Копирование файлов RU в локальный репозиторий

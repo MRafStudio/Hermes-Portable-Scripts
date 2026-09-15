@@ -23,10 +23,14 @@ WS = (" ", TAB, CR, LF)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_RU = os.path.normpath(os.path.join(HERE, "..", "ru-locale", "ru-constants.ts"))
-DEFAULT_EN = os.path.normpath(
-    os.path.join(HERE, "..", "..", "data", "hermes", "hermes-agent",
-                 "apps", "desktop", "src", "app", "settings", "constants.ts")
-)
+# Эталон подписей полей: сначала scripts/en-locale/en-constants.ts (его обновляет
+# InstallOrUpdate-RU.bat), затем файл репозитория Hermes.
+DEFAULT_EN = os.path.normpath(os.path.join(HERE, "..", "en-locale", "en-constants.ts"))
+if not os.path.exists(DEFAULT_EN):
+    DEFAULT_EN = os.path.normpath(
+        os.path.join(HERE, "..", "..", "data", "hermes", "hermes-agent",
+                     "apps", "desktop", "src", "app", "settings", "constants.ts")
+    )
 
 
 def parse_obj(src, i):
