@@ -133,7 +133,13 @@ def main():
         ru_leaves_map, _rs = CMP.split(CMP.parse_locale(args.ru))
         missing = [k for k in en_leaves if k not in ru_leaves_map]
         orphans = [k for k in ru_leaves_map if k not in en_leaves]
-        say("  [4/4] непереведённых: %d, осиротевших: %d (не блокирует сборку)" % (len(missing), len(orphans)))
+        en_raw = SORT.collect_leaves(open(args.en, encoding="utf-8", newline="").read(), "Translations = ")
+        ru_raw = SORT.collect_leaves(src, "defineLocale(")
+        empty_like = ("''", '""', "``")
+        same = [k for k in en_raw if k in ru_raw and en_raw[k].strip() == ru_raw[k].strip()
+                and en_raw[k].strip() not in empty_like]
+        say("  [4/4] нет ключа: %d | кандидаты на перевод (текст = англ.): %d | осиротевших: %d" %
+            (len(missing), len(same), len(orphans)))
     except Exception as ex:  # noqa: BLE001
         say("  [4/4] сводка недоступна: %s" % ex)
 
