@@ -71,3 +71,9 @@ uv/
 /query
 /Запуск Hermes.lnk
 *.bak_vk
+
+# генерируемые бэкапы и промежуточные файлы русификации
+scripts/en-locale/*.bak
+scripts/ru-locale/*.bak
+scripts/ru-locale/*.pre-mirror
+scripts/ru-locale/*.pre-sort
