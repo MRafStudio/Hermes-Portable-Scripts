@@ -252,14 +252,21 @@ def flat_value(kind, text):
     return "<%s>" % kind
 
 
-def write_flat(path, leaves, title):
-    """Плоский список ключей: 'ключ = текст', отсортирован по ключу."""
+def write_flat(path, leaves, title, order=None, missing=None):
+    """Плоский список: 'ключ = текст'.
+    order — порядок ключей (как в en.ts), missing — маркеры для отсутствующих ключей."""
+    order = order if order is not None else sorted(leaves)
+    n = 0
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write("# %s — %d ключей (отсортировано по ключу)\n" % (title, len(leaves)))
-        for k in sorted(leaves):
-            kind, text = leaves[k]
-            f.write("%s = %s\n" % (k, flat_value(kind, text)))
-    return len(leaves)
+        f.write("# %s — %d ключей" % (title, len(leaves)) + "\n")
+        for k in order:
+            if k in leaves:
+                kind, text = leaves[k]
+                f.write("%s = %s" % (k, flat_value(kind, text)) + "\n")
+                n += 1
+            elif missing is not None and k in missing:
+                f.write("%s = %s" % (k, missing[k]) + "\n")
+    return n
 
 
 def write_missing(path, missing, en):
@@ -320,8 +327,13 @@ def main():
     if args.flatten:
         out = os.path.abspath(args.flatten)
         os.makedirs(out, exist_ok=True)
-        n_en = write_flat(os.path.join(out, "en.flat"), en, "%s (эталон)" % os.path.basename(args.en))
-        n_ru = write_flat(os.path.join(out, "ru.flat"), ru, "%s (перевод)" % os.path.basename(args.ru))
+        order = list(en.keys())
+        miss = {}
+        for k, (kind, text) in en.items():
+            if k not in ru:
+                miss[k] = "<НЕТ ПЕРЕВОДА (функция)>" if kind == "fn" else "<НЕТ ПЕРЕВОДА>"
+        n_en = write_flat(os.path.join(out, "en.flat"), en, "%s (эталон)" % os.path.basename(args.en), order=order)
+        n_ru = write_flat(os.path.join(out, "ru.flat"), ru, "%s (перевод)" % os.path.basename(args.ru), order=order, missing=miss)
         n_miss = write_missing(os.path.join(out, "missing.flat"), missing, en)
         top = ", ".join("%s %d" % (s, -d) for s, e, r, d in sorted(sec_rows, key=lambda x: x[3])[:6]) if sec_rows else "нет"
         print("  en: секций %d, ключей %d" % (len(en_sections), len(en)))

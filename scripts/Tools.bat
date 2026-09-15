@@ -160,6 +160,9 @@ echo   %ESC%[2m       Непереведённые — строки, котор�
 echo   %ESC%[2m       Список для доперевода: %COMPARE_DIR%\missing.flat%ESC%[0m
 echo   %ESC%[2m       Перевод вписывать в: %RU_FILE%%ESC%[0m
 echo   %ESC%[2m       После правок: InstallOrUpdate-RU.bat, затем [5] — пересборка Desktop%ESC%[0m
+echo   %ESC%[1;33m  !   Строки идут 1:1 с en.ts (порядок ключей одинаковый):%ESC%[0m
+echo   %ESC%[2m       справа сразу видно каждый непереведённый ключ%ESC%[0m
+echo   %ESC%[2m       <НЕТ ПЕРЕВОДА> = строки нет в ru.ts — добавляйте её в scripts\ru-locale\ru.ts%ESC%[0m
 echo.
 
 start "" "%WINMERGE_EXE%" "%COMPARE_DIR%\en.flat" "%COMPARE_DIR%\ru.flat"
