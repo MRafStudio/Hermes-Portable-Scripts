@@ -91,20 +91,20 @@ def main():
         ok = False
         problems.append("мусорные ключи (TS-приведение разобрано как ключ): %s" % bad_keys[:5])
 
-    say("  [1/4] структура ru.ts: ключей %d%s" % (n_keys, "" if ok else "  <-- ПРОБЛЕМА"))
+    say("  [1/5] структура ru.ts: ключей %d%s" % (n_keys, "" if ok else "  <-- ПРОБЛЕМА"))
 
     # ---------- 2) esbuild ----------
     exe = None if args.no_esbuild else find_esbuild()
     if args.no_esbuild:
-        say("  [2/4] esbuild: пропущен (--no-esbuild)")
+        say("  [2/5] esbuild: пропущен (--no-esbuild)")
     elif exe is None:
-        say("  [2/4] esbuild: НЕ НАЙДЕН (проверка синтаксиса пропущена)")
+        say("  [2/5] esbuild: НЕ НАЙДЕН (проверка синтаксиса пропущена)")
     else:
         tmp_dir = os.path.dirname(os.path.abspath(args.ru))
         good_ru, log_ru = esbuild_check(exe, args.ru, tmp_dir)
         good_c, log_c = esbuild_check(exe, args.ru_const, tmp_dir) if os.path.exists(args.ru_const) else (True, "")
         if good_ru and good_c:
-            say("  [2/4] esbuild: синтаксис ru.ts и ru-constants.ts — OK")
+            say("  [2/5] esbuild: синтаксис ru.ts и ru-constants.ts — OK")
         else:
             ok = False
             problems.append("esbuild: синтаксис сломан")
@@ -119,13 +119,13 @@ def main():
         seq = [pos[k] for k in ru_paths if k in pos]
         violations = sum(1 for a, b in zip(seq, seq[1:]) if b < a)
         if violations == 0:
-            say("  [3/4] порядок ключей: соответствует en.ts")
+            say("  [3/5] порядок ключей: соответствует en.ts")
         else:
             ok = False
             problems.append("порядок ключей нарушен в %d местах (нужен i18n_sort_like_en.py)" % violations)
-            say("  [3/4] порядок ключей: %d нарушений" % violations)
+            say("  [3/5] порядок ключей: %d нарушений" % violations)
     else:
-        say("  [3/4] порядок ключей: проверка недоступна")
+        say("  [3/5] порядок ключей: проверка недоступна")
 
     # ---------- 4) сводка ----------
     try:
@@ -138,10 +138,36 @@ def main():
         empty_like = ("''", '""', "``")
         same = [k for k in en_raw if k in ru_raw and en_raw[k].strip() == ru_raw[k].strip()
                 and en_raw[k].strip() not in empty_like]
-        say("  [4/4] нет ключа: %d | кандидаты на перевод (текст = англ.): %d | осиротевших: %d" %
+        say("  [4/5] нет ключа: %d | кандидаты на перевод (текст = англ.): %d | осиротевших: %d" %
             (len(missing), len(same), len(orphans)))
     except Exception as ex:  # noqa: BLE001
-        say("  [4/4] сводка недоступна: %s" % ex)
+        say("  [4/5] сводка недоступна: %s" % ex)
+
+    # ---------- 5) ru-constants против en ----------
+    try:
+        import i18n_mirror_constants as MC
+        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(args.en))))
+        en_const = os.path.join(root, "data", "hermes", "hermes-agent", "apps", "desktop",
+                                "src", "app", "settings", "constants.ts")
+        ru_const = os.path.join(os.path.dirname(os.path.abspath(args.ru)), "ru-constants.ts")
+        if os.path.exists(en_const) and os.path.exists(ru_const):
+            en_const_src = open(en_const, encoding="utf-8").read()
+            ru_const_src = open(ru_const, encoding="utf-8", newline="").read()
+            en_c = {}
+            MC.flatten(MC.grab(en_const_src, "export const FIELD_LABELS"), "", en_c)
+            MC.flatten(MC.grab(en_const_src, "export const FIELD_DESCRIPTIONS"), "", en_c)
+            ru_c = {}
+            MC.flatten(MC.grab(ru_const_src, "export const RU_FIELD_LABELS"), "", ru_c)
+            MC.flatten(MC.grab(ru_const_src, "export const RU_FIELD_DESCRIPTIONS"), "", ru_c)
+            miss_c = [k for k in en_c if k not in ru_c]
+            say("  [5/5] ru-constants: ключей en=%d ru=%d, не хватает %d" % (len(en_c), len(ru_c), len(miss_c)))
+            if miss_c:
+                problems.append("ru-constants отстал: нет %d ключей -> python scripts/py/i18n_mirror_constants.py" % len(miss_c))
+                ok = False
+        else:
+            say("  [5/5] ru-constants: эталон не найден, проверка пропущена")
+    except Exception as ex:  # noqa: BLE001
+        say("  [5/5] ru-constants: проверка недоступна: %s" % ex)
 
     print()
     if ok:
