@@ -265,11 +265,45 @@ async def drive(url: str, widths: list, opts: dict) -> list:
                         mid += 1
                 await asyncio.sleep(max(opts.get("post_wait", 0), 0) / 1000.0)
 
+            if opts.get("click_loop"):
+                # ОБХОД СТРАНИЦ по кнопке («Следующая >»): собрать -> клик мышью -> собрать,
+                # пока кнопка есть. Исчезла = последняя страница. Всё в ОДНОМ запуске браузера:
+                # в отдельном вызове каждая навигация сбрасывает пагинацию на первую страницу.
+                evals: list = []
+                find_js = ("JSON.stringify((function(){var els=Array.from(document.querySelectorAll('*'));"
+                           "var best=null,bl=1e9;for(var i=0;i<els.length;i++){"
+                           "var t=(els[i].innerText||'').replace(/\\s+/g,' ').trim();"
+                           "if(t.indexOf(%s)>=0){var r=els[i].getBoundingClientRect();"
+                           "if(r.width>0&&r.height>0&&t.length<bl){bl=t.length;best=els[i];}}}"
+                           "if(!best)return null;best.scrollIntoView({block:'center'});"
+                           "var r2=best.getBoundingClientRect();"
+                           "return [r2.left+r2.width/2,r2.top+r2.height/2];})())"
+                           % json.dumps(opts["click_loop"]))
+                for _page in range(max(1, int(opts.get("max_pages", 30)))):
+                    if opts["eval"]:
+                        res = await _ws_call(ws, mid, "Runtime.evaluate",
+                                             {"expression": opts["eval"], "returnByValue": True,
+                                              "awaitPromise": True}); mid += 1
+                        evals.append(res.get("result", {}).get("value"))
+                    res = await _ws_call(ws, mid, "Runtime.evaluate",
+                                         {"expression": find_js, "returnByValue": True}); mid += 1
+                    pt = json.loads(res.get("result", {}).get("value") or "null")
+                    if not pt:
+                        break            # кнопки «Следующая» нет -> последняя страница
+                    for kind in ("mousePressed", "mouseReleased"):
+                        await _ws_call(ws, mid, "Input.dispatchMouseEvent",
+                                       {"type": kind, "x": pt[0], "y": pt[1], "button": "left",
+                                        "clickCount": 1,
+                                        "buttons": 1 if kind == "mousePressed" else 0})
+                        mid += 1
+                    await asyncio.sleep(max(opts.get("post_wait", 0), 0) / 1000.0)
+                run["evals"] = evals
+                run["pages"] = len(evals)
             if opts["overflow"]:
                 res = await _ws_call(ws, mid, "Runtime.evaluate",
                                      {"expression": OVERFLOW_JS, "returnByValue": True}); mid += 1
                 run["overflow"] = res.get("result", {}).get("value")
-            if opts["eval"]:
+            if opts["eval"] and not opts.get("click_loop"):
                 res = await _ws_call(ws, mid, "Runtime.evaluate",
                                      {"expression": opts["eval"], "returnByValue": True,
                                       "awaitPromise": True}); mid += 1
@@ -316,6 +350,12 @@ def main() -> int:
     ap.add_argument("--click", default="", help="CSS-селектор: клик настоящей мышью по элементу")
     ap.add_argument("--click-text", default="",
                     help="клик по ВСЕМ элементам с таким текстом (например «Подробнее»)")
+    ap.add_argument("--click-loop", default="",
+                    help="ОБХОД СТРАНИЦ: кликать мышью по элементу с таким текстом "
+                         "(например «Следующая»), пока он есть, выполняя --eval после КАЖДОГО "
+                         "клика; значения копятся в run['evals']. Конец = кнопка исчезла")
+    ap.add_argument("--max-pages", type=int, default=30,
+                    help="предохранитель для --click-loop: максимум страниц")
     ap.add_argument("--post-wait", type=int, default=2500,
                     help="пауза после кликов, мс (по умолчанию 2500)")
     ap.add_argument("--shot", default="", help="PNG-файл для скриншота")
@@ -354,6 +394,7 @@ def main() -> int:
         "overflow": a.check_overflow, "eval": a.eval, "sel": a.sel,
         "text": a.text, "dom": a.dom, "shot": a.shot,
         "click": a.click, "click_text": a.click_text, "post_wait": a.post_wait,
+        "click_loop": a.click_loop, "max_pages": a.max_pages,
     }
     if not any((a.check_overflow, a.eval, a.sel, a.text, a.dom, a.shot,
                 a.click, a.click_text)):
