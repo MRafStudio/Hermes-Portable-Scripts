@@ -229,7 +229,36 @@ async def drive(url: str, widths: list, opts: dict) -> list:
             await _ws_call(ws, mid, "Page.navigate", {"url": url}); mid += 1
             await asyncio.sleep(max(opts["wait"], 0) / 1000.0)
 
+            # Клики НАСТОЯЩЕЙ мышью: GWT-виджеты (Naumen и подобные) игнорируют
+            # синтетические события из JS - реагируют только на Input.dispatchMouseEvent.
             run = {"width": width}
+            if opts.get("click") or opts.get("click_text"):
+                if opts.get("click_text"):
+                    coords_js = ("JSON.stringify(Array.from(document.querySelectorAll('*'))"
+                                 ".filter(function(e){return (e.innerText||'').trim()===%s;})"
+                                 ".map(function(e){var r=e.getBoundingClientRect();"
+                                 "return [r.left+r.width/2, r.top+r.height/2];}))"
+                                 % json.dumps(opts["click_text"]))
+                else:
+                    coords_js = ("JSON.stringify(Array.from(document.querySelectorAll(%s))"
+                                 ".filter(function(e){var r=e.getBoundingClientRect();"
+                                 "return r.width>0&&r.height>0;})"
+                                 ".map(function(e){var r=e.getBoundingClientRect();"
+                                 "return [r.left+r.width/2, r.top+r.height/2];}))"
+                                 % json.dumps(opts["click"]))
+                res = await _ws_call(ws, mid, "Runtime.evaluate",
+                                     {"expression": coords_js, "returnByValue": True}); mid += 1
+                pts = json.loads(res.get("result", {}).get("value") or "[]")
+                run["clicked"] = len(pts)
+                for x, y in pts:
+                    for kind in ("mousePressed", "mouseReleased"):
+                        await _ws_call(ws, mid, "Input.dispatchMouseEvent",
+                                       {"type": kind, "x": x, "y": y, "button": "left",
+                                        "clickCount": 1,
+                                        "buttons": 1 if kind == "mousePressed" else 0})
+                        mid += 1
+                await asyncio.sleep(max(opts.get("post_wait", 0), 0) / 1000.0)
+
             if opts["overflow"]:
                 res = await _ws_call(ws, mid, "Runtime.evaluate",
                                      {"expression": OVERFLOW_JS, "returnByValue": True}); mid += 1
@@ -278,6 +307,11 @@ def main() -> int:
     ap.add_argument("--sel", default="", help="CSS-селектор: текст всех совпадений")
     ap.add_argument("--dom", action="store_true", help="outerHTML страницы")
     ap.add_argument("--eval", default="", help="JS-выражение, вернуть значение")
+    ap.add_argument("--click", default="", help="CSS-селектор: клик настоящей мышью по элементу")
+    ap.add_argument("--click-text", default="",
+                    help="клик по ВСЕМ элементам с таким текстом (например «Подробнее»)")
+    ap.add_argument("--post-wait", type=int, default=2500,
+                    help="пауза после кликов, мс (по умолчанию 2500)")
     ap.add_argument("--shot", default="", help="PNG-файл для скриншота")
     ap.add_argument("--out", default="", help="куда писать большой вывод (--dom/--text)")
     ap.add_argument("--check-overflow", action="store_true",
@@ -313,8 +347,10 @@ def main() -> int:
         "port": a.port, "height": a.height, "wait": a.wait,
         "overflow": a.check_overflow, "eval": a.eval, "sel": a.sel,
         "text": a.text, "dom": a.dom, "shot": a.shot,
+        "click": a.click, "click_text": a.click_text, "post_wait": a.post_wait,
     }
-    if not any((a.check_overflow, a.eval, a.sel, a.text, a.dom, a.shot)):
+    if not any((a.check_overflow, a.eval, a.sel, a.text, a.dom, a.shot,
+                a.click, a.click_text)):
         opts["overflow"] = True          # разумный дефолт: просто «что за страница»
 
     proc = launch(a.port, a.profile, find_chrome(a.chrome), widths[0], a.height)
