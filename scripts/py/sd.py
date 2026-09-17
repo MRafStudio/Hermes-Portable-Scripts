@@ -121,10 +121,13 @@ def _route_no_nav(route: str) -> str:
 def _route(route: str, wait: str = "18000") -> dict:
     """Открыть раздел SPA и вернуть снимок (url, текст, ссылки)."""
     js = ("JSON.stringify({url: location.href, title: document.title,"
-          " text: document.body.innerText.slice(0, 8000),"
-          " links: Array.from(document.querySelectorAll('a')).map(function(a){"
-          "return (a.innerText||'').trim()+' | '+(a.getAttribute('href')||'')}"
-          ").filter(function(s){return s.length>3}).slice(0,120)})")
+          " text: document.body.innerText.slice(0, 12000),"
+          " rows: Array.from(document.querySelectorAll('tr')).map(function(tr){"
+          "var a=tr.querySelector('a[href*=\"serviceCall$\"]');"
+          "var m=(tr.innerText||'').match(/^\\s*(\\d{3,7})\\s/);"
+          "return {num: m?m[1]:'', href: a?a.getAttribute('href'):'',"
+          " text: (tr.innerText||'').replace(/\\s+/g,' ').slice(0,170)};"
+          "}).filter(function(r){return r.num;})})")
     out = _cdp(BASE + "/sd/operator/" + route, js, wait)
     try:
         return json.loads(json.loads(out)["runs"][0]["value"])
@@ -145,8 +148,9 @@ def _esearch_route(query: str, scope: str = "ALL_OBJECTS") -> str:
 def cmd_search(query: str, wait: str) -> None:
     """Поиск по ВСЕМ заявкам UCS (не только своим): интерфейс открывает свои результаты.
 
-    Роут найден у самого интерфейса: #esearch:full:serviceCall:ACTIVE_OBJECTS_ONLY!{"query": ...}.
-    ACTIVE_OBJECTS_ONLY означает, что в выдачу идут заявки в работе и закрытые - то, что нужно.
+    Роут найден у самого интерфейса: #esearch:full:serviceCall:ALL_OBJECTS!{"query": ...}.
+    Номера берём из СТРОК ТАБЛИЦЫ, а не из ссылок: у части строк номер идёт текстом без
+    ссылки, и парсер по ссылкам молча теряет заявки (проверено: 9 вместо 11).
     """
     payload = _esearch_route(query)
     route = payload
@@ -159,11 +163,10 @@ def cmd_search(query: str, wait: str) -> None:
     print("поиск:", query, "|", d.get("title", "")[:60])
     print(" ".join(d.get("text", "").split())[:1800])
     cards = []
-    for l in d.get("links", []):
-        if "serviceCall$" in l and l.split("|")[0].strip().isdigit():
-            num, href = [x.strip() for x in l.split("|", 1)]
-            if (num, href) not in cards:
-                cards.append((num, href))
+    for row in d.get("rows", []):
+        num, href = str(row.get("num", "")).strip(), str(row.get("href", "")).strip()
+        if num.isdigit() and (num, href) not in cards:
+            cards.append((num, href))
     print("\nкарточки (номер | роут):")
     for num, href in cards:
         print(f"   {num} | {href}")
