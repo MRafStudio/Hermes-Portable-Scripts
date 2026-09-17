@@ -77,3 +77,6 @@ scripts/en-locale/*.bak
 scripts/ru-locale/*.bak
 scripts/ru-locale/*.pre-mirror
 scripts/ru-locale/*.pre-sort
+skills-repo/
+data/temp/
+*.log

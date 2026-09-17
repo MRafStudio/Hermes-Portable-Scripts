@@ -68,6 +68,14 @@ def cmd_login() -> None:
     print("сессия сохранена (JSESSIONID)")
 
 
+NEXT_JS = (
+    "(function(){var els=Array.from(document.querySelectorAll('a,span,div,button')),r='{\"next\":false}';"
+    "for(var i=0;i<els.length;i++){var t=(els[i].innerText||'').replace(/\\s+/g,' ').trim();"
+    "if(t.indexOf('Следующая')===0){['mousedown','mouseup','click'].forEach(function(ev){"
+    "els[i].dispatchEvent(new MouseEvent(ev,{bubbles:true,cancelable:true,view:window}));});"
+    "r='{\"next\":true}';break;}}return r;})()")
+
+
 def _cdp(url: str, js: str, wait: str) -> str:
     r = subprocess.run([PY, CDP, url, "--eval", js, "--wait", wait, "--keep"],
                        capture_output=True, text=True, timeout=300)
@@ -196,19 +204,39 @@ def cmd_card(target: str, wait: str) -> None:
           "try{var d=f.contentDocument;return (d&&d.body)?d.body.innerText.replace(/\\s+/g,' ').trim():'';}"
           "catch(e){return '';}}).filter(function(s){return s.length>1;});"
           "return JSON.stringify({clicked:n, text:document.body.innerText.slice(0,14000), frames:fr});})()")
-    out = _cdp(BASE + "/sd/operator/" + route, js, wait)
-    try:
-        val = json.loads(json.loads(out)["runs"][0]["value"])
-        text = val["text"]
-        print("раскрыто кнопок «Подробнее»:", val["clicked"])
+    # Переписка листается страницами по 20 записей, СВЕЖИЕ СВЕРХУ: первый ответ
+    # заказчику лежит на ПОСЛЕДНЕЙ странице. Поэтому листаем до конца, пока есть «Следующая».
+    url = BASE + "/sd/operator/" + route
+    allfr: list[str] = []
+    pages: list[list[str]] = []
+    for _ in range(10):
+        out = _cdp(url, js, wait)
+        try:
+            val = json.loads(json.loads(out)["runs"][0]["value"])
+        except Exception:  # noqa: BLE001
+            if not pages:
+                text = " ".join(out.split())[:4000]
+            break
         fr = val.get("frames") or []
-        if fr:
-            # Тексты описания и переписки живут в iframe richText (тот же origin).
-            print(f"\n===== ОПИСАНИЕ И ПЕРЕПИСКА ({len(fr)} блоков) =====")
-            for i, s in enumerate(fr, 1):
-                print(f"\n[{i}] {' '.join(s.split())[:1200]}")
-    except Exception:  # noqa: BLE001
-        text = " ".join(out.split())[:4000]
+        if pages and fr and fr == pages[-1]:
+            break  # страница не сменилась - дальше нет
+        pages.append(fr)
+        for s in fr:
+            if s not in allfr:
+                allfr.append(s)
+        nx = _cdp(url, NEXT_JS, wait)
+        if '"next":true' not in nx:
+            break
+    if pages:
+        print(f"страниц прочитано: {len(pages)}")
+        # Первая страница - свежие, последняя - самые старые (первый ответ).
+        first = pages[-1][-1] if pages[-1] else ""
+        if first:
+            print(f"\n===== САМЫЙ ПЕРВЫЙ ОТВЕТ (последняя запись последней страницы) =====\n{' '.join(first.split())[:1200]}")
+    if allfr:
+        print(f"\n===== ОПИСАНИЕ И ПЕРЕПИСКА ({len(allfr)} блоков) =====")
+        for i, s in enumerate(allfr, 1):
+            print(f"\n[{i}] {' '.join(s.split())[:1200]}")
     print("карточка:", _route_no_nav(route)[:120])
     print(" ".join(text.split())[:6000])
 

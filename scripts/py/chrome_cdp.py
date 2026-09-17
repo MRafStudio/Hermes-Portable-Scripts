@@ -153,7 +153,9 @@ def kill_stale(port: int, profile: str):
                 ["taskkill", "/F", "/FI", f"WINDOWTITLE eq chrome*"],
                 capture_output=True,
             )
-        die(f"порт {port} занят чужим процессом; освободи его или задай --port")
+        die(f"порт {port} занят: похоже, идёт другой прогон SD - сбор держит Chrome за собой. "
+            f"Второй запуск сломает сессию портала и подвесит оба прогона. "
+            f"Дождись окончания или задай --port <другой> для отдельной задачи.")
 
 
 async def _ws_send(ws_url: str, method: str, params: dict | None = None, timeout: float = 5):
