@@ -240,6 +240,7 @@ async def drive(url: str, widths: list, opts: dict) -> list:
                                  "return t.indexOf(%s)===0;})"
                                  ".sort(function(a,b){return (a.innerText||'').length-(b.innerText||'').length;})"
                                  ".slice(0,1)"
+                                 ".map(function(e){e.scrollIntoView({block:'center'});return e;})"
                                  ".map(function(e){var r=e.getBoundingClientRect();"
                                  "return [r.left+r.width/2, r.top+r.height/2];}))"
                                  % json.dumps(opts["click_text"]))
