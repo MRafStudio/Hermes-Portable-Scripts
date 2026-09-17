@@ -113,6 +113,84 @@ def cmd_page(hash_route: str, wait: str) -> None:
     print(" ".join(val.get("text", "").split())[:3000])
 
 
+def _route_no_nav(route: str) -> str:
+    """URL раздела - без второго обращения к браузеру (для подписи в выводе)."""
+    return BASE + "/sd/operator/" + route
+
+
+def _route(route: str, wait: str = "18000") -> dict:
+    """Открыть раздел SPA и вернуть снимок (url, текст, ссылки)."""
+    js = ("JSON.stringify({url: location.href, title: document.title,"
+          " text: document.body.innerText.slice(0, 8000),"
+          " links: Array.from(document.querySelectorAll('a')).map(function(a){"
+          "return (a.innerText||'').trim()+' | '+(a.getAttribute('href')||'')}"
+          ").filter(function(s){return s.length>3}).slice(0,120)})")
+    out = _cdp(BASE + "/sd/operator/" + route, js, wait)
+    try:
+        return json.loads(json.loads(out)["runs"][0]["value"])
+    except Exception:  # noqa: BLE001
+        return {"url": route, "title": "", "text": " ".join(out.split())[:800], "links": []}
+
+
+def _esearch_route(query: str) -> str:
+    """Роут поиска SPA. Кодируем ТОЛЬКО кавычки и пробелы: если закодировать и `:` с `,`
+    (как делает urlquote), интерфейс роут не разбирает и отвечает «ничего не найдено»."""
+    payload = json.dumps({"query": query, "pid": "1"}, ensure_ascii=False)
+    return ("#esearch:full:serviceCall:ACTIVE_OBJECTS_ONLY!"
+            + payload.replace('"', "%22").replace(" ", "%20"))
+
+
+def cmd_search(query: str, wait: str) -> None:
+    """Поиск по ВСЕМ заявкам UCS (не только своим): интерфейс открывает свои результаты.
+
+    Роут найден у самого интерфейса: #esearch:full:serviceCall:ACTIVE_OBJECTS_ONLY!{"query": ...}.
+    ACTIVE_OBJECTS_ONLY означает, что в выдачу идут заявки в работе и закрытые - то, что нужно.
+    """
+    payload = _esearch_route(query)
+    route = payload
+    d = _route(route, wait)
+    print("поиск:", query, "|", d.get("title", "")[:60])
+    print(" ".join(d.get("text", "").split())[:1800])
+    cards = []
+    for l in d.get("links", []):
+        if "serviceCall$" in l and l.split("|")[0].strip().isdigit():
+            num, href = [x.strip() for x in l.split("|", 1)]
+            if (num, href) not in cards:
+                cards.append((num, href))
+    print("\nкарточки (номер | роут):")
+    for num, href in cards:
+        print(f"   {num} | {href}")
+
+
+def cmd_card(target: str, wait: str) -> None:
+    """Карточка заявки целиком: описание, код решения, переписка (только чтение).
+
+    target - либо номер заявки (тогда сначала поиск за номером), либо готовый роут
+    ``#uuid:serviceCall$<id>``.
+    """
+    route = target
+    if target.isdigit():
+        found = _route(_esearch_route(target), wait)
+        hit = next((l.split("|", 1)[1].strip() for l in found.get("links", [])
+                    if l.split("|")[0].strip() == target and "serviceCall$" in l), "")
+        if not hit:
+            print(f"заявка {target} не найдена в выдаче поиска")
+            return
+        route = hit
+    # Раскрываем скрытые тексты («Подробнее») И снимаем текст В ОДНОМ проходе: повторный
+    # вызов chrome_cdp навигирует заново, и раскрытие теряется.
+    js = ("(function(){Array.prototype.forEach.call(document.querySelectorAll('a,span,div'),function(e){"
+          "if((e.innerText||'').trim()==='Подробнее'){e.click();}});"
+          "return document.body.innerText.slice(0, 14000);})()")
+    out = _cdp(BASE + "/sd/operator/" + route, js, wait)
+    try:
+        text = json.loads(out)["runs"][0]["value"]
+    except Exception:  # noqa: BLE001
+        text = " ".join(out.split())[:4000]
+    print("карточка:", _route_no_nav(route)[:120])
+    print(" ".join(text.split())[:6000])
+
+
 def cmd_rest(sub: str) -> None:
     op, _ = opener()
     if "/" not in sub:  # короткая форма: entity$list + фильтр JSON
@@ -139,6 +217,12 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("login")
     sub.add_parser("hlogin")
+    s = sub.add_parser("search")
+    s.add_argument("query")
+    s.add_argument("--wait", default="18000")
+    c = sub.add_parser("card")
+    c.add_argument("target", help="номер заявки или роут #uuid:serviceCall$<id>")
+    c.add_argument("--wait", default="18000")
     p = sub.add_parser("page")
     p.add_argument("hash", nargs="?", default="")
     p.add_argument("--wait", default="16000")
@@ -149,6 +233,10 @@ def main() -> int:
         cmd_login()
     elif args.cmd == "hlogin":
         cmd_hlogin()
+    elif args.cmd == "search":
+        cmd_search(args.query, args.wait)
+    elif args.cmd == "card":
+        cmd_card(args.target, args.wait)
     elif args.cmd == "page":
         cmd_page(args.hash, args.wait)
     else:
