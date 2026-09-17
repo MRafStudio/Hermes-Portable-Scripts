@@ -150,6 +150,11 @@ def cmd_search(query: str, wait: str) -> None:
     """
     payload = _esearch_route(query)
     route = payload
+    # Сброс состояния поиска: интерфейс запоминает область и падает с
+    # java.lang.IllegalArgumentException: Enum constant undefined, если в сохранённом
+    # состоянии остался неизвестный режим - тогда выдача приходит урезанной.
+    _cdp(BASE + "/sd/operator/", "(function(){try{localStorage.clear();return 'state cleared';}"
+                                   "catch(e){return 'clear failed';}})()", "6000")
     d = _route(route, wait)
     print("поиск:", query, "|", d.get("title", "")[:60])
     print(" ".join(d.get("text", "").split())[:1800])
