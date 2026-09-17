@@ -133,10 +133,13 @@ def _route(route: str, wait: str = "18000") -> dict:
 
 
 def _esearch_route(query: str, scope: str = "ALL_OBJECTS") -> str:
-    """Роут поиска SPA. Кодируем ТОЛЬКО кавычки и пробелы: если закодировать и `:` с `,`
-    (как делает urlquote), интерфейс роут не разбирает и отвечает «ничего не найдено».
+    """Роут поиска SPA: кавычки и пробелы кодируем, `:` и `,` - нет.
 
-    scope - область поиска как в интерфейсе: AL...[truncated]
+    scope: ALL_OBJECTS (по всем), ACTIVE_OBJECTS_ONLY (активные), ARCHIVE_OBJECTS_ONLY (архив).
+    """
+    payload = json.dumps({"query": query, "pid": "1"}, ensure_ascii=False)
+    return ("#esearch:full:serviceCall:" + scope + "!"
+            + payload.replace('"', "%22").replace(" ", "%20"))
 
 
 def cmd_search(query: str, wait: str) -> None:
