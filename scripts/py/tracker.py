@@ -7,7 +7,10 @@
     tracker.py issue 214215 [--raw]
     tracker.py raw "/issues.json?project_id=-helpdesk-&status_id=*&limit=5"
 
-Только чтение: ключ берётся из ``TRACKER_UCS_KEY``, ничего не пишется на портал.
+Только чтение - и это ЖЁСТКОЕ правило скилла: на портал ничего не пишется (ни комментариев,
+ни новых вопросов, ни смены полей). Все запросы - `GET`-подобные через `urllib`; ключ берётся
+из ``TRACKER_UCS_KEY``. Единственный `POST` во всём скилле живёт в ``scripts/login.py`` и нужен
+исключительно для входа, а не для правки данных.
 """
 from __future__ import annotations
 
@@ -38,7 +41,8 @@ CTX.verify_mode = ssl.CERT_NONE
 def api(path: str, key: str | None = None) -> dict:
     key = key or env("TRACKER_UCS_KEY")
     url = BASE + path + (("&" if "?" in path else "?") + "key=" + urllib.parse.quote(key))
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+    req = urllib.request.Request(url, method="GET", headers={"User-Agent": "Mozilla/5.0",
+                                                           "Accept": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=60, context=CTX) as r:
             return json.loads(r.read().decode("utf-8", "replace"))
