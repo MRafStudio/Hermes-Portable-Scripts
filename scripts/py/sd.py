@@ -194,7 +194,7 @@ def cmd_card(target: str, wait: str) -> None:
           "['mousedown','mouseup','click'].forEach(function(t){e.dispatchEvent(new MouseEvent(t,{bubbles:true,cancelable:true,view:window}));});n++;}});"
           "var fr=Array.from(document.querySelectorAll('iframe')).map(function(f){"
           "try{var d=f.contentDocument;return (d&&d.body)?d.body.innerText.replace(/\\s+/g,' ').trim():'';}"
-          "catch(e){return '';}}).filter(function(s){return s.length>20;});"
+          "catch(e){return '';}}).filter(function(s){return s.length>1;});"
           "return JSON.stringify({clicked:n, text:document.body.innerText.slice(0,14000), frames:fr});})()")
     out = _cdp(BASE + "/sd/operator/" + route, js, wait)
     try:
