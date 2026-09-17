@@ -236,7 +236,10 @@ async def drive(url: str, widths: list, opts: dict) -> list:
             if opts.get("click") or opts.get("click_text"):
                 if opts.get("click_text"):
                     coords_js = ("JSON.stringify(Array.from(document.querySelectorAll('*'))"
-                                 ".filter(function(e){return (e.innerText||'').trim()===%s;})"
+                                 ".filter(function(e){var t=(e.innerText||'').replace(/\\s+/g,' ').trim();"
+                                 "return t.indexOf(%s)===0;})"
+                                 ".sort(function(a,b){return (a.innerText||'').length-(b.innerText||'').length;})"
+                                 ".slice(0,1)"
                                  ".map(function(e){var r=e.getBoundingClientRect();"
                                  "return [r.left+r.width/2, r.top+r.height/2];}))"
                                  % json.dumps(opts["click_text"]))
