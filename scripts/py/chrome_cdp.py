@@ -248,6 +248,7 @@ async def drive(url: str, widths: list, opts: dict) -> list:
                     coords_js = ("JSON.stringify(Array.from(document.querySelectorAll(%s))"
                                  ".filter(function(e){var r=e.getBoundingClientRect();"
                                  "return r.width>0&&r.height>0;})"
+                                 ".map(function(e){e.scrollIntoView({block:'center'});return e;})"
                                  ".map(function(e){var r=e.getBoundingClientRect();"
                                  "return [r.left+r.width/2, r.top+r.height/2];}))"
                                  % json.dumps(opts["click"]))
