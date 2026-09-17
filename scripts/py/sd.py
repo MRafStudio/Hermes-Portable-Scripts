@@ -189,12 +189,21 @@ def cmd_card(target: str, wait: str) -> None:
     js = ("(function(){var n=0;Array.prototype.forEach.call(document.querySelectorAll('a,span,div'),function(e){"
           "if((e.innerText||'').trim()==='Подробнее'){"
           "['mousedown','mouseup','click'].forEach(function(t){e.dispatchEvent(new MouseEvent(t,{bubbles:true,cancelable:true,view:window}));});n++;}});"
-          "return JSON.stringify({clicked:n, text:document.body.innerText.slice(0,14000)});})()")
+          "var fr=Array.from(document.querySelectorAll('iframe')).map(function(f){"
+          "try{var d=f.contentDocument;return (d&&d.body)?d.body.innerText.replace(/\\s+/g,' ').trim():'';}"
+          "catch(e){return '';}}).filter(function(s){return s.length>20;});"
+          "return JSON.stringify({clicked:n, text:document.body.innerText.slice(0,14000), frames:fr});})()")
     out = _cdp(BASE + "/sd/operator/" + route, js, wait)
     try:
         val = json.loads(json.loads(out)["runs"][0]["value"])
         text = val["text"]
         print("раскрыто кнопок «Подробнее»:", val["clicked"])
+        fr = val.get("frames") or []
+        if fr:
+            # Тексты описания и переписки живут в iframe richText (тот же origin).
+            print(f"\n===== ОПИСАНИЕ И ПЕРЕПИСКА ({len(fr)} блоков) =====")
+            for i, s in enumerate(fr, 1):
+                print(f"\n[{i}] {' '.join(s.split())[:1200]}")
     except Exception:  # noqa: BLE001
         text = " ".join(out.split())[:4000]
     print("карточка:", _route_no_nav(route)[:120])

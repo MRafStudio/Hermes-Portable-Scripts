@@ -177,6 +177,7 @@ def launch(port: int, profile: str, chrome: str, width: int, height: int) -> sub
             chrome,
             "--headless=new",
             "--disable-gpu",
+            "--disable-popup-blocking",
             "--no-first-run",
             "--no-default-browser-check",
             "--disable-extensions",
