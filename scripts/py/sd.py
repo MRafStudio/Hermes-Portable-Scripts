@@ -179,12 +179,15 @@ def cmd_card(target: str, wait: str) -> None:
         route = hit
     # Раскрываем скрытые тексты («Подробнее») И снимаем текст В ОДНОМ проходе: повторный
     # вызов chrome_cdp навигирует заново, и раскрытие теряется.
-    js = ("(function(){Array.prototype.forEach.call(document.querySelectorAll('a,span,div'),function(e){"
-          "if((e.innerText||'').trim()==='Подробнее'){e.click();}});"
-          "return document.body.innerText.slice(0, 14000);})()")
+    js = ("(function(){var n=0;Array.prototype.forEach.call(document.querySelectorAll('a,span,div'),function(e){"
+          "if((e.innerText||'').trim()==='Подробнее'){"
+          "['mousedown','mouseup','click'].forEach(function(t){e.dispatchEvent(new MouseEvent(t,{bubbles:true,cancelable:true,view:window}));});n++;}});"
+          "return JSON.stringify({clicked:n, text:document.body.innerText.slice(0,14000)});})()")
     out = _cdp(BASE + "/sd/operator/" + route, js, wait)
     try:
-        text = json.loads(out)["runs"][0]["value"]
+        val = json.loads(json.loads(out)["runs"][0]["value"])
+        text = val["text"]
+        print("раскрыто кнопок «Подробнее»:", val["clicked"])
     except Exception:  # noqa: BLE001
         text = " ".join(out.split())[:4000]
     print("карточка:", _route_no_nav(route)[:120])
