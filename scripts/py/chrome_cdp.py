@@ -305,6 +305,39 @@ async def drive(url: str, widths: list, opts: dict) -> list:
                 res = await _ws_call(ws, mid, "Runtime.evaluate",
                                      {"expression": OVERFLOW_JS, "returnByValue": True}); mid += 1
                 run["overflow"] = res.get("result", {}).get("value")
+            if opts.get("type_sel") and opts.get("type_text"):
+                # Ввод текста в GWT-поле: только НАСТОЯЩИЕ события CDP
+                # (Input.insertText + реальный Enter). Синтетический JS-GWT не видит.
+                sel_js = ("JSON.stringify((function(){var e=document.querySelector(%s);"
+                          "if(!e)return null;e.focus();var r=e.getBoundingClientRect();"
+                          "return [r.left+r.width/2,r.top+r.height/2];})())"
+                          % json.dumps(opts["type_sel"]))
+                res = await _ws_call(ws, mid, "Runtime.evaluate",
+                                     {"expression": sel_js, "returnByValue": True}); mid += 1
+                pt = json.loads(res.get("result", {}).get("value") or "null")
+                if pt:
+                    for kind in ("mousePressed", "mouseReleased"):
+                        await _ws_call(ws, mid, "Input.dispatchMouseEvent",
+                                       {"type": kind, "x": pt[0], "y": pt[1], "button": "left",
+                                        "clickCount": 1,
+                                        "buttons": 1 if kind == "mousePressed" else 0})
+                        mid += 1
+                    for t, k, code in (("keyDown", "a", 65), ("keyUp", "a", 65)):
+                        await _ws_call(ws, mid, "Input.dispatchKeyEvent",
+                                       {"type": t, "modifiers": 2, "key": k,
+                                        "windowsVirtualKeyCode": code}); mid += 1
+                    await _ws_call(ws, mid, "Input.insertText",
+                                   {"text": opts["type_text"]}); mid += 1
+                    run["typed"] = opts["type_text"]
+                    if opts.get("enter"):
+                        for t in ("rawKeyDown", "char", "keyUp"):
+                            await _ws_call(ws, mid, "Input.dispatchKeyEvent",
+                                           {"type": t, "key": "Enter",
+                                            "text": "\r" if t == "char" else "",
+                                            "windowsVirtualKeyCode": 13,
+                                            "nativeVirtualKeyCode": 13}); mid += 1
+                    await asyncio.sleep(max(opts.get("post_wait", 0), 0) / 1000.0)
+
             if opts["eval"] and not opts.get("click_loop"):
                 res = await _ws_call(ws, mid, "Runtime.evaluate",
                                      {"expression": opts["eval"], "returnByValue": True,
@@ -364,6 +397,12 @@ def main() -> int:
     ap.add_argument("--out", default="", help="куда писать большой вывод (--dom/--text)")
     ap.add_argument("--check-overflow", action="store_true",
                     help="найти элементы, распирающие страницу вбок")
+    ap.add_argument("--type-sel", dest="type_sel", default="",
+                    help="CSS-селектор поля: ввести в него текст НАСТОЯЩИМИ событиями CDP")
+    ap.add_argument("--type-text", dest="type_text", default="",
+                    help="текст для ввода в поле --type-sel")
+    ap.add_argument("--enter", action="store_true",
+                    help="после ввода нажать настоящий Enter (GWT-поиск)")
     ap.add_argument("--width", type=int, default=520)
     ap.add_argument("--widths", default="", help="список ширин: 300,380,460")
     ap.add_argument("--height", type=int, default=900)
@@ -396,6 +435,7 @@ def main() -> int:
         "overflow": a.check_overflow, "eval": a.eval, "sel": a.sel,
         "text": a.text, "dom": a.dom, "shot": a.shot,
         "click": a.click, "click_text": a.click_text, "post_wait": a.post_wait,
+        "type_sel": a.type_sel, "type_text": a.type_text, "enter": a.enter,
         "click_loop": a.click_loop, "max_pages": a.max_pages,
     }
     if not any((a.check_overflow, a.eval, a.sel, a.text, a.dom, a.shot,
