@@ -267,6 +267,40 @@ async def drive(url: str, widths: list, opts: dict) -> list:
                         mid += 1
                 await asyncio.sleep(max(opts.get("post_wait", 0), 0) / 1000.0)
 
+            if opts.get("type_sel") and opts.get("type_text"):
+                # Ввод текста в GWT-поле: только НАСТОЯЩИЕ события CDP
+                # (Input.insertText + реальный Enter). Синтетический JS-GWT не видит.
+                # ВАЖНО: до click_loop - иначе поиск стартует после обхода страниц.
+                sel_js = ("JSON.stringify((function(){var e=document.querySelector(%s);"
+                          "if(!e)return null;e.focus();var r=e.getBoundingClientRect();"
+                          "return [r.left+r.width/2,r.top+r.height/2];})())"
+                          % json.dumps(opts["type_sel"]))
+                res = await _ws_call(ws, mid, "Runtime.evaluate",
+                                     {"expression": sel_js, "returnByValue": True}); mid += 1
+                pt = json.loads(res.get("result", {}).get("value") or "null")
+                if pt:
+                    for kind in ("mousePressed", "mouseReleased"):
+                        await _ws_call(ws, mid, "Input.dispatchMouseEvent",
+                                       {"type": kind, "x": pt[0], "y": pt[1], "button": "left",
+                                        "clickCount": 1,
+                                        "buttons": 1 if kind == "mousePressed" else 0})
+                        mid += 1
+                    for t, k, code in (("keyDown", "a", 65), ("keyUp", "a", 65)):
+                        await _ws_call(ws, mid, "Input.dispatchKeyEvent",
+                                       {"type": t, "modifiers": 2, "key": k,
+                                        "windowsVirtualKeyCode": code}); mid += 1
+                    await _ws_call(ws, mid, "Input.insertText",
+                                   {"text": opts["type_text"]}); mid += 1
+                    run["typed"] = opts["type_text"]
+                    if opts.get("enter"):
+                        for t in ("rawKeyDown", "char", "keyUp"):
+                            await _ws_call(ws, mid, "Input.dispatchKeyEvent",
+                                           {"type": t, "key": "Enter",
+                                            "text": "\r" if t == "char" else "",
+                                            "windowsVirtualKeyCode": 13,
+                                            "nativeVirtualKeyCode": 13}); mid += 1
+                    await asyncio.sleep(max(opts.get("post_wait", 0), 0) / 1000.0)
+
             if opts.get("click_loop"):
                 # ОБХОД СТРАНИЦ по кнопке («Следующая >»): собрать -> клик мышью -> собрать,
                 # пока кнопка есть. Исчезла = последняя страница. Всё в ОДНОМ запуске браузера:
@@ -305,39 +339,6 @@ async def drive(url: str, widths: list, opts: dict) -> list:
                 res = await _ws_call(ws, mid, "Runtime.evaluate",
                                      {"expression": OVERFLOW_JS, "returnByValue": True}); mid += 1
                 run["overflow"] = res.get("result", {}).get("value")
-            if opts.get("type_sel") and opts.get("type_text"):
-                # Ввод текста в GWT-поле: только НАСТОЯЩИЕ события CDP
-                # (Input.insertText + реальный Enter). Синтетический JS-GWT не видит.
-                sel_js = ("JSON.stringify((function(){var e=document.querySelector(%s);"
-                          "if(!e)return null;e.focus();var r=e.getBoundingClientRect();"
-                          "return [r.left+r.width/2,r.top+r.height/2];})())"
-                          % json.dumps(opts["type_sel"]))
-                res = await _ws_call(ws, mid, "Runtime.evaluate",
-                                     {"expression": sel_js, "returnByValue": True}); mid += 1
-                pt = json.loads(res.get("result", {}).get("value") or "null")
-                if pt:
-                    for kind in ("mousePressed", "mouseReleased"):
-                        await _ws_call(ws, mid, "Input.dispatchMouseEvent",
-                                       {"type": kind, "x": pt[0], "y": pt[1], "button": "left",
-                                        "clickCount": 1,
-                                        "buttons": 1 if kind == "mousePressed" else 0})
-                        mid += 1
-                    for t, k, code in (("keyDown", "a", 65), ("keyUp", "a", 65)):
-                        await _ws_call(ws, mid, "Input.dispatchKeyEvent",
-                                       {"type": t, "modifiers": 2, "key": k,
-                                        "windowsVirtualKeyCode": code}); mid += 1
-                    await _ws_call(ws, mid, "Input.insertText",
-                                   {"text": opts["type_text"]}); mid += 1
-                    run["typed"] = opts["type_text"]
-                    if opts.get("enter"):
-                        for t in ("rawKeyDown", "char", "keyUp"):
-                            await _ws_call(ws, mid, "Input.dispatchKeyEvent",
-                                           {"type": t, "key": "Enter",
-                                            "text": "\r" if t == "char" else "",
-                                            "windowsVirtualKeyCode": 13,
-                                            "nativeVirtualKeyCode": 13}); mid += 1
-                    await asyncio.sleep(max(opts.get("post_wait", 0), 0) / 1000.0)
-
             if opts["eval"] and not opts.get("click_loop"):
                 res = await _ws_call(ws, mid, "Runtime.evaluate",
                                      {"expression": opts["eval"], "returnByValue": True,
