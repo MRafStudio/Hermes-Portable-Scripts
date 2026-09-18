@@ -89,8 +89,15 @@ def env() -> dict:
     return d
 
 
+# Служба и крон идут под учёткой СИСТЕМА, а клон на диске принадлежит rafst:
+# без этого git падает с "detected dubious ownership", а его сообщение с кириллицей
+# (имя учётки) ещё и ломает декод (UnicodeDecodeError в _readerthread).
+SAFE = ["-c", "safe.directory=*"]
+
+
 def git(*args: str, cwd: pathlib.Path = REPO, check: bool = True) -> subprocess.CompletedProcess:
-    r = subprocess.run(["git", *args], cwd=str(cwd), capture_output=True, text=True,
+    r = subprocess.run(["git", *SAFE, *args], cwd=str(cwd), capture_output=True, text=True,
+                       encoding="utf-8", errors="replace",
                        timeout=300, env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
     if check and r.returncode != 0:
         print("git", " ".join(args), "-> rc", r.returncode)
@@ -230,6 +237,11 @@ def cmd_pull(force: bool = False) -> int:
 
 
 def main() -> int:
+    # крон читает наш stdout как UTF-8: не даём консольной кодировке испортить вывод
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
     cmd = (sys.argv[1] if len(sys.argv) > 1 else "list").lower()
     if cmd == "list":
         return cmd_list()
