@@ -6,7 +6,8 @@
 Креды           : data/hermes/.env -> SCM_URL / SCM_USER / SCM_APIKEY
                   ВАЖНО: пароль для git и API - ПОЛНЫЙ api-ключ (не passphrase).
 
-Версионируем ТОЛЬКО наши каталоги (список OUR). Чужие скиллы не трогаем.
+Версионируем ТОЛЬКО наши каталоги. Признак принадлежности - файл-метка OURS в каталоге
+скилла или в каталоге-категории (метка на категории берёт её целиком). Чужие скиллы не трогаем.
 
 Команды:
   list   - печатает, что версионируем, и что реально есть на диске
@@ -31,44 +32,46 @@ ENV = HOME / "data" / "hermes" / ".env"
 BACKUP = HOME / "data" / "backup"
 REPO_SUBDIR = "skills"
 
-# Наши каталоги (вариант A): то, что создано и правится нами.
-OUR = [
-    "rk7-helpers",
-    "rk7xml-interface",
-    "hermes-token-saving",
-    "localization/hermes-portable-ru-locale",
-    "web/web-portal-thread-harvesting",
-    "windows-per-app-proxy",
-    "autonomous-ai-agents/hermes-agent",
-    "autonomous-ai-agents/hermes-portable-maintenance",
-    "autonomous-ai-agents/hermes-platform-adapters",
-    "autonomous-ai-agents/hermes-remote-gateway",
-    "autonomous-ai-agents/memos-memory-management",
-    "autonomous-ai-agents/merge-reconciler",
-    "productivity/canon-journal-budget",
-    "productivity/hermes-cron-jobs",
-    "productivity/iskra",
-    "productivity/memos-memory-diagnosis",
-    "productivity/memos-plugin-config",
-    "productivity/memos-setup",
-    "productivity/rk7-kiosk-pro",
-    "productivity/rk7-sql-server",
-    "productivity/session-librarian",
-    "productivity/skill-graph-audit",
-    "software-development/chrome-headless-cdp",
-    "software-development/gwt-ui-harvesting",
-    "software-development/hermes-agent-skill-authoring",
-    "software-development/hermes-desktop-html-previews",
-    "software-development/hermes-desktop-plugin-panes",
-    "software-development/inspecting-hermes-desktop-dom",
-    "software-development/memos-tool-id-formats",
-    "software-development/nssm-windows-services",
-    "software-development/llama-cpp-server-management",
-    "software-development/llama-cpp-windows-manager",
-]
+# Наши каталоги определяются МЕТКОЙ: файл OURS в каталоге скилла или в каталоге-категории
+# (метка на категории берёт её целиком, поэтому новый скилл внутри подхватится сам).
+# Содержимое скиллов при этом не правится.
+MARKER = "OURS"
+
+
+def is_ours(rel: str, roots: list) -> bool:
+    return any(rel == r or rel.startswith(r + "/") for r in roots)
+
+
+def collect_our() -> list:
+    roots = []
+    for m in sorted(SKILLS.rglob(MARKER)):
+        if not m.is_file():
+            continue
+        rel = m.parent.relative_to(SKILLS).as_posix()
+        if rel == "." or is_ours(rel, roots):
+            continue
+        roots.append(rel)
+    return roots
+
+
+def unmarked_recent(days: float = 2.0) -> list:
+    """Скиллы без метки, недавно правленные: свежий наш скилл без метки должно быть видно."""
+    now = time.time()
+    out = []
+    for md in SKILLS.rglob("SKILL.md"):
+        rel = md.parent.relative_to(SKILLS).as_posix()
+        if is_ours(rel, OUR):
+            continue
+        age = (now - md.stat().st_mtime) / 86400.0
+        if age <= days:
+            out.append("%s (правка %.1f дн назад)" % (rel, age))
+    return out
+
+
+OUR = collect_our()
 
 GITIGNORE = (
-    "# Версионируем только наши каталоги (список OUR в tools/skills_sync.py).\n"
+    "# Версионируем только наши каталоги (метка-файл OURS; правило в tools/skills_sync.py).\n"
     "*\n"
     "!*/\n"
     "!skills/\n"
@@ -132,7 +135,12 @@ def ensure_repo() -> None:
 def cmd_list() -> int:
     print(f"рабочая копия: {SKILLS}")
     print(f"клон:          {REPO}")
-    print(f"\nнаших каталогов в списке OUR: {len(OUR)}\n")
+    warn = unmarked_recent()
+    print(f"\nнаших каталогов по метке {MARKER}: {len(OUR)}")
+    print(f"скиллов без метки с правкой за 2 дня: {len(warn)}")
+    for line in warn:
+        print("  БЕЗ МЕТКИ:", line)
+    print()
     miss = []
     for rel in OUR:
         n = len(list((SKILLS / rel).rglob("SKILL.md"))) if (SKILLS / rel).exists() else 0
@@ -171,6 +179,11 @@ def cmd_save(message: str = "") -> int:
     (REPO / "tools").mkdir(exist_ok=True)
     shutil.copy2(pathlib.Path(__file__), REPO / "tools" / "skills_sync.py")
     print(f"скопировано файлов: {total}")
+    warn = unmarked_recent()
+    if warn:
+        print(f"ВНИМАНИЕ: {len(warn)} скилл(ов) без метки, правленных за 2 дня - проверь, наши ли это:")
+        for line in warn:
+            print("  БЕЗ МЕТКИ:", line)
     git("add", "-A")
     st = git("status", "--porcelain")
     if not st.stdout.strip():
