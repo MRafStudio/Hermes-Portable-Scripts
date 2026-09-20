@@ -163,6 +163,11 @@ export const RU_FIELD_LABELS: Record<string, string> = {
     targetRatio: 'Цель сжатия',
     protectLastN: 'Защищённые последние сообщения',
   },
+  auxiliary: {
+    compression: {
+      timeout: 'Тайм-аут модели сжатия (с)',
+    },
+  },
   delegation: {
     model: 'Модель подагента',
     provider: 'Провайдер подагента',
@@ -230,6 +235,11 @@ export const RU_FIELD_DESCRIPTIONS: Record<string, string> = {
   compression: {
     enabled: 'Суммировать старый контекст, когда разговоры становятся большими.',
     codexGpt55Autoraise: 'Поднимать сжатие до 85% для поддерживаемых моделей ChatGPT Codex OAuth.',
+  },
+  auxiliary: {
+    compression: {
+      timeout: 'Сколько секунд ждать вспомогательную модель сжатия на один вызов (по умолчанию 120). Увеличьте для медленных локальных моделей.',
+    },
   },
   voice: {
     autoTts: 'Автоматически озвучивать ответы ассистента.',

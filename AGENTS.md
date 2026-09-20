@@ -21,6 +21,14 @@ Messenger Gateway) через `.bat`-скрипты в `scripts\`.
   запустить `python <файл>`. В фиксере: перевод строки — `NL = chr(13)+chr(10)`,
   бэкслеш — `BS = chr(92)`; после правки проверить «одиночные CR» и VT-символ.
 
+### Скиллы: канон в scripts\skills, рабочая копия в data\hermes\skills
+- Любой скилл проекта правится в **двух местах**: `scripts\skills\...` (канон, в git) и
+  `data\hermes\skills\...` (рабочая копия Hermes). Деплой идёт только в одну сторону:
+  `InstallOrUpdate-Desktop.bat` / `InstallOrUpdate-Web.bat` (robocopy /E /XO) копируют
+  `scripts\skills` → `data\hermes\skills`, обратно — никогда. Правишь только рабочую копию —
+  после переустановки правка исчезнет.
+- Скилл русификации: `scripts\skills\localization\hermes-portable-ru-locale\SKILL.md`.
+
 ### Службы через NSSM (установка/удаление/запуск)
 - **После `nssm install` ОБЯЗАТЕЛЬНО `nssm start "<имя>"`** — иначе служба стоит
   `Automatic`, но стартует ТОЛЬКО при загрузке Windows, а «сейчас» не поднимется.
