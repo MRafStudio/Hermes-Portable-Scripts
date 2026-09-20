@@ -1,12 +1,12 @@
 ---
 name: hermes-portable-maintenance
 description: "Use when wiping/reinstalling portable Hermes: backup."
-version: 1.1.0
+version: 1.2.0
 author: Hermes Agent
 license: MIT
 metadata:
   hermes:
-    tags: [hermes, portable, backup, reinstall, windows, gitignore, installer, uv, npm]
+    tags: [hermes, portable, backup, reinstall, windows, gitignore, installer, uv, npm, venv]
     related_skills: [memos-memory-management, hermes-agent]
 ---
 
@@ -20,6 +20,7 @@ Maintenance of the portable Hermes installation on the user's machine: repo layo
 - Need to locate a portable script (install/fix/patch) inside the repo
 - Checking that the repo is ready to be cloned fresh (all scripts committed & pushed)
 - An update log says `[OK] Installation Complete!` while stages reported `[!] ... failed`
+- Aligning the venv back to the lock (`uv sync ... --locked`) after a fallback resolve drifted it
 
 ## Repo layout (portable install — important quirks)
 - `D:\NEURO\Hermes` is the git repo `Hermes-Portable-Scripts` (origin: `https://github.com/MRafStudio/Hermes-Portable-Scripts`), branch `main`. **This repo is the only durable layer.**
@@ -76,15 +77,50 @@ cat .npmrc                                             # engine-strict=true; eng
 ```
 Do not trust: the printed "npm debug log" is the *probe's* (`npm config get cache`), not the failing install's; each failed npm run leaves `data/temp/hermes-npm-*.log` (cleanup only runs on the success branch); `вњ…` in output is UTF-8 read as cp866.
 
+## Aligning the venv to the lock (verified procedure, 2026-09-20)
+A lock-exact resync needs the **right extras** — `--extra all` alone prunes the lazily-installed stack, and a package that vanishes is NOT reported as an error, it just disappears.
+
+```bash
+cd "$HERMES_HOME/hermes-agent"
+UV="$ROOT/data/hermes/bin/uv.exe"; PY="$PWD/venv/Scripts/python.exe"
+
+# 1) rollback list + full venv copy (577 MB, ~1 min) — do it BEFORE the sync
+"$UV" pip list --python "$PY" --format freeze > data/temp/venv-freeze-before.txt
+robocopy "D:\NEURO\Hermes\data\hermes\hermes-agent\venv" "D:\NEURO\Hermes\data\temp\venv-backup-<ts>" /E /MT:16 /R:0 /W:0
+
+# 2) dry-run the candidate extra set, then PROVE nothing is lost
+UV_PROJECT_ENVIRONMENT="$PWD/venv" "$UV" sync --extra all --extra wake --extra voice \
+    --extra edge-tts --extra bedrock --locked --dry-run > data/temp/dryrun.txt 2>&1
+```
+uv prints the plan to **stderr** — `> file` alone captures an empty file; always `> file 2>&1`. Then parse it:
+```python
+rem = {l[3:].split('==')[0] for l in open(f, encoding='utf-8') if l.startswith(' - ')}
+add = {l[3:].split('==')[0] for l in open(f, encoding='utf-8') if l.startswith(' + ')}
+print('pure removals:', sorted(rem - add))   # MUST be [] — otherwise a feature is about to die
+```
+With `--extra all --extra wake --extra voice` the pure removals were `edge-tts, boto3, botocore, jmespath, s3transfer, tabulate`; adding `--extra edge-tts --extra bedrock` brings pure removals to **0**.
+
+| packages | extra | what breaks without it |
+|---|---|---|
+| `numpy, faster-whisper, ctranslate2, onnxruntime, av, sounddevice` | `voice` | local STT |
+| `openwakeword, pvporcupine, sherpa-onnx, scipy, scikit-learn` | `wake` | wake word |
+| `edge-tts==7.2.7` | `edge-tts` | free TTS (`LAZY_DEPS: tts.edge`) |
+| `boto3==1.42.89` (+`botocore, s3transfer, jmespath`) | `bedrock` | AWS/Bedrock provider (`LAZY_DEPS: provider.bedrock`) |
+
+3) real sync, then verify: re-run the dry-run → `Would make no changes` + `Checked N packages in ...`; `venv/Scripts/python.exe -c "from hermes_cli.web_server import app"`; `./venv/Scripts/hermes.exe --version`.
+On this host the sync took **11 s** (uv cache warm): 123 → 135 packages, 44 lock-downgrades, 12 wake-stack additions, **0 removals**.
+
 ## Pitfalls
 - NEVER read or print the contents of `.env` / `auth.json` — list names/sizes only (user's secrets).
 - The portable repo is the git repo itself: don't go looking for a nested repo — `git status` at `D:\NEURO\Hermes` root is the one that matters.
 - `sessions/` may show 0 files while `state.db` holds history — don't conclude "no sessions" from the dir alone.
 - The MemOS activation scripts live in `scripts/ps1/` (`install-memos.ps1`, `memos-fix.ps1`), not in a `patch/` directory.
 - Fix placement: durable fixes go in the portable layer (`scripts/ps1/*.ps1` called from a `scripts/*.bat`); anything inside `data/hermes/hermes-agent` is reset on every update. Patchers must be idempotent and must re-parse the patched file (rollback on syntax error).
-- A bare `uv sync --extra all --locked` on an existing venv PRUNES lazily-installed extras: the desktop stage eager-installs `.[wake,voice]` (numpy, faster-whisper, ctranslate2, onnxruntime, av, edge-tts), so a lock-exact resync needs `--extra all --extra wake --extra voice` — or those features disappear.
+- **Never run the resync as a bare `uv sync --extra all --locked`** — it prunes the lazily-installed stack (see "Aligning the venv to the lock" for the working extra set and the pure-removal proof). Run it with Hermes closed when possible; a live process can hold `.pyd` locks.
 - Don't read venv staleness from file mtimes: uv hardlinks from its cache, so files keep the cache blob's mtime, not the install time.
-- `.bat`/`.ps1` must stay CRLF; `write_file` writes LF, so convert after editing and re-verify.
+- `.bat`/`.ps1` must stay CRLF; `write_file` writes LF, so convert after editing and re-verify. `git show <rev>:<file>` returns the LF-normalized blob, so a fixture built that way is NOT what a checkout writes — `.gitattributes` here pins `*.ps1` to `text eol=crlf`.
+- `git checkout -- <file>` / `git reset` inside `data/hermes/hermes-agent` (the live install) is blocked by the safety guard: to test a reset→repatch cycle, use `git show` fixtures or a `--shared` clone in `data/hermes/scratch`, never the live tree.
+- A local commit made while `origin/main` is 40 commits ahead rebases cleanly as long as upstream didn't touch the same files — check first with `git diff --stat HEAD..origin/main -- <paths>`.
 
 ## Related
 - `memos-memory-management` — MemOS plugin activation, verification, DB maintenance.
