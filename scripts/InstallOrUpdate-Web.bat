@@ -154,7 +154,9 @@ if defined GLOBAL_NODE (
     set "PATH=!GLOBAL_NODE!;%HERMES_HOME%\bin;%ProgramFiles%\Git\cmd;%windir%\system32;%windir%;%windir%\System32\Wbem;%windir%\System32\WindowsPowerShell\v1.0"
     REM npm 12 из реального профиля имеет приоритет (свежий hermes-agent требует npm >=12; глобальный npm 11.16 несовместим)
     set "REAL_NPM_DIR="
-    if exist "%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm"
+    REM Портативный профиль (%APPDATA% -> data\appdata) содержит рабочий npm 12.x - он приоритетнее
+    if exist "%APPDATA%\npm\npm.cmd" set "REAL_NPM_DIR=%APPDATA%\npm"
+    if not defined REAL_NPM_DIR if exist "%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm"
     if not defined REAL_NPM_DIR (
         for /d %%d in ("%SystemDrive%\Users\%USERNAME%.*") do (
             if not defined REAL_NPM_DIR (
@@ -305,6 +307,16 @@ if not exist "%INSTALL_PS1%" (
     echo   %ESC%[1;31m[ОШИБКА] %INSTALL_PS1% не найден!%ESC%[0m
     pause >nul
     exit /b 1
+)
+
+REM ============================================================================
+REM   Портативный патч upstream install.ps1: утечка UV_NO_CONFIG (убивала
+REM   хеш-проверку uv и гнала fallback без карантина) + пустой exit code в npm
+REM   шагах (PS 5.1). Репозиторий сбрасывается на каждом апдейте, поэтому патч
+REM   переприменяется здесь, перед запуском установщика.
+REM ============================================================================
+if exist "%SCRIPTS_DIR%\ps1\patch_install_ps1.ps1" (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\patch_install_ps1.ps1" -RepoDir "%HERMES_HOME%\hermes-agent"
 )
 
 if "%SETUP%"=="1" (

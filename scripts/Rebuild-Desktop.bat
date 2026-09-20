@@ -127,7 +127,9 @@ if defined GLOBAL_NODE (
     set "PATH=!GLOBAL_NODE!;%HERMES_HOME%\bin;%ProgramFiles%\Git\cmd;%windir%\system32;%windir%;%windir%\System32\Wbem;%windir%\System32\WindowsPowerShell\v1.0"
     REM npm 12 из реального профиля имеет приоритет (свежий hermes-agent требует npm >=12; глобальный npm 11.16 несовместим)
     set "REAL_NPM_DIR="
-    if exist "%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm"
+    REM Портативный профиль (%APPDATA% -> data\appdata) содержит рабочий npm 12.x - он приоритетнее
+    if exist "%APPDATA%\npm\npm.cmd" set "REAL_NPM_DIR=%APPDATA%\npm"
+    if not defined REAL_NPM_DIR if exist "%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm\npm.cmd" set "REAL_NPM_DIR=%SystemDrive%\Users\%USERNAME%\AppData\Roaming\npm"
     if not defined REAL_NPM_DIR (
         for /d %%d in ("%SystemDrive%\Users\%USERNAME%.*") do (
             if not defined REAL_NPM_DIR (
