@@ -542,7 +542,7 @@ REM ============================================================================
 echo.
 echo %ESC%[1;36mУстановка скиллов из репозитория (только отсутствующие)...%ESC%[0m
 if exist "%SCRIPTS_DIR%\skills" (
-    robocopy "%SCRIPTS_DIR%\skills" "%HERMES_HOME%\skills" /E /XC /XN /XO /NFL /NDL /NJH /NJS >nul 2>&1
+    robocopy "%SCRIPTS_DIR%\skills" "%HERMES_HOME%\skills" /E /XO /NFL /NDL /NJH /NJS >nul 2>&1
     if errorlevel 8 (
         echo   %ESC%[1;33m  .   robocopy: ошибка - скиллы не тронуты.%ESC%[0m
     ) else (
