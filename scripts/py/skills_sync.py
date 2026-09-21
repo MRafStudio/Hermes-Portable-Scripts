@@ -227,6 +227,18 @@ def cmd_save(message: str = "") -> int:
         print("commit:", r.stdout.strip().splitlines()[0] if r.stdout.strip() else r.stderr[:120])
     rb = git("rev-parse", "--abbrev-ref", "HEAD", check=False)
     branch = rb.stdout.strip() if (rb.returncode == 0 and rb.stdout.strip() and rb.stdout.strip() != "HEAD") else "main"
+    # Пуш - только если на сервере нет нашего HEAD. Иначе SCM-Manager отвечает
+    # "invalid old id sent" на пустой пуш и засоряет логи cron. Проверка по SHA (а не по факту
+    # нового коммита) заодно отправляет неотправленные коммиты прошлых прогонов.
+    local_sha = git("rev-parse", "HEAD").stdout.strip()
+    ls = git("ls-remote", auth_url(), f"refs/heads/{branch}")
+    remote_sha = (ls.stdout.split()[0] if ls.stdout.strip() else "")
+    if local_sha == remote_sha:
+        print("пушить нечего: наш HEAD уже на сервере")
+        print(f"local : {local_sha}")
+        print(f"remote: {remote_sha}")
+        print("СВЕРКА: СОВПАЛО")
+        return 0
     p = git("push", push_url(), f"HEAD:refs/heads/{branch}")
     print("push rc:", p.returncode)
     ls = git("ls-remote", auth_url(), f"refs/heads/{branch}")
