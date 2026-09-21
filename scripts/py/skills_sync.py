@@ -167,18 +167,51 @@ def copy_tree(src: pathlib.Path, dst: pathlib.Path) -> int:
     return n
 
 
+def prune_extra(src: pathlib.Path, dst: pathlib.Path) -> list:
+    """Удаляет в dst то, чего уже нет в src (файлы и опустевшие каталоги).
+
+    Без этого шага клон накапливает «призраки»: файл заменили или удалили в рабочей копии,
+    copy_tree его не трогает - и он остаётся в репозитории навсегда.
+    Границы безопасности: работаем только внутри dst (наши каталоги с меткой OURS).
+    """
+    removed = []
+    if not dst.exists():
+        return removed
+    for f in sorted(dst.rglob("*"), key=lambda p: len(p.parts), reverse=True):
+        rel = f.relative_to(dst)
+        if any(part in {".git", "__pycache__", ".cache"} for part in rel.parts):
+            continue
+        if f.is_dir():
+            try:
+                if not any(f.iterdir()):
+                    f.rmdir()
+                    removed.append(str(rel).replace(os.sep, "/") + "/")
+            except OSError:
+                pass
+        elif not (src / rel).exists():
+            f.unlink()
+            removed.append(str(rel).replace(os.sep, "/"))
+    return removed
+
+
 def cmd_save(message: str = "") -> int:
     ensure_repo()
     total = 0
+    removed = []
     for rel in OUR:
         src = SKILLS / rel
         if not src.exists():
             continue
         total += copy_tree(src, REPO / REPO_SUBDIR / rel)
+        removed += [f"{rel}/{r}" for r in prune_extra(src, REPO / REPO_SUBDIR / rel)]
     # сам скрипт - в репозиторий
     (REPO / "tools").mkdir(exist_ok=True)
     shutil.copy2(pathlib.Path(__file__), REPO / "tools" / "skills_sync.py")
-    print(f"скопировано файлов: {total}")
+    print(f"скопировано файлов: {total}" + (f" | удалено лишних: {len(removed)}" if removed else ""))
+    for r in removed[:20]:
+        print("  удалено из клона:", r)
+    if len(removed) > 20:
+        print(f"  ... ещё {len(removed) - 20}")
     warn = unmarked_recent()
     if warn:
         print(f"ВНИМАНИЕ: {len(warn)} скилл(ов) без метки, правленных за 2 дня - проверь, наши ли это:")
@@ -208,6 +241,7 @@ def cmd_save(message: str = "") -> int:
 def cmd_status() -> int:
     ensure_repo()
     diff = []
+    extra = []
     for rel in OUR:
         src = SKILLS / rel
         if not src.exists():
@@ -220,11 +254,23 @@ def cmd_status() -> int:
                 diff.append(("только в рабочей", str(f.relative_to(SKILLS))))
             elif not filecmp.cmp(f, t, shallow=False):
                 diff.append(("отличается", str(f.relative_to(SKILLS))))
-    print(f"расхождений: {len(diff)}")
+        # обратная сторона: в клоне осталось то, чего в рабочей копии уже нет (мусор для save)
+        tdir = REPO / REPO_SUBDIR / rel
+        if tdir.exists():
+            for f in tdir.rglob("*"):
+                if f.is_dir() or any(p in {".git", "__pycache__"} for p in f.relative_to(tdir).parts):
+                    continue
+                if not (src / f.relative_to(tdir)).exists():
+                    extra.append(str(f.relative_to(REPO / REPO_SUBDIR)))
+    print(f"расхождений: {len(diff)} | лишнего в клоне: {len(extra)}")
     for kind, path in diff[:60]:
         print(f"  {kind:16} {path}")
     if len(diff) > 60:
         print(f"  ... ещё {len(diff) - 60}")
+    for path in extra[:20]:
+        print(f"  {'только в клоне':16} {path}")
+    if len(extra) > 20:
+        print(f"  ... ещё {len(extra) - 20}")
     return 0
 
 
