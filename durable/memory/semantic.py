@@ -10,7 +10,7 @@
   python semantic.py similar <id> [N]  # что ещё близко к записи
   python semantic.py stats
 """
-import os, sys, json, sqlite3, urllib.request, time, math, struct, array
+import os, sys, json, sqlite3, urllib.request, time, math, struct, array, re
 
 # numpy не обязателен: если есть — быстрее, если нет — считаем чистым Python.
 # (в окружении Hermes pip заблокирован uv, поэтому зависимость делать нельзя)
@@ -75,6 +75,24 @@ def _one(text):
     with urllib.request.urlopen(req, timeout=180) as r:
         return json.load(r)["data"][0]["embedding"]
 
+
+
+SECRET_PATTERNS = [
+    re.compile(r"(парол\w*\s*[:=]?\s*)([^\s,;.]+)", re.I),
+    re.compile(r"(password\s*[:=]?\s*)([^\s,;.]+)", re.I),
+    re.compile(r"([a-zA-Z0-9!@#$%^&*_+\-]{24,})"),   # длинные токены/хэши
+]
+
+def mask_secrets(text):
+    """Секреты в вывод не попадают: пароли/токены маскируются."""
+    t = str(text)
+    for pat in SECRET_PATTERNS:
+        def rep(m):
+            if m.re.groups >= 2:
+                return m.group(1) + "*" * min(len(m.group(2)), 12)
+            return "***СЕКРЕТ***"
+        t = pat.sub(rep, t)
+    return t
 
 def embed(texts, tries=2):
     """Тексты -> список векторов. Батчем; при сбое — по одному (один плохой текст не рушит пачку)."""
@@ -209,7 +227,7 @@ def main():
         print(f"=== смысловой поиск: «{a[1]}» ===")
         for r in res:
             print(f"\n  [{r['src']}:{r['row_id']}] косинус={r['score']:.4f}")
-            print("    " + r["text"][:230].replace("\n", " "))
+            print("    " + mask_secrets(r["text"][:230]).replace("\n", " "))
     elif a[0] == "similar" and len(a) > 1:
         rid = int(a[1]); n = int(a[2]) if len(a) > 2 else 5
         c = con()
@@ -221,9 +239,9 @@ def main():
         rows, M, _ = all_vecs(c)
         sims = list(M @ v) if HAVE_NUMPY else [v_dot(m, list(v)) for m in M]
         order = sorted(range(len(sims)), key=lambda i: -sims[i])[1:n+1]
-        print(f"=== близко к записи {rid}: {row['text'][:80]}… ===")
+        print(f"=== близко к записи {rid}: {mask_secrets(row['text'][:80])}… ===")
         for i in order:
-            print(f"  косинус={sims[i]:.4f} | {rows[i]['text'][:120]}")
+            print(f"  косинус={sims[i]:.4f} | {mask_secrets(rows[i]['text'][:120])}")
     elif a[0] == "stats":
         c = con()
         for src in ("memory", "raf"):
