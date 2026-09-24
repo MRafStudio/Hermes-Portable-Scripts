@@ -10,6 +10,21 @@
 """
 import os, sys, sqlite3
 
+
+def load_env():
+    """Читает .env рядом с этим файлом — креды не в коде."""
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if not os.path.exists(p): return {}
+    out = {}
+    for line in open(p, encoding="utf-8"):
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line: continue
+        k, v = line.split("=", 1)
+        out[k.strip()] = v.strip()
+    return out
+
+ENV = load_env()
+
 DB   = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hermes-memory.db")
 CHAT = r"D:\NEURO\Hermes\data\hermes\state.db"
 

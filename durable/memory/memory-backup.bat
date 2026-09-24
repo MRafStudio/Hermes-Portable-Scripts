@@ -10,4 +10,5 @@ python "%H%\durable\memory\restore-memory.py" >> "%H%\durable\memory\backup.log"
 rem 2) svezhiy bekap
 copy /Y "%H%\data\hermes\memories\MEMORY.md" "%BK%\MEMORY.md" >nul 2>&1
 copy /Y "%H%\data\hermes\memories\USER.md"   "%BK%\USER.md"   >nul 2>&1
-echo [%date% %time%] memory backup ok >> "%H%\durable\memory\backup.log"
+copy /Y "%H%\durable\memory\.env" "%BK%\creds.env" >nul 2>&1
+echo [%date% %time%] memory+creds backup ok >> "%H%\durable\memory\backup.log"
