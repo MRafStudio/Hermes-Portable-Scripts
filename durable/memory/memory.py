@@ -43,6 +43,23 @@ def main():
             print(f"[{r['kind']}] {r['topic']}\n    {r['body'][:300]}")
         return
 
+
+    if a[0] == "raf" and len(a) > 1:
+        q = " ".join(a[1:])
+        c = con()
+        print(f"=== слова Рафа: «{q}» ===")
+        for r in c.execute("""SELECT r.ts, substr(r.body,1,400) AS b FROM raf r
+                              JOIN raf_fts f ON f.rowid = r.id
+                              WHERE raf_fts MATCH ? ORDER BY r.id DESC LIMIT 10""", (q,)):
+            print(f"\n  [{r['ts']}] {str(r['b']).replace(chr(10),' ')}")
+        return
+
+    if a[0] == "raf-all":
+        c = con()
+        for r in c.execute("SELECT ts, substr(body,1,120) AS b FROM raf ORDER BY id DESC LIMIT 30"):
+            print(f"  [{r['ts']}] {str(r['b']).replace(chr(10),' ')[:115]}")
+        return
+
     if a[0] == "list":
         n = int(a[1]) if len(a) > 1 else 20
         c = con()
