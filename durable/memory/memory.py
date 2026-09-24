@@ -7,6 +7,8 @@
   python memory.py find "<запрос>"        # полнотекстовый поиск
   python memory.py list [N]               # последние N
   python memory.py chat "<запрос>"        # поиск по ВСЕЙ истории разговоров (state.db)
+  python memory.py sem "<запрос>"         # СМЫСЛОВОЙ поиск (эмбеддер bge-m3, косинусы)
+  python memory.py index                  # пересчитать векторы
 """
 import os, sys, sqlite3
 
@@ -73,6 +75,21 @@ def main():
         c = con()
         for r in c.execute("SELECT ts, substr(body,1,120) AS b FROM raf ORDER BY id DESC LIMIT 30"):
             print(f"  [{r['ts']}] {str(r['b']).replace(chr(10),' ')[:115]}")
+        return
+
+    if a[0] == "sem" and len(a) > 1:
+        # смысловой поиск через эмбеддер (векторы лежат в hermes-memory.db)
+        import subprocess as sp
+        r = sp.run(["python", os.path.join(os.path.dirname(os.path.abspath(__file__)), "semantic.py"),
+                    "search"] + a[1:], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        print((r.stdout or "").strip() or (r.stderr or "").strip()[-300:])
+        return
+
+    if a[0] == "index":
+        import subprocess as sp
+        r = sp.run(["python", os.path.join(os.path.dirname(os.path.abspath(__file__)), "semantic.py"),
+                    "index", "--all"], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        print((r.stdout or "").strip()[-400:])
         return
 
     if a[0] == "list":
