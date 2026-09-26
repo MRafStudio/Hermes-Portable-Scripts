@@ -1,6 +1,6 @@
 MemOS выключен (provider=""); VRAM держит llama-server 8101.
 §
-Windows-only; .bat/.ps1 CRLF; PS 5.1 + кириллица = UTF-8 BOM.
+Windows; .bat CRLF; .ps1 UTF-8 BOM; кириллица в .bat = кракозябры.
 §
 СЕТЬ: DNS мёртв → адаптер 1.1.1.1; WireGuard wg-server (10.66.0.1) не трогать.
 §
@@ -26,6 +26,6 @@ LLM: llama-server 8101 (Qwen3.8-27B); enable_thinking=false; для русско
 §
 ⚙️ Lua: объекты Player НЕ живут через асинхронную границу (HTTP-колбэк, таймеры) — брать GUID ДО. В lua-deploy 2 стража: lua-async-lint + soul-selftest.
 §
-🖱 computer_use: только с игрой WarCraft; вне WoW — с разрешения владельца.
+🖱 computer_use: только в WoW; вне игры — с разрешения владельца.
 §
-🧠 МОЯ ПАМЯТЬ: D:\NEURO\Hermes\durable\memory\ (hermes-memory.db + memory.py). Новая сессия — СНАЧАЛА ЧИТАТЬ: find/raf/chat. Если штатная память пуста — python durable/memory/restore-memory.py (бэкап каждые 2 ч).
+🧠🔑 ПАМЯТЬ СНАЧАЛА (не .md): D:\NEURO\Hermes\durable\memory\ — memory.py (find/sem/raf/chat/add) + semantic.py (смысловой поиск) + .env (креды+EMBED_KEY). Эмбеддер bge-m3 на 8083 (CPU, менеджер LlamaCPU). Векторы: 1112 фраз Рафа + 23 записи. Вывод маскирует секреты. Штатная память — только указатель.
