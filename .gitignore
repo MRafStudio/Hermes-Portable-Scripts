@@ -84,3 +84,7 @@ data/temp/
 # Бэкапы базы разговоров — тяжёлые дампы, хранятся на диске, не в git
 durable/ЛЕТОПИСЬ/state-*.db
 durable/ЛЕТОПИСЬ/*.db
+# креды и тяжёлые бэкапы баз живут только локально, в репу не идут
+durable/creds.env
+durable/memory/backup-memories/creds.env
+durable/**/*.db.bak*
