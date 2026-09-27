@@ -88,3 +88,5 @@ durable/ЛЕТОПИСЬ/*.db
 durable/creds.env
 durable/memory/backup-memories/creds.env
 durable/**/*.db.bak*
+durable/memory/*.db
+durable/memory/*.db.bak*
