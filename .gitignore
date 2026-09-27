@@ -90,3 +90,7 @@ durable/memory/backup-memories/creds.env
 durable/**/*.db.bak*
 durable/memory/*.db
 durable/memory/*.db.bak*
+durable/ЛЕТОПИСЬ/
+durable/memory/backup-memories/
+durable/memory/*.vbs
+durable/memory/*.bat
