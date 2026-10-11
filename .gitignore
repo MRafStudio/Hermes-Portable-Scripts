@@ -55,7 +55,9 @@ pip/
 # --- Репозитории
 node-dist/
 uv/
-/scripts/en-locale/en.ts
+# эталоны локализации (генерируются i18n_sync_refs.py — в git не нужны)
+/scripts/en-locale/
+/scripts/upstream-locale/
 /kobold/1000
 /scripts/zh-locale/zh.ts
 /scripts/ru-locale/ru.ts.bak
@@ -77,6 +79,7 @@ scripts/en-locale/*.bak
 scripts/ru-locale/*.bak
 scripts/ru-locale/*.pre-mirror
 scripts/ru-locale/*.pre-sort
+scripts/ru-locale/*.pre-build
 skills-repo/
 data/temp/
 *.log
@@ -96,3 +99,4 @@ durable/memory/*.vbs
 durable/memory/*.bat
 # скиллы (наши решения) в Git не выкладываем - они живут на диске и в своём SCM
 scripts/skills/
+scripts/ru-locale/ru-layer.ts

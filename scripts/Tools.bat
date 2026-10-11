@@ -50,8 +50,8 @@ echo  %ESC%[1;36m##                                                             
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
 
-echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mСравнить ключи RU локализации%ESC%[0m %ESC%[2m— WinMerge: en.flat vs ru.flat%ESC%[0m
-echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mСравнить исходники en.ts vs ru.ts%ESC%[0m %ESC%[2m— WinMerge (прямое сравнение)%ESC%[0m
+echo   %ESC%[1;37m[1]%ESC%[0m %ESC%[1mСравнить эталон и итог%ESC%[0m %ESC%[2m— WinMerge: en.flat vs ru.flat%ESC%[0m
+echo   %ESC%[1;37m[2]%ESC%[0m %ESC%[1mСравнить источник и слой%ESC%[0m %ESC%[2m— WinMerge: ru.ts vs ru-layer.ts%ESC%[0m
 echo   %ESC%[1;37m[3]%ESC%[0m %ESC%[1mОткрыть файл .env%ESC%[0m %ESC%[2m— %HERMES_HOME%\.env%ESC%[0m
 echo   %ESC%[1;37m[4]%ESC%[0m %ESC%[1mОткрыть файл config.yaml%ESC%[0m %ESC%[2m— %HERMES_HOME%\config.yaml%ESC%[0m
 echo.
@@ -59,9 +59,9 @@ echo   %ESC%[1;37m[5]%ESC%[0m %ESC%[1mПересобрать Hermes Desktop и �
 echo   %ESC%[1;37m[6]%ESC%[0m %ESC%[1mОткатить русификацию к бэкапу%ESC%[0m %ESC%[2m— вернуть рабочие файлы и сборку%ESC%[0m
 echo.
 echo   %ESC%[1;37m[7]%ESC%[0m %ESC%[1;31mОчистить репозиторий%ESC%[0m %ESC%[2m— Удалить hermes-agent (данные сохраняются)%ESC%[0m
-echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mПроверка русификации%ESC%[0m %ESC%[2m— структура + esbuild + порядок (workflow)%ESC%[0m
-echo   %ESC%[1;37m[9]%ESC%[0m %ESC%[1mВыровнять ru.ts как зеркало en.ts%ESC%[0m %ESC%[2m— 1:1 построчно (полнота + порядок)%ESC%[0m
-echo   %ESC%[1;37m[10]%ESC%[0m %ESC%[1mРусификация: полный цикл (workflow)%ESC%[0m %ESC%[2m— эталоны, зеркала, проверка, сборка%ESC%[0m
+echo   %ESC%[1;37m[8]%ESC%[0m %ESC%[1mПроверка русификации%ESC%[0m %ESC%[2m— структура + esbuild + установка (workflow)%ESC%[0m
+echo   %ESC%[1;37m[9]%ESC%[0m %ESC%[1mСобрать слой ru-layer.ts%ESC%[0m %ESC%[2m— наши переводы минус апстримные%ESC%[0m
+echo   %ESC%[1;37m[10]%ESC%[0m %ESC%[1mРусификация: полный цикл (workflow)%ESC%[0m %ESC%[2m— эталоны, слой, проверка, сборка%ESC%[0m
 echo.
 echo   %ESC%[1;37m[0]%ESC%[0m %ESC%[1mНазад в главное меню%ESC%[0m
 echo.
@@ -85,40 +85,23 @@ if "%choice%"=="10" goto ru_workflow
 goto menu
 
 REM ============================================================================
-REM   [1] Сравнить ключи локализации — WinMerge: en.flat vs ru.flat
-REM   Компаратор scripts\py\compare_i18n_keys.py строит нормализованные списки
-REM   ключей ('ключ = текст', по алфавиту) — построчный диф становится осмысленным
-REM   (прямое сравнение en.ts/ru.ts бессмысленно: разные форматы обёрток).
+REM   [1] Сравнить эталон и итог — WinMerge: en.flat vs ru.flat
+REM   scripts\py\i18n_status.py собирает ПОЛНЫЙ словарь en (en.ts + модули en_*.ts) и
+REM   итог сборки (апстримный ru.ts + наш ru-layer.ts) в выровненные списки 1:1 —
+REM   построчный диф показывает, что переведено, а что ещё дыра.
 REM ============================================================================
 :compare_locale_en
 cls
 echo.
-echo   %ESC%[1;33mСравнение ключей локализации (en.ts эталон vs ru.ts перевод)...%ESC%[0m
+echo   %ESC%[1;33mСравнение эталона и итога (полный en vs апстрим + наш слой)...%ESC%[0m
 echo.
 
-set "EN_FILE=%SCRIPTS_DIR%\en-locale\en.ts"
-set "RU_FILE=%SCRIPTS_DIR%\ru-locale\ru.ts"
-set "COMPARE_PY=%SCRIPTS_DIR%\py\compare_i18n_keys.py"
+set "STATUS_PY=%SCRIPTS_DIR%\py\i18n_status.py"
 set "COMPARE_DIR=%DATA_DIR%\temp\i18n-compare"
 
-if not exist "%EN_FILE%" (
-    echo   %ESC%[1;31m[ОШИБКА] Файл не найден: %EN_FILE%%ESC%[0m
-    echo   %ESC%[33m       Сначала запустите InstallOrUpdate-RU.bat для загрузки en.ts%ESC%[0m
-    echo.
-    pause
-    goto menu
-)
-
-if not exist "%RU_FILE%" (
-    echo   %ESC%[1;31m[ОШИБКА] Файл не найден: %RU_FILE%%ESC%[0m
-    echo   %ESC%[33m       Убедитесь, что ru.ts находится в scripts\ru-locale\%ESC%[0m
-    echo.
-    pause
-    goto menu
-)
-
-if not exist "%COMPARE_PY%" (
-    echo   %ESC%[1;31m[ОШИБКА] Не найден компаратор ключей: %COMPARE_PY%%ESC%[0m
+if not exist "%STATUS_PY%" (
+    echo   %ESC%[1;31m[ОШИБКА] Файл не найден: %STATUS_PY%%ESC%[0m
+    echo   %ESC%[33m       Запустите InstallOrUpdate-RU.bat (готовит эталоны)%ESC%[0m
     echo.
     pause
     goto menu
@@ -130,7 +113,7 @@ if not exist "%REPO_DIR%\venv\Scripts\python.exe" set "PY_CMD=python"
 
 echo   %ESC%[1;33m  i   Строю нормализованные списки ключей...%ESC%[0m
 echo.
-%PY_CMD% "%COMPARE_PY%" --en "%EN_FILE%" --ru "%RU_FILE%" --flatten "%COMPARE_DIR%"
+%PY_CMD% "%STATUS_PY%" --flat "%COMPARE_DIR%" --holes 10
 if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] Не удалось построить списки ключей.%ESC%[0m
@@ -155,7 +138,7 @@ if not defined WINMERGE_EXE (
     echo   %ESC%[2m       Списки ключей готовы — откройте вручную:%ESC%[0m
     echo   %ESC%[2m         %COMPARE_DIR%\en.flat     — эталон%ESC%[0m
     echo   %ESC%[2m         %COMPARE_DIR%\ru.flat     — перевод%ESC%[0m
-    echo   %ESC%[2m         %COMPARE_DIR%\missing.flat — список для доперевода%ESC%[0m
+    echo   %ESC%[2m         %COMPARE_DIR%\holes.flat — список для доперевода%ESC%[0m
     echo.
     pause
     goto menu
@@ -163,10 +146,10 @@ if not defined WINMERGE_EXE (
 
 echo   %ESC%[1;32m  +   Открываю WinMerge: en.flat vs ru.flat%ESC%[0m
 echo   %ESC%[2m       Непереведённые — строки, которые есть слева и отсутствуют справа%ESC%[0m
-echo   %ESC%[2m       Список для доперевода: %COMPARE_DIR%\missing.flat%ESC%[0m
-echo   %ESC%[2m       Перевод вписывать в: %RU_FILE%%ESC%[0m
+echo   %ESC%[2m       Список для доперевода: %COMPARE_DIR%\holes.flat%ESC%[0m
+echo   %ESC%[2m       Перевод вписывать в: %SCRIPTS_DIR%\ru-locale\ru.ts%ESC%[0m
 echo   %ESC%[2m       После правок: InstallOrUpdate-RU.bat, затем [5] — пересборка Desktop%ESC%[0m
-echo   %ESC%[1;33m  !   Строки идут 1:1 с en.ts (порядок ключей одинаковый):%ESC%[0m
+echo   %ESC%[1;33m  !   Строки идут 1:1 с полным en (порядок ключей одинаковый):%ESC%[0m
 echo   %ESC%[2m       справа сразу видно каждый непереведённый ключ%ESC%[0m
 echo   %ESC%[2m       <НЕТ ПЕРЕВОДА> = строки нет в ru.ts — добавляйте её в scripts\ru-locale\ru.ts%ESC%[0m
 echo.
@@ -176,22 +159,22 @@ start "" "%WINMERGE_EXE%" "%COMPARE_DIR%\en.flat" "%COMPARE_DIR%\ru.flat"
 goto menu
 
 REM ============================================================================
-REM   [2] Сравнить исходники — WinMerge: en.ts vs ru.ts (прямое сравнение)
-REM   Нужно потому, что сборщик копирует именно ru.ts в репозиторий Hermes:
-REM   все изменённые строки обязаны попасть в ru.ts.
+REM   [2] Сравнить источник и слой — WinMerge: ru.ts (наши переводы) vs ru-layer.ts
+REM   Слой ru-layer.ts генерируется из ru.ts вычитанием апстримных переводов:
+REM   здесь видно, что именно уходит в репозиторий.
 REM ============================================================================
 :compare_locale_ts
 cls
 echo.
-echo   %ESC%[1;33mСравнение исходников локализации ^(en.ts vs ru.ts^)...%ESC%[0m
+echo   %ESC%[1;33mСравнение источника и слоя ^(ru.ts vs ru-layer.ts^)...%ESC%[0m
 echo.
 
-set "EN_TS=%SCRIPTS_DIR%\en-locale\en.ts"
-set "RU_TS=%SCRIPTS_DIR%\ru-locale\ru.ts"
+set "EN_TS=%SCRIPTS_DIR%\ru-locale\ru.ts"
+set "RU_TS=%SCRIPTS_DIR%\ru-locale\ru-layer.ts"
 
 if not exist "%EN_TS%" (
     echo   %ESC%[1;31m[ОШИБКА] Файл не найден: %EN_TS%%ESC%[0m
-    echo   %ESC%[33m       Сначала запустите InstallOrUpdate-RU.bat для загрузки en.ts%ESC%[0m
+    echo   %ESC%[33m       Наш источник переводов: scripts\ru-locale\ru.ts%ESC%[0m
     echo.
     pause
     goto menu
@@ -199,7 +182,7 @@ if not exist "%EN_TS%" (
 
 if not exist "%RU_TS%" (
     echo   %ESC%[1;31m[ОШИБКА] Файл не найден: %RU_TS%%ESC%[0m
-    echo   %ESC%[33m       Убедитесь, что ru.ts находится в scripts\ru-locale\%ESC%[0m
+    echo   %ESC%[33m       Слой собирается пунктом [9]%ESC%[0m
     echo.
     pause
     goto menu
@@ -226,9 +209,9 @@ if not defined WINMERGE_EXE (
 )
 
 echo   %ESC%[1;32m  +   WinMerge найден: %WINMERGE_EXE%%ESC%[0m
-echo   %ESC%[2m       en.ts: %EN_TS%%ESC%[0m
-echo   %ESC%[2m       ru.ts: %RU_TS%%ESC%[0m
-echo   %ESC%[1;33m  !   ru.ts должен получить все изменённые строки — именно его копирует сборщик.%ESC%[0m
+echo   %ESC%[2m       источник: %EN_TS%%ESC%[0m
+echo   %ESC%[2m       слой:     %RU_TS%%ESC%[0m
+echo   %ESC%[1;33m  !   Слой уходит в репозиторий рядом с апстримным ru.ts (подключается автоматически).%ESC%[0m
 echo.
 
 start "" "%WINMERGE_EXE%" "%EN_TS%" "%RU_TS%"
@@ -346,15 +329,15 @@ REM --- Проверка синтаксиса TS перед сборкой (esbu
 set "ESB=%REPO_DIR%\node_modules\@esbuild\win32-x64\esbuild.exe"
 if exist "!ESB!" (
     echo   %ESC%[1;33m  -   Проверка синтаксиса локализации...%ESC%[0m
-    "!ESB!" "%SCRIPTS_DIR%\ru-locale\ru.ts" --outfile="%DATA_DIR%\temp\ru-check.js" --log-level=warning >nul 2>&1
+    "!ESB!" "%SCRIPTS_DIR%\ru-locale\ru-layer.ts" --outfile="%DATA_DIR%\temp\ru-check.js" --log-level=warning >nul 2>&1
     if !errorlevel! neq 0 (
-        echo   %ESC%[1;31m  [ОШИБКА] ru.ts не компилируется — сборка отменена, ничего не собрано.%ESC%[0m
-        "!ESB!" "%SCRIPTS_DIR%\ru-locale\ru.ts" --outfile="%DATA_DIR%\temp\ru-check.js" --log-level=warning
+        echo   %ESC%[1;31m  [ОШИБКА] ru-layer.ts не компилируется — сборка отменена, ничего не собрано.%ESC%[0m
+        "!ESB!" "%SCRIPTS_DIR%\ru-locale\ru-layer.ts" --outfile="%DATA_DIR%\temp\ru-check.js" --log-level=warning
         echo.
         pause
         goto menu
     )
-    echo   %ESC%[1;32m  +   Синтаксис ru.ts в порядке%ESC%[0m
+    echo   %ESC%[1;32m  +   Синтаксис слоя в порядке%ESC%[0m
 ) else (
     echo   %ESC%[2m       ^(esbuild не найден — проверка синтаксиса пропущена^)%ESC%[0m
 )
@@ -476,15 +459,15 @@ pause
 goto menu
 
 REM ============================================================================
-REM   [9] Выровнять ru.ts как зеркало en.ts — тот же набор ключей и порядок (1:1)
+REM   [9] Собрать наш слой ru-layer.ts (наши переводы минус апстримные)
 REM ============================================================================
 :mirror_i18n
 cls
 echo.
-echo   %ESC%[1;33mПриводю ru.ts к зеркалу en.ts (полнота + порядок + построчность)...%ESC%[0m
+echo   %ESC%[1;33mСобираю наш слой ru-layer.ts (переводы минус апстрим)...%ESC%[0m
 echo.
 
-set "MIRROR_PY=%SCRIPTS_DIR%\py\i18n_mirror.py"
+set "MIRROR_PY=%SCRIPTS_DIR%\py\i18n_build_layer.py"
 set "PY_CMD="%REPO_DIR%\venv\Scripts\python.exe""
 if not exist "%REPO_DIR%\venv\Scripts\python.exe" set "PY_CMD=python"
 
@@ -495,8 +478,8 @@ if not exist "%MIRROR_PY%" (
     goto menu
 )
 
-echo   %ESC%[2m       Непереведённые ключи попадут с английским текстом (их найдёт [8]).%ESC%[0m
-echo   %ESC%[2m       Копия текущего файла: ru.ts.pre-mirror%ESC%[0m
+echo   %ESC%[2m       Правьте переводы в scripts\ru-locale\ru.ts, слой перегенерируется.%ESC%[0m
+echo   %ESC%[2m       Копия: ru-layer.ts.pre-build%ESC%[0m
 echo.
 set "confirm="
 set /p "confirm=%ESC%[33mВыполнить? (y/n): %ESC%[0m"
@@ -508,7 +491,7 @@ if /I not "!confirm!"=="y" (
 
 %PY_CMD% "%MIRROR_PY%"
 if errorlevel 1 (
-    echo   %ESC%[1;31m  !   Не удалось собрать зеркало (см. сообщение выше).%ESC%[0m
+    echo   %ESC%[1;31m  !   Не удалось собрать слой (см. сообщение выше).%ESC%[0m
 ) else (
     echo   %ESC%[1;32m  +   Готово. Теперь: [8] — проверка, [5] — сборка.%ESC%[0m
 )
@@ -517,17 +500,17 @@ pause
 goto menu
 
 REM ============================================================================
-REM   [10] Русификация: полный цикл (workflow)
-REM   Эталоны -> зеркало ru.ts -> зеркало констант -> регистрация -> проверка
-REM   -> копирование в репозиторий -> тестовая сборка Electron.
+REM   [10] Русификация: полный цикл (workflow, схема A)
+REM   Эталоны (en + модули, апстримный ru) -> наш слой ru-layer.ts -> установка ru.ts
+REM   -> проверка -> сводка -> тестовая сборка Electron.
 REM   В конце спрашивает про боевую пересборку release (бэкап + сборка + запуск).
 REM ============================================================================
 :ru_workflow
 cls
 echo.
 echo   %ESC%[1;33mРусификация: полный цикл (RU-WORKFLOW.md)...%ESC%[0m
-echo   %ESC%[2m  [1] эталоны  [2] зеркало ru.ts  [3] зеркало констант  [4] регистрация%ESC%[0m
-echo   %ESC%[2m  [5] проверка  [6] копирование в репозиторий  [7] тестовая сборка Electron%ESC%[0m
+echo   %ESC%[2m  [1] эталоны  [2] слой ru-layer.ts + установка  [3] проверка  [4] сводка%ESC%[0m
+echo   %ESC%[2m  [5] тестовая сборка Electron%ESC%[0m
 echo.
 
 set "WF_PY=%SCRIPTS_DIR%\py\ru_workflow.py"
@@ -545,7 +528,7 @@ if not exist "%WF_PY%" (
 if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m  !   Цикл не пройден — боевую сборку не запускаем.%ESC%[0m
-    echo   %ESC%[2m      Переводы правьте здесь: %SCRIPTS_DIR%\ru-locale\ru.ts и ru-constants.ts%ESC%[0m
+    echo   %ESC%[2m      Переводы: %SCRIPTS_DIR%\ru-locale\ru.ts; подписи полей: ru-constants.ts%ESC%[0m
     echo.
     pause
     goto menu

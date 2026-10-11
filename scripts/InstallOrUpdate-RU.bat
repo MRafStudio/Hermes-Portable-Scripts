@@ -1,4 +1,7 @@
 @REM scripts\InstallOrUpdate-RU.bat
+@REM Схема A: база — апстримный ru.ts (развивается вместе с Hermes), наш файл — слой ru-layer.ts
+@REM с тем, чего у апстрима нет. Патчи types/languages/catalog больше не нужны: апстрим
+@REM сам регистрирует русский. Подробности: scripts\py\i18n_build_layer.py, RU-WORKFLOW.md
 @echo off
 chcp 65001 >nul
 setlocal enabledelayedexpansion
@@ -14,14 +17,13 @@ title Установка RU
 
 REM ============================================================================
 REM   Определение путей
-REM   Node.js здесь не используется — только копирование файлов и патчи
 REM ============================================================================
 for %%F in ("%~dp0..") do set "ROOT_DIR=%%~fF"
 set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "REPO_DIR=%HERMES_HOME%\hermes-agent"
-set "RU_LOCALE_DIR=%SCRIPTS_DIR%\ru-locale"
-set "EN_LOCALE_DIR=%SCRIPTS_DIR%\en-locale"
+set "PY_DIR=%SCRIPTS_DIR%\py"
+set "VENV_PYTHON=%REPO_DIR%\venv\Scripts\python.exe"
 
 REM Пути к файлам Hermes Desktop
 set "I18N_DIR=%REPO_DIR%\apps\desktop\src\i18n"
@@ -37,15 +39,12 @@ set "TMP=%DATA_DIR%\temp"
 
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" 2>nul
 if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
-if not exist "%RU_LOCALE_DIR%" mkdir "%RU_LOCALE_DIR%" 2>nul
-if not exist "%EN_LOCALE_DIR%" mkdir "%EN_LOCALE_DIR%" 2>nul
 
 REM ============================================================================
 REM   Получение ESC (стандартный трюк, как в остальных скриптах)
 REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
 
-REM cls
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo  %ESC%[1;36m##                                                                            ##%ESC%[0m
@@ -55,7 +54,7 @@ echo  %ESC%[1;36m###############################################################
 echo.
 
 REM ============================================================================
-REM   Проверка репозитория
+REM   Проверка репозитория и Python
 REM ============================================================================
 if not exist "%DESKTOP_DIR%\package.json" (
     echo   %ESC%[1;31m[ОШИБКА] Desktop app не найден в репозитории...%ESC%[0m
@@ -63,183 +62,78 @@ if not exist "%DESKTOP_DIR%\package.json" (
     goto error_exit
 )
 
-REM ============================================================================
-REM   ШАГ 1/4: Проверка локальных файлов
-REM ============================================================================
-echo   %ESC%[1;33m[1/4]%ESC%[0m %ESC%[1mПроверка файлов локализации...%ESC%[0m
+set "PYTHON=%VENV_PYTHON%"
+if not exist "%PYTHON%" set "PYTHON=python"
 
-if not exist "%RU_LOCALE_DIR%\ru.ts" (
-    echo   %ESC%[1;31m[ОШИБКА] ru.ts не найден в %RU_LOCALE_DIR%%ESC%[0m
-    goto error_exit
-)
-
-if not exist "%RU_LOCALE_DIR%\ru-constants.ts" (
-    echo   %ESC%[1;31m[ОШИБКА] ru-constants.ts не найден в %RU_LOCALE_DIR%%ESC%[0m
-    goto error_exit
-)
-
-echo   %ESC%[1;32m  +   Файлы локализации найдены.%ESC%[0m
-
-REM ============================================================================
-REM   ШАГ 2/4: Копирование эталонов (en.ts + constants.ts) из репозитория
-REM ============================================================================
-echo.
-echo   %ESC%[1;33m[2/4]%ESC%[0m %ESC%[1mКопирование эталонов en (en.ts + constants.ts)...%ESC%[0m
-
-REM --- en.ts ---
-if exist "%I18N_DIR%\en.ts" (
-    copy /Y "%I18N_DIR%\en.ts" "%EN_LOCALE_DIR%\en.ts" >nul
-    for %%F in ("%EN_LOCALE_DIR%\en.ts") do set "EN_SIZE=%%~zF"
-    echo   %ESC%[1;32m  +   en.ts скопирован из репозитория ^(!EN_SIZE! байт^).%ESC%[0m
-) else (
-    echo   %ESC%[1;33m  [i]  en.ts не найден в репозитории. Пробуем скачать...%ESC%[0m
-    set "EN_TS_URL=https://raw.githubusercontent.com/NousResearch/hermes-agent/main/apps/desktop/src/i18n/en.ts"
-    curl -fsSL -o "%EN_LOCALE_DIR%\en.ts" "%EN_TS_URL%"
-    if !errorlevel! neq 0 (
-        echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить en.ts%ESC%[0m
-        goto error_exit
-    )
-    for %%F in ("%EN_LOCALE_DIR%\en.ts") do set "EN_SIZE=%%~zF"
-    if !EN_SIZE! lss 100 (
-        echo   %ESC%[1;31m[ОШИБКА] en.ts пустой или битый ^(!EN_SIZE! байт^)%ESC%[0m
-        goto error_exit
-    )
-    echo   %ESC%[1;32m  +   en.ts загружен ^(!EN_SIZE! байт^).%ESC%[0m
-)
-
-REM --- constants.ts (эталон подписей и описаний полей для ru-constants.ts) ---
-if exist "%SETTINGS_DIR%\constants.ts" (
-    copy /Y "%SETTINGS_DIR%\constants.ts" "%EN_LOCALE_DIR%\en-constants.ts" >nul
-    for %%F in ("%EN_LOCALE_DIR%\en-constants.ts") do set "EN_CONST_SIZE=%%~zF"
-    echo   %ESC%[1;32m  +   en-constants.ts скопирован из репозитория ^(!EN_CONST_SIZE! байт^).%ESC%[0m
-) else (
-    echo   %ESC%[1;33m  [i]  constants.ts не найден в репозитории. Пробуем скачать...%ESC%[0m
-    set "EN_CONST_URL=https://raw.githubusercontent.com/NousResearch/hermes-agent/main/apps/desktop/src/app/settings/constants.ts"
-    curl -fsSL -o "%EN_LOCALE_DIR%\en-constants.ts" "%EN_CONST_URL%"
-    if !errorlevel! neq 0 (
-        echo   %ESC%[1;31m[ОШИБКА] Не удалось загрузить constants.ts%ESC%[0m
-        goto error_exit
-    )
-    for %%F in ("%EN_LOCALE_DIR%\en-constants.ts") do set "EN_CONST_SIZE=%%~zF"
-    if !EN_CONST_SIZE! lss 100 (
-        echo   %ESC%[1;31m[ОШИБКА] constants.ts пустой или битый ^(!EN_CONST_SIZE! байт^).%ESC%[0m
-        goto error_exit
-    )
-    echo   %ESC%[1;32m  +   en-constants.ts загружен ^(!EN_CONST_SIZE! байт^).%ESC%[0m
-)
-echo.
-:apply_ru
-REM ============================================================================
-REM   ШАГ 3/4: Копирование файлов RU в локальный репозиторий
-REM ============================================================================
-echo.
-echo   %ESC%[1;33m[3/4]%ESC%[0m %ESC%[1mКопирование файлов RU локализации в репозиторий...%ESC%[0m
-
-copy /Y "%RU_LOCALE_DIR%\ru.ts" "%I18N_DIR%\ru.ts" >nul
+"%PYTHON%" -c "import sys" >nul 2>nul
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось скопировать ru.ts%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Python не найден ^(%VENV_PYTHON%^).%ESC%[0m
+    echo   %ESC%[33m       Установите окружение Hermes через главное меню.%ESC%[0m
     goto error_exit
 )
-echo   %ESC%[1;32m  +   ru.ts скопирован.%ESC%[0m
 
-copy /Y "%RU_LOCALE_DIR%\ru-constants.ts" "%SETTINGS_DIR%\ru-constants.ts" >nul
+REM ============================================================================
+REM   ШАГ 1/3: Эталоны — en.ts + модули en_*.ts + апстримный ru.ts (из git HEAD)
+REM ============================================================================
+echo   %ESC%[1;33m[1/3]%ESC%[0m %ESC%[1mСинхронизация эталонов ^(en + модули, апстримный ru^)...%ESC%[0m
+"%PYTHON%" "%PY_DIR%\i18n_sync_refs.py"
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось скопировать ru-constants.ts%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось синхронизировать эталоны локализации.%ESC%[0m
     goto error_exit
 )
-echo   %ESC%[1;32m  +   ru-constants.ts скопирован.%ESC%[0m
-
-REM --- default_soul.md → SOUL.md (только если ещё нет - личность не перезаписываем!) ---
-set "SOUL_SRC=%SCRIPTS_DIR%\profiles\default_soul.md"
-set "SOUL_DST=%HERMES_HOME%\SOUL.md"
-
-if not exist "%SOUL_DST%" (
-    if exist "%SOUL_SRC%" (
-        copy /Y "%SOUL_SRC%" "%SOUL_DST%" >nul
-        if !errorlevel! equ 0 (
-            echo   %ESC%[1;32m  +   SOUL.md создан из default_soul.md.%ESC%[0m
-        ) else (
-            echo   %ESC%[1;33m  [i]  Не удалось скопировать SOUL.md.%ESC%[0m
-        )
-    ) else (
-        echo   %ESC%[1;33m  .   default_soul.md не найден, пропускаем.%ESC%[0m
-    )
-) else (
-    echo   %ESC%[2m  .   SOUL.md уже есть - не трогаем.%ESC%[0m
-)
 
 REM ============================================================================
-REM   ШАГ 4/4: Патчим конфиги TypeScript и config.yaml
+REM   ШАГ 2/3: Наш слой ru-layer.ts + установка ru.ts (апстрим + подключение слоя)
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[4/4]%ESC%[0m %ESC%[1mПатчим конфиги TypeScript...%ESC%[0m
-set "PATCH_DIR=%SCRIPTS_DIR%\ps1"
-
-REM --- types.ts ---
-set "TYPES_FILE=%I18N_DIR%\types.ts"
-if exist "%TYPES_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_types.ps1" -FilePath "%TYPES_FILE%"
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   types.ts пропатчен.%ESC%[0m
-    ) else if !errorlevel! equ 1 (
-        echo   %ESC%[1;33m  .   types.ts уже содержит 'ru'.%ESC%[0m
-    ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_types.ps1 не сработал... Код: !errorlevel!%ESC%[0m
-        goto error_exit
-    )
+echo   %ESC%[1;33m[2/3]%ESC%[0m %ESC%[1mСборка слоя и установка ru.ts в репозиторий...%ESC%[0m
+"%PYTHON%" "%PY_DIR%\i18n_build_layer.py" --install
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось собрать/установить слой локализации.%ESC%[0m
+    goto error_exit
 )
 
-REM --- languages.ts ---
-set "LANG_FILE=%I18N_DIR%\languages.ts"
-if exist "%LANG_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_languages.ps1" -FilePath "%LANG_FILE%"
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   languages.ts пропатчен.%ESC%[0m
-    ) else if !errorlevel! equ 1 (
-        echo   %ESC%[1;33m  .   languages.ts уже содержит 'ru'.%ESC%[0m
-    ) else (
-        echo   %ESC%[1;33m  .   Предупреждение: patch_languages.ps1 не сработал ^(код: !errorlevel!^). Продолжаем.%ESC%[0m
-        echo   %ESC%[2m       ru.ts уже скопирован, это не критично.%ESC%[0m
-    )
-)
+REM --- старый ru-constants.ts от прежней схемы: удаляем, если остался в репозитории ---
+if exist "%SETTINGS_DIR%\ru-constants.ts" del /q "%SETTINGS_DIR%\ru-constants.ts" 2>nul
 
-REM --- catalog.ts ---
-set "CATALOG_FILE=%I18N_DIR%\catalog.ts"
-if exist "%CATALOG_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_catalog.ps1" -FilePath "%CATALOG_FILE%"
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   catalog.ts пропатчен.%ESC%[0m
-    ) else if !errorlevel! equ 1 (
-        echo   %ESC%[1;33m  .   catalog.ts уже содержит 'ru'.%ESC%[0m
-    ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_catalog.ps1 не сработал... Код: !errorlevel!%ESC%[0m
-        goto error_exit
-    )
-)
-
-REM Правим локализацию в config.yaml
+REM ============================================================================
+REM   ШАГ 3/3: config.yaml (язык интерфейса + рабочая директория сессий)
+REM ============================================================================
 echo.
+echo   %ESC%[1;33m[3/3]%ESC%[0m %ESC%[1mНастройки config.yaml...%ESC%[0m
+
+set "HERMES_EXE=%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe"
 set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
 if exist "%CONFIG_YAML%" (
-    echo   %ESC%[1;33m  -   Обновление локализации в config.yaml...%ESC%[0m
-    "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set display.language ru
+    echo   %ESC%[1;33m  -   Язык интерфейса: russian...%ESC%[0m
+    "%HERMES_EXE%" config set display.language ru
 )
 
 REM Рабочая директория сессий: явный terminal.cwd в config.yaml
 REM (иначе Electron берёт системный профиль через WinAPI — сессии падают в C:\Users\<user>!)
 set "TERM_CWD=%ROOT_DIR%\data\home"
 if exist "%CONFIG_YAML%" (
-    echo   %ESC%[1;33m  -   Установка рабочей директории сессий ^(terminal.cwd^)...%ESC%[0m
-    "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set terminal.cwd "%TERM_CWD%"
+    echo   %ESC%[1;33m  -   Рабочая директория сессий ^(terminal.cwd^)...%ESC%[0m
+    "%HERMES_EXE%" config set terminal.cwd "%TERM_CWD%"
+)
+
+REM --- SOUL.md (только если ещё нет - личность не перезаписываем!) ---
+set "SOUL_SRC=%SCRIPTS_DIR%\profiles\default_soul.md"
+set "SOUL_DST=%HERMES_HOME%\SOUL.md"
+if not exist "%SOUL_DST%" (
+    if exist "%SOUL_SRC%" (
+        copy /Y "%SOUL_SRC%" "%SOUL_DST%" >nul
+        if !errorlevel! equ 0 echo   %ESC%[1;32m  +   SOUL.md создан из default_soul.md.%ESC%[0m
+    )
 )
 
 REM ============================================================================
 REM   Завершение
 REM ============================================================================
-:ru_done
 echo.
 echo  %ESC%[36m--------------------------------------------------------------------------------%ESC%[0m
-echo   %ESC%[1;32mRU локализация установлена%ESC%[0m
+echo   %ESC%[1;32mRU локализация установлена ^(схема A: апстрим-база + наш слой^)%ESC%[0m
+echo   %ESC%[2m  Сводка: python scripts\py\i18n_status.py%ESC%[0m
 echo  %ESC%[36m--------------------------------------------------------------------------------%ESC%[0m
 
 if "%AUTOCLOSE%"=="1" (

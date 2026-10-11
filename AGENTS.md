@@ -22,12 +22,19 @@ Messenger Gateway) через `.bat`-скрипты в `scripts\`.
   бэкслеш — `BS = chr(92)`; после правки проверить «одиночные CR» и VT-символ.
 
 ### Скиллы: канон в scripts\skills, рабочая копия в data\hermes\skills
-- Любой скилл проекта правится в **двух местах**: `scripts\skills\...` (канон, в git) и
+- Любой скилл проекта правится в **двух местах**: `scripts\skills\...` (канон, живёт на
+  диске и в своём SCM — **в Git этой репы не идёт**, см. `.gitignore`) и
   `data\hermes\skills\...` (рабочая копия Hermes). Деплой идёт только в одну сторону:
   `InstallOrUpdate-Desktop.bat` / `InstallOrUpdate-Web.bat` (robocopy /E /XO) копируют
   `scripts\skills` → `data\hermes\skills`, обратно — никогда. Правишь только рабочую копию —
   после переустановки правка исчезнет.
 - Скилл русификации: `scripts\skills\localization\hermes-portable-ru-locale\SKILL.md`.
+- **Русификация — схема A** (апстрим-база + наш слой `ru-layer.ts`): апстрим сам держит
+  `ru` (регистрация, плюрализация, модули), мы держим только то, чего у него нет.
+  Полный разбор и инструменты — `RU-WORKFLOW.md`; цикл — `python scripts\py\ru_workflow.py`.
+  Эталоны `scripts\en-locale\` (en + модули) и `scripts\upstream-locale\` — генерируемые, вне Git.
+  НЕ возвращать удалённое: `patch_types/languages/catalog.ps1`, `i18n_mirror*.py`,
+  `compare_i18n_keys.py` (читал только `en.ts` и врал: ~500 ключей живут в модулях `en_*.ts`).
 
 ### Службы через NSSM (установка/удаление/запуск)
 - **После `nssm install` ОБЯЗАТЕЛЬНО `nssm start "<имя>"`** — иначе служба стоит

@@ -32,14 +32,15 @@ BACKUP_BUILD = os.path.join(DATA, "backup", "desktop-release")
 MANIFEST = os.path.join(BACKUP_FILES, "manifest.json")
 
 # what: (исходный путь в проекте, имя файла в бэкапе)
+# Схема A: наш источник (ru.ts + ru-constants.ts) и то, что ставится в репозиторий
+# (ru.ts = апстримный + подключение слоя, ru-layer.ts). Патчи types/languages/catalog
+# больше не применяются — апстрим сам регистрирует русский.
 TARGETS = [
     ("ru-locale/ru.ts", os.path.join(SCRIPTS, "ru-locale", "ru.ts")),
     ("ru-locale/ru-constants.ts", os.path.join(SCRIPTS, "ru-locale", "ru-constants.ts")),
+    ("ru-locale/ru-layer.ts", os.path.join(SCRIPTS, "ru-locale", "ru-layer.ts")),
     ("i18n/ru.ts", os.path.join(DESKTOP, "src", "i18n", "ru.ts")),
-    ("i18n/languages.ts", os.path.join(DESKTOP, "src", "i18n", "languages.ts")),
-    ("i18n/catalog.ts", os.path.join(DESKTOP, "src", "i18n", "catalog.ts")),
-    ("i18n/types.ts", os.path.join(DESKTOP, "src", "i18n", "types.ts")),
-    ("settings/ru-constants.ts", os.path.join(DESKTOP, "src", "app", "settings", "ru-constants.ts")),
+    ("i18n/ru-layer.ts", os.path.join(DESKTOP, "src", "i18n", "ru-layer.ts")),
 ]
 
 RELEASE = os.path.join(DESKTOP, "release")

@@ -235,7 +235,7 @@ REM ============================================================================
 REM   ШАГ 1: Проверка компонентов
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[1/5]%ESC%[0m %ESC%[1mПроверка компонентов...%ESC%[0m
+echo   %ESC%[1;33m[1/4]%ESC%[0m %ESC%[1mПроверка компонентов...%ESC%[0m
 
 REM Проверяем репозиторий
 if not exist "%REPO_DIR%\apps\desktop\package.json" (
@@ -244,14 +244,13 @@ if not exist "%REPO_DIR%\apps\desktop\package.json" (
     goto error_exit
 )
 
-REM Проверяем файлы RU локализации
-if not exist "%RU_LOCALE_DIR%\ru.ts" (
-    echo   %ESC%[1;31m[ОШИБКА] ru.ts не найден в %RU_LOCALE_DIR%%ESC%[0m
+REM Инструменты локализации (схема A)
+if not exist "%SCRIPTS_DIR%\py\i18n_sync_refs.py" (
+    echo   %ESC%[1;31m[ОШИБКА] не найден SCRIPTS_DIR\py\i18n_sync_refs.py%ESC%[0m
     goto error_exit
 )
-
-if not exist "%RU_LOCALE_DIR%\ru-constants.ts" (
-    echo   %ESC%[1;31m[ОШИБКА] ru-constants.ts не найден в %RU_LOCALE_DIR%%ESC%[0m
+if not exist "%SCRIPTS_DIR%\py\i18n_build_layer.py" (
+    echo   %ESC%[1;31m[ОШИБКА] не найден SCRIPTS_DIR\py\i18n_build_layer.py%ESC%[0m
     goto error_exit
 )
 
@@ -314,88 +313,24 @@ if not exist "%VENV_PYTHON%" (
 )
 
 REM ============================================================================
-REM   ШАГ 2: Копирование файлов RU локализации в репозиторий
+REM   ШАГ 2: RU локализация (схема A: апстрим-база + наш слой ru-layer.ts)
+REM   Эталоны, слой, установка ru.ts и настройки config.yaml — внутри вызываемого:
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[2/5]%ESC%[0m %ESC%[1mКопирование файлов RU локализации...%ESC%[0m
+echo   %ESC%[1;33m[2/4]%ESC%[0m %ESC%[1mRU локализация (схема A)...%ESC%[0m
 
-copy /Y "%RU_LOCALE_DIR%\ru.ts" "%I18N_DIR%\ru.ts" >nul
+call "%SCRIPTS_DIR%\InstallOrUpdate-RU.bat" 1
 if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось скопировать ru.ts%ESC%[0m
+    echo   %ESC%[1;31m[ОШИБКА] Установка RU локализации не удалась.%ESC%[0m
     goto error_exit
 )
-echo   %ESC%[1;32m  +   ru.ts скопирован.%ESC%[0m
-
-copy /Y "%RU_LOCALE_DIR%\ru-constants.ts" "%SETTINGS_DIR%\ru-constants.ts" >nul
-if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось скопировать ru-constants.ts%ESC%[0m
-    goto error_exit
-)
-echo   %ESC%[1;32m  +   ru-constants.ts скопирован.%ESC%[0m
-
-REM ============================================================================
-REM   ШАГ 3: Патчим конфиги TypeScript
-REM ============================================================================
-echo.
-echo   %ESC%[1;33m[3/5]%ESC%[0m %ESC%[1mПатчим конфиги TypeScript...%ESC%[0m
-
-set "PATCH_DIR=%SCRIPTS_DIR%\ps1"
-
-REM --- types.ts ---
-set "TYPES_FILE=%I18N_DIR%\types.ts"
-if exist "%TYPES_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_types.ps1" -FilePath "%TYPES_FILE%"
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   types.ts пропатчен.%ESC%[0m
-    ) else if !errorlevel! equ 1 (
-        echo   %ESC%[1;33m  .   types.ts уже содержит 'ru'.%ESC%[0m
-    ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_types.ps1 не сработал... Код: !errorlevel!%ESC%[0m
-        goto error_exit
-    )
-)
-
-REM --- languages.ts ---
-set "LANG_FILE=%I18N_DIR%\languages.ts"
-if exist "%LANG_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_languages.ps1" -FilePath "%LANG_FILE%"
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   languages.ts пропатчен.%ESC%[0m
-    ) else if !errorlevel! equ 1 (
-        echo   %ESC%[1;33m  .   languages.ts уже содержит 'ru'.%ESC%[0m
-    ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_languages.ps1 не сработал... Код: !errorlevel!%ESC%[0m
-        goto error_exit
-    )
-)
-
-REM --- catalog.ts ---
-set "CATALOG_FILE=%I18N_DIR%\catalog.ts"
-if exist "%CATALOG_FILE%" (
-    powershell -NoProfile -ExecutionPolicy Bypass -File "%PATCH_DIR%\patch_catalog.ps1" -FilePath "%CATALOG_FILE%"
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   catalog.ts пропатчен.%ESC%[0m
-    ) else if !errorlevel! equ 1 (
-        echo   %ESC%[1;33m  .   catalog.ts уже содержит 'ru'.%ESC%[0m
-    ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] patch_catalog.ps1 не сработал... Код: !errorlevel!%ESC%[0m
-        goto error_exit
-    )
-)
-
-REM Правим локализацию в config.yaml
-echo.
-set "CONFIG_YAML=%HERMES_HOME%\config.yaml"
-if exist "%CONFIG_YAML%" (
-    echo   %ESC%[1;33m  -   Обновление локализации в config.yaml...%ESC%[0m
-    "%HERMES_HOME%\hermes-agent\venv\Scripts\hermes.exe" config set display.language ru
-)
+echo   %ESC%[1;32m  +   RU локализация установлена.%ESC%[0m
 
 REM ============================================================================
 REM   ШАГ 4: Пересборка Desktop с RU локализацией
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[4/5]%ESC%[0m %ESC%[1mПересборка Desktop с RU локализацией...%ESC%[0m
+echo   %ESC%[1;33m[3/4]%ESC%[0m %ESC%[1mПересборка Desktop с RU локализацией...%ESC%[0m
 echo   %ESC%[2m       Это может занять 1-3 минуты...%ESC%[0m
 
 cd /d "%HERMES_HOME%\hermes-agent"
@@ -436,7 +371,7 @@ REM ============================================================================
 REM   ШАГ 5: Проверка результата
 REM ============================================================================
 echo.
-echo   %ESC%[1;33m[5/5]%ESC%[0m %ESC%[1mПроверка результата...%ESC%[0m
+echo   %ESC%[1;33m[4/4]%ESC%[0m %ESC%[1mПроверка результата...%ESC%[0m
 
 set "EXE_FOUND=0"
 set "EXE_PATH="

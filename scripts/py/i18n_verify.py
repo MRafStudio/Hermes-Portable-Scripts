@@ -1,49 +1,47 @@
 #!/usr/bin/env python3
-# i18n_verify.py — быстрая проверка русификации перед сборкой (ядро workflow).
+# -*- coding: utf-8 -*-
+# i18n_verify.py — проверка русификации по схеме A перед сборкой (ядро workflow).
 #
-# Проверяет по порядку:
-#   1) структура ru.ts читается (парсер), ключей не меньше порога, нет мусорных ключей
-#   2) esbuild компилирует ru.ts и ru-constants.ts (синтаксис TS)
-#   3) порядок ключей ru.ts совпадает с порядком en.ts (для построчного WinMerge)
-#   4) сводка: непереведённые / осиротевшие
+#   [1/5] структура: ru-layer.ts парсится, непустой, ключи уникальны
+#   [2/5] esbuild: синтаксис ru-layer.ts (эталон) и ru.ts/ru-layer.ts в репозитории
+#   [3/5] ключи слоя: нет мёртвых (все есть в полном en; подписи полей — под своими ключами)
+#   [4/5] установка: ru.ts в репозитории = апстримный + подключение слоя; слой совпадает
+#   [5/5] сводка: покрытие, дыры (сколько осталось переводить)
 #
-# Код возврата: 0 — всё в порядке (можно собирать), 1 — есть ошибки (сборку не запускать).
-#
-# Использование:
-#   python scripts/py/i18n_verify.py [--en PATH] [--ru PATH] [--no-esbuild] [--quiet]
+# Код возврата: 0 — можно собирать, 1 — ошибки (сборку не запускать).
 import argparse
 import os
 import subprocess
 import sys
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, _HERE)
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import i18n_refs as REFS  # noqa: E402
 
-import compare_i18n_keys as CMP          # noqa: E402
-import i18n_sort_like_en as SORT         # noqa: E402
+SCRIPTS = os.path.dirname(HERE)
+ROOT = os.path.dirname(SCRIPTS)
+REPO = os.path.join(ROOT, "data", "hermes", "hermes-agent")
+I18N = os.path.join(REPO, "apps", "desktop", "src", "i18n")
+LAYER_SRC = os.path.join(SCRIPTS, "ru-locale", "ru-layer.ts")
+LAYER_REPO = os.path.join(I18N, "ru-layer.ts")
+RU_REPO = os.path.join(I18N, "ru.ts")
+RU_LINE_NEW = "defineLocale(mergeTranslations(ruOverrides, ruLayerOverrides))"
 
-DEFAULT_EN = os.path.join(_HERE, "..", "en-locale", "en.ts")
-DEFAULT_RU = os.path.join(_HERE, "..", "ru-locale", "ru.ts")
-DEFAULT_RU_CONST = os.path.join(_HERE, "..", "ru-locale", "ru-constants.ts")
-
-# esbuild в node_modules репозитория Hermes (быстрая транспиляция без сборки)
 ESBUILD_CANDIDATES = [
-    os.path.join(_HERE, "..", "..", "data", "hermes", "hermes-agent", "node_modules",
-                 "@esbuild", "win32-x64", "esbuild.exe"),
-    os.path.join(_HERE, "..", "..", "data", "hermes", "hermes-agent", "apps", "desktop",
-                 "node_modules", "@esbuild", "win32-x64", "esbuild.exe"),
+    os.path.join(REPO, "node_modules", "@esbuild", "win32-x64", "esbuild.exe"),
+    os.path.join(REPO, "apps", "desktop", "node_modules", "@esbuild", "win32-x64", "esbuild.exe"),
 ]
 
 
 def find_esbuild():
     for c in ESBUILD_CANDIDATES:
         if os.path.exists(c):
-            return os.path.abspath(c)
+            return c
     return None
 
 
-def esbuild_check(exe, path, tmp_dir):
-    out = os.path.join(tmp_dir, "i18n-verify-out.js")
+def esbuild_ok(exe, path, tmp):
+    out = os.path.join(tmp, "i18n-verify-out.js")
     r = subprocess.run([exe, path, "--outfile=" + out, "--log-level=warning"],
                        capture_output=True, text=True, timeout=120,
                        encoding="utf-8", errors="replace")
@@ -55,10 +53,7 @@ def esbuild_check(exe, path, tmp_dir):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Проверка русификации перед сборкой")
-    ap.add_argument("--en", default=DEFAULT_EN)
-    ap.add_argument("--ru", default=DEFAULT_RU)
-    ap.add_argument("--ru-const", default=DEFAULT_RU_CONST)
+    ap = argparse.ArgumentParser(description="Проверка русификации (схема A)")
     ap.add_argument("--no-esbuild", action="store_true")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -66,110 +61,99 @@ def main():
     ok = True
     problems = []
 
-    def say(msg):
+    def say(m):
         if not args.quiet:
-            print(msg)
+            print(m)
 
-    # ---------- 1) структура ----------
-    try:
-        src = open(args.ru, encoding="utf-8", newline="").read()
-        _ro, _rc, ru_children = SORT.parse_text(src, "defineLocale(")
-        _esrc = open(args.en, encoding="utf-8", newline="").read()
-        _eo, _ec, en_children = SORT.parse_text(_esrc, "Translations = ")
-    except SystemExit as ex:
-        print("[ОШИБКА] не разобрать ru.ts: %s" % ex)
+    # ---------- 1) структура слоя ----------
+    if not os.path.exists(LAYER_SRC):
+        print("[ОШИБКА] нет %s" % LAYER_SRC)
         return 1
-
-    leaves = SORT.collect_leaves(src, "defineLocale(")
-    n_keys = len(leaves)
-    if n_keys < 3000:
+    src = open(LAYER_SRC, encoding="utf-8", newline="").read()
+    try:
+        layer = REFS.parse_leaves(src, "export const ruLayerOverrides")
+    except SystemExit as ex:
+        print("[ОШИБКА] не разобрать ru-layer.ts: %s" % ex)
+        return 1
+    if len(layer) < 100:
         ok = False
-        problems.append("ключей в ru.ts всего %d — структура сломана?" % n_keys)
-
-    bad_keys = [k for k in leaves if k.endswith(".as") or k.endswith(".string") or "?unparsed?" in k]
-    if bad_keys:
-        ok = False
-        problems.append("мусорные ключи (TS-приведение разобрано как ключ): %s" % bad_keys[:5])
-
-    say("  [1/5] структура ru.ts: ключей %d%s" % (n_keys, "" if ok else "  <-- ПРОБЛЕМА"))
+        problems.append("в слое всего %d ключей — структура сломана?" % len(layer))
+    say("  [1/5] структура ru-layer.ts: ключей %d%s" % (len(layer), "" if ok else "  <-- ПРОБЛЕМА"))
 
     # ---------- 2) esbuild ----------
     exe = None if args.no_esbuild else find_esbuild()
     if args.no_esbuild:
         say("  [2/5] esbuild: пропущен (--no-esbuild)")
     elif exe is None:
-        say("  [2/5] esbuild: НЕ НАЙДЕН (проверка синтаксиса пропущена)")
+        say("  [2/5] esbuild: НЕ НАЙДЕН (синтаксис не проверен)")
     else:
-        tmp_dir = os.path.dirname(os.path.abspath(args.ru))
-        good_ru, log_ru = esbuild_check(exe, args.ru, tmp_dir)
-        good_c, log_c = esbuild_check(exe, args.ru_const, tmp_dir) if os.path.exists(args.ru_const) else (True, "")
-        if good_ru and good_c:
-            say("  [2/5] esbuild: синтаксис ru.ts и ru-constants.ts — OK")
-        else:
+        tmp = os.path.join(ROOT, "data", "temp")
+        os.makedirs(tmp, exist_ok=True)
+        good, log = esbuild_ok(exe, LAYER_SRC, tmp)
+        targets = [("ru-layer.ts (эталон)", good, log)]
+        if os.path.exists(LAYER_REPO):
+            g2, l2 = esbuild_ok(exe, LAYER_REPO, tmp)
+            targets.append(("ru-layer.ts (репо)", g2, l2))
+        if os.path.exists(RU_REPO):
+            g3, l3 = esbuild_ok(exe, RU_REPO, tmp)
+            targets.append(("ru.ts (репо)", g3, l3))
+        bad = [n for n, g, _ in targets if not g]
+        if bad:
             ok = False
-            problems.append("esbuild: синтаксис сломан")
-            print(log_ru or log_c)
+            problems.append("esbuild: синтаксис сломан в %s" % ", ".join(bad))
+            for n, g, l in targets:
+                if not g:
+                    print(l)
+            say("  [2/5] esbuild: ПРОБЛЕМА (%s)" % ", ".join(bad))
+        else:
+            say("  [2/5] esbuild: синтаксис OK (%s)" % ", ".join(n for n, _, _ in targets))
 
-    # ---------- 3) порядок как в en ----------
-    en_entries = CMP.parse_locale(args.en)
-    en_order_list = [p for p, k, t in en_entries if p and k not in ("obj", "arr")]
-    ru_paths = list(leaves.keys())
-    if en_order_list:
-        pos = {k: i for i, k in enumerate(en_order_list)}
-        seq = [pos[k] for k in ru_paths if k in pos]
-        violations = sum(1 for a, b in zip(seq, seq[1:]) if b < a)
-        if violations == 0:
-            say("  [3/5] порядок ключей: соответствует en.ts")
-        else:
-            ok = False
-            problems.append("порядок ключей нарушен в %d местах (нужен i18n_sort_like_en.py)" % violations)
-            say("  [3/5] порядок ключей: %d нарушений" % violations)
+    # ---------- 3) ключи слоя ----------
+    en = REFS.full_en()
+    dead = [k for k in layer if k not in en
+            and not ((k.startswith("settings.fieldLabels.") or k.startswith("settings.fieldDescriptions."))
+                     and "settings." + k.split(".")[1] in en)]
+    if dead:
+        ok = False
+        problems.append("мёртвые ключи в слое (%d): %s -> удалите из scripts/ru-locale/ru.ts" %
+                        (len(dead), dead[:5]))
+        say("  [3/5] ключи слоя: мёртвых %d  <-- ПРОБЛЕМА" % len(dead))
     else:
-        say("  [3/5] порядок ключей: проверка недоступна")
+        say("  [3/5] ключи слоя: все %d живые" % len(layer))
 
-    # ---------- 4) сводка ----------
-    try:
-        en_leaves, _es = CMP.split(CMP.parse_locale(args.en))
-        ru_leaves_map, _rs = CMP.split(CMP.parse_locale(args.ru))
-        missing = [k for k in en_leaves if k not in ru_leaves_map]
-        orphans = [k for k in ru_leaves_map if k not in en_leaves]
-        en_raw = SORT.collect_leaves(open(args.en, encoding="utf-8", newline="").read(), "Translations = ")
-        ru_raw = SORT.collect_leaves(src, "defineLocale(")
-        empty_like = ("''", '""', "``")
-        same = [k for k in en_raw if k in ru_raw and en_raw[k].strip() == ru_raw[k].strip()
-                and en_raw[k].strip() not in empty_like]
-        say("  [4/5] нет ключа: %d | кандидаты на перевод (текст = англ.): %d | осиротевших: %d" %
-            (len(missing), len(same), len(orphans)))
-    except Exception as ex:  # noqa: BLE001
-        say("  [4/5] сводка недоступна: %s" % ex)
+    # ---------- 4) установка в репозиторий ----------
+    inst = []
+    if not os.path.exists(RU_REPO):
+        inst.append("ru.ts не установлен")
+    else:
+        ru = open(RU_REPO, encoding="utf-8", newline="").read()
+        if RU_LINE_NEW not in ru:
+            inst.append("в ru.ts нет подключения слоя (%s)" % RU_LINE_NEW)
+        if "ru-layer" not in ru:
+            inst.append("в ru.ts нет импорта './ru-layer'")
+    if os.path.exists(LAYER_REPO):
+        a = open(LAYER_SRC, encoding="utf-8", newline="").read()
+        b = open(LAYER_REPO, encoding="utf-8", newline="").read()
+        if a.replace("\r\n", "\n") != b.replace("\r\n", "\n"):
+            inst.append("ru-layer.ts в репозитории отличается от эталона -> переустановите")
+    else:
+        inst.append("ru-layer.ts не установлен в репозиторий")
+    if inst:
+        ok = False
+        problems.extend(inst)
+        say("  [4/5] установка: ПРОБЛЕМА (%s)" % "; ".join(inst))
+    else:
+        say("  [4/5] установка: ru.ts = апстрим + слой, ru-layer.ts совпадает")
 
-    # ---------- 5) ru-constants против en ----------
-    try:
-        import i18n_mirror_constants as MC
-        en_const = os.path.join(os.path.dirname(os.path.abspath(args.en)), "en-constants.ts")
-        if not os.path.exists(en_const):
-            root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(args.en))))
-            en_const = os.path.join(root, "data", "hermes", "hermes-agent", "apps", "desktop",
-                                    "src", "app", "settings", "constants.ts")
-        ru_const = os.path.join(os.path.dirname(os.path.abspath(args.ru)), "ru-constants.ts")
-        if os.path.exists(en_const) and os.path.exists(ru_const):
-            en_const_src = open(en_const, encoding="utf-8").read()
-            ru_const_src = open(ru_const, encoding="utf-8", newline="").read()
-            en_c = {}
-            MC.flatten(MC.grab(en_const_src, "export const FIELD_LABELS"), "", en_c)
-            MC.flatten(MC.grab(en_const_src, "export const FIELD_DESCRIPTIONS"), "", en_c)
-            ru_c = {}
-            MC.flatten(MC.grab(ru_const_src, "export const RU_FIELD_LABELS"), "", ru_c)
-            MC.flatten(MC.grab(ru_const_src, "export const RU_FIELD_DESCRIPTIONS"), "", ru_c)
-            miss_c = [k for k in en_c if k not in ru_c]
-            say("  [5/5] ru-constants: ключей en=%d ru=%d, не хватает %d" % (len(en_c), len(ru_c), len(miss_c)))
-            if miss_c:
-                problems.append("ru-constants отстал: нет %d ключей -> python scripts/py/i18n_mirror_constants.py" % len(miss_c))
-                ok = False
-        else:
-            say("  [5/5] ru-constants: эталон не найден, проверка пропущена")
-    except Exception as ex:  # noqa: BLE001
-        say("  [5/5] ru-constants: проверка недоступна: %s" % ex)
+    # ---------- 5) сводка ----------
+    up = REFS.upstream_ru()
+    total = dict(up)
+    total.update(layer)
+    holes = [k for k in en if k not in total]
+    english = [k for k in en if k in total and total[k] == en[k]]
+    say("  [5/5] покрытие: %d из %d (%.0f%%) | дыр %d | англ. текстом %d" %
+        (len(en) - len(holes), len(en), 100.0 * (len(en) - len(holes)) / len(en),
+         len(holes), len(english)))
 
     print()
     if ok:
