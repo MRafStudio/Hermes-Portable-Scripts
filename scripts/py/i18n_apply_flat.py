@@ -264,6 +264,7 @@ def parse_file(path, marker):
 
 
 def read_flat(path):
+    """Формат: 'ключ = текст'; 'fn:<TS-выражение>' — вставить как есть (функции локали)."""
     updates = {}
     skipped = 0
     with open(path, "r", encoding="utf-8", newline="") as f:
@@ -281,7 +282,10 @@ def read_flat(path):
                 continue
             if value.strip().startswith("<") and value.strip().endswith(">"):
                 continue  # <функция> и прочие маркеры не импортируем
-            updates[key] = unescape_flat(value)
+            if value.startswith("fn:"):
+                updates[key] = (True, value[3:].strip())
+            else:
+                updates[key] = (False, unescape_flat(value))
     return updates, skipped
 
 
@@ -308,6 +312,9 @@ def render_tree(node, indent, lines):
             lines.append(indent + k + ": {")
             render_tree(val, indent + "  ", lines)
             lines.append(indent + "},")
+        elif isinstance(val, tuple):
+            text, is_fn = val
+            lines.append(indent + k + ": " + (text if is_fn else escape_ts(text)) + ",")
         else:
             lines.append(indent + k + ": " + escape_ts(val) + ",")
 
@@ -333,9 +340,18 @@ def main():
 
     # 1) замены существующих значений (только строки/шаблоны — функции и ссылки не трогаем)
     replaced_list = []
-    for path, text in updates.items():
+    for path, (is_fn, text) in updates.items():
         leaf = rp.leaves.get(path)
         if leaf is None or path.startswith("!"):
+            continue
+        if is_fn:
+            # явное fn:-значение: полное TS-выражение, заменяем как есть
+            raw_old = src[leaf.val_start:leaf.val_end].strip()
+            if raw_old == text:
+                continue
+            replaced_list.append((path, raw_old[:50], text[:50]))
+            edits.append((leaf.val_start, leaf.val_end, text))
+            replaced += 1
             continue
         if leaf.kind not in ("string", "template"):
             continue
@@ -356,7 +372,7 @@ def main():
 
     # 2) добавление новых ключей, сгруппированных по родителю
     adds = {}
-    for path, text in updates.items():
+    for path, (is_fn, text) in updates.items():
         if path in rp.leaves or path.startswith("!"):
             continue
         parts = path.split(".")
@@ -370,7 +386,7 @@ def main():
                 break
         if parent == "" and len(rest) > 1 and rest[0] not in rp.objs and ("." + rest[0]) in rp.objs:
             pass
-        adds.setdefault(parent, []).append((rest, text))
+        adds.setdefault(parent, []).append((rest, text, is_fn))
 
     # ===== ПРОХОД 1: замены + prune (позиции исходного текста) =====
     pruned = 0
@@ -410,13 +426,13 @@ def main():
             _open_pos, close_pos = obj
             child_indent = indent_of(out, close_pos) + "  "
             tree = {}
-            for rest, text in items:
+            for rest, text, is_fn in items:
                 node = tree
                 for part in rest[:-1]:
                     node = node.setdefault(part, {})
                 if isinstance(node.get(rest[-1]), dict):
                     continue
-                node[rest[-1]] = text
+                node[rest[-1]] = (text, is_fn)
                 added += 1
             lines = []
             render_tree(tree, child_indent, lines)
