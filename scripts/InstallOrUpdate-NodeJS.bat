@@ -16,6 +16,8 @@ set "SCRIPTS_DIR=%ROOT_DIR%\scripts"
 set "HERMES_HOME=%ROOT_DIR%\data\hermes"
 set "NODE_DIR=%HERMES_HOME%\node"
 set "NODE_EXE=%NODE_DIR%\node.exe"
+set "NODE_MIN_MAJOR=26"
+set "NODE_VERSION=26.12.1"
 
 REM ============================================================================
 REM   Сохраняем РЕАЛЬНЫЕ пути ДО изоляции
@@ -101,10 +103,39 @@ if not defined GLOBAL_NODE (
 if defined GLOBAL_NODE (
     echo   %ESC%[1;32m  +   Обнаружен глобальный Node.js%ESC%[0m
     echo   %ESC%[2m       !GLOBAL_NODE!\%ESC%[0m
-    set /p "=%ESC%[2m       Версия: %ESC%[0m" <nul
-    for /f "delims=" %%v in ('"!GLOBAL_NODE!\node.exe" --version 2^>nul') do echo %%v
-    echo   %ESC%[1;33m  .   Локальная установка не требуется — Hermes использует глобальный.%ESC%[0m
-    goto node_done
+    set "G_VER="
+    set "G_MAJOR=0"
+    for /f "delims=" %%v in ('"!GLOBAL_NODE!\node.exe" --version 2^>nul') do set "G_VER=%%v"
+    if defined G_VER (
+        set "G_NUM=!G_VER:v=!"
+        for /f "tokens=1 delims=." %%a in ("!G_NUM!") do set "G_MAJOR=%%a"
+    )
+    echo   %ESC%[2m       Версия: !G_VER!%ESC%[0m
+    if !G_MAJOR! GEQ !NODE_MIN_MAJOR! (
+        echo   %ESC%[1;32m  +   Версия подходит ^(!G_VER! ^>= !NODE_MIN_MAJOR!^) - используем глобальный.%ESC%[0m
+        goto node_done
+    )
+    echo.
+    echo  %ESC%[1;41m                                                                              %ESC%[0m
+    echo  %ESC%[1;41m   ВНИМАНИЕ: ГЛОБАЛЬНЫЙ NODE.JS УСТАРЕЛ                                       %ESC%[0m
+    echo  %ESC%[1;41m                                                                              %ESC%[0m
+    echo   %ESC%[1;33m   Найден:    !GLOBAL_NODE!%ESC%[0m
+    echo   %ESC%[1;33m   Версия:    !G_VER!%ESC%[0m
+    echo   %ESC%[1;33m   Требуется: Node.js ^>= !NODE_MIN_MAJOR! ^(hermes-agent^)%ESC%[0m
+    echo.
+    echo   %ESC%[1;37mСейчас будет запущено ОБНОВЛЕНИЕ ГЛОБАЛЬНОГО Node.js:%ESC%[0m
+    echo   %ESC%[2m   1^) winget ^(OpenJS.NodeJS^)  2^) если не выйдет - MSI v!NODE_VERSION! через UAC%ESC%[0m
+    echo   %ESC%[2m   Если обновление не удастся - будет поставлена портативная версия.%ESC%[0m
+    echo.
+    set "UPD="
+    set /p "UPD=   Обновить глобальный Node.js сейчас? (y/n): "
+    if /I not "!UPD!"=="y" (
+        echo   %ESC%[1;33m  !   Обновление отменено - ставим портативную версию.%ESC%[0m
+    ) else (
+        call :update_global_node
+        if "!GLOBAL_UPDATED!"=="1" goto node_done
+        echo   %ESC%[1;33m  !   Глобальный обновить не удалось - ставим портативную версию.%ESC%[0m
+    )
 )
 
 REM --- 2. Локальный Node.js: уже установлен? ---
@@ -130,8 +161,7 @@ echo.
 echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mЗагрузка Node.js...%ESC%[0m
 
 set "NODE_ARCH=win-x64"
-REM hermes-agent: engines.node >=26 — ставим актуальную LTS-линию из pm/lock.json
-set "NODE_VERSION=26.12.1"
+REM hermes-agent: engines.node >=26 — версия задана выше (NODE_VERSION), единый источник истины
 set "NODE_ZIP=node-v!NODE_VERSION!-!NODE_ARCH!.zip"
 set "NODE_URL=https://nodejs.org/dist/v!NODE_VERSION!/!NODE_ZIP!"
 
@@ -247,5 +277,52 @@ if "%AUTOCLOSE%"=="1" (
     call "%SCRIPTS_DIR%\SmartPause.bat" 5
 ) else (
     pause
+)
+exit /b 0
+
+REM ============================================================================
+REM   Обновление ГЛОБАЛЬНОГО Node.js (winget -> MSI через UAC) с перепроверкой
+REM ============================================================================
+:update_global_node
+set "GLOBAL_UPDATED=0"
+echo.
+echo   %ESC%[2m       [обновление] попытка 1: winget OpenJS.NodeJS...%ESC%[0m
+where winget >nul 2>&1
+if !errorlevel! equ 0 (
+    powershell -NoProfile -Command "Start-Process -FilePath winget -ArgumentList 'install','--id','OpenJS.NodeJS','-e','--silent','--accept-package-agreements','--accept-source-agreements','--upgrade' -Verb RunAs -Wait" >nul 2>&1
+    call :recheck_global_node
+    if "!GLOBAL_UPDATED!"=="1" exit /b 0
+) else (
+    echo   %ESC%[2m       winget не найден.%ESC%[0m
+)
+echo.
+echo   %ESC%[2m       [обновление] попытка 2: MSI v!NODE_VERSION! ^(запрос UAC^)...%ESC%[0m
+set "NODE_MSI=node-v!NODE_VERSION!-x64.msi"
+set "NODE_MSI_URL=https://nodejs.org/dist/v!NODE_VERSION!/!NODE_MSI!"
+if exist "%TEMP%\!NODE_MSI!" del "%TEMP%\!NODE_MSI!" 2>nul
+curl -L -o "%TEMP%\!NODE_MSI!" "!NODE_MSI_URL!" >nul 2>&1
+if not exist "%TEMP%\!NODE_MSI!" (
+    powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '!NODE_MSI_URL!' -OutFile '%TEMP%\!NODE_MSI!'" >nul 2>&1
+)
+if exist "%TEMP%\!NODE_MSI!" (
+    powershell -NoProfile -Command "Start-Process msiexec -ArgumentList '/i','%TEMP%\!NODE_MSI!','/qn','/norestart' -Verb RunAs -Wait" >nul 2>&1
+    del "%TEMP%\!NODE_MSI!" 2>nul
+    call :recheck_global_node
+)
+exit /b 0
+
+:recheck_global_node
+set "G_VER="
+set "G_MAJOR=0"
+for /f "delims=" %%v in ('"!GLOBAL_NODE!\node.exe" --version 2^>nul') do set "G_VER=%%v"
+if defined G_VER (
+    set "G_NUM=!G_VER:v=!"
+    for /f "tokens=1 delims=." %%a in ("!G_NUM!") do set "G_MAJOR=%%a"
+)
+if !G_MAJOR! GEQ !NODE_MIN_MAJOR! (
+    set "GLOBAL_UPDATED=1"
+    echo   %ESC%[1;32m  +   Глобальный Node.js обновлён: !G_VER!%ESC%[0m
+) else (
+    echo   %ESC%[1;31m  x   Глобальный Node.js всё ещё !G_VER!%ESC%[0m
 )
 exit /b 0
