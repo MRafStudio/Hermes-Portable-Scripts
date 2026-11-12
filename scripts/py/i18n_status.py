@@ -43,6 +43,14 @@ def by_section(keys):
     return d
 
 
+def layer_is_stale():
+    """Слой старше источника → вероятно устарел (ru.ts правили после сборки слоя)."""
+    try:
+        return os.path.getmtime(REFS.OUR_RU) > os.path.getmtime(LAYER) + 1
+    except OSError:
+        return False
+
+
 def main():
     ap = argparse.ArgumentParser(description="Диагностика русификации Hermes (схема A)")
     ap.add_argument("--holes", type=int, default=0, metavar="N", help="показать N дыр по секциям")
@@ -70,6 +78,8 @@ def main():
     print("  полный словарь en (с модулями): %d" % len(en))
     print("  апстримный ru (+модули):        %d" % len(up))
     print("  наш слой ru-layer.ts:           %d" % len(layer))
+    if layer_is_stale():
+        print("  !  слой старше ru.ts — вероятно устарел: Tools.bat [9] пересоберёт")
     print()
     print("  ПОКРЫТИЕ: %d из %d (%.0f%%)" % (covered, len(en), 100.0 * covered / len(en)))
     print("  дыр (ключа нет):     %d" % len(holes))

@@ -81,6 +81,9 @@ python scripts\py\ru_workflow.py --skip-build
 1. `i18n_status.py --flat data\temp\i18n-compare` → `holes.flat` = «ключ = англ. текст».
 2. Правки - в `scripts\ru-locale\ru.ts` (вложенность как в `en.ts`; ключи с дефисом - в кавычках).
    Пакетный импорт: `python scripts\py\i18n_apply_flat.py --flat <файл> --ru scripts\ru-locale\ru.ts`.
+   Импорт сам пересобирает слой и ставит его в репозиторий; если правил `ru.ts` руками —
+   запусти `i18n_build_layer.py --install`. Замки: `i18n_verify.py` падает, а `i18n_status.py`
+   предупреждает, когда слой старше `ru.ts`.
    Формат файла: `ключ = текст` для строк и `ключ = fn:<TS-выражение>` для функций
    (`fn:count => \`${count} инструмент${count === 1 ? '' : 'ов'}\``) - функции вставляются
    как есть, без кавычек.

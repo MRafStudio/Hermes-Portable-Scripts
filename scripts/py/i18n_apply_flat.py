@@ -17,6 +17,7 @@ import argparse
 import re
 import os
 import shutil
+import subprocess
 import sys
 
 BS = chr(92)
@@ -475,6 +476,21 @@ def main():
     if missing_parent:
         print("ВНИМАНИЕ, нет родителя: %s" % ", ".join(missing_parent))
     print("Записано: %s%s" % (target, "" if args.out else " (бэкап: %s.bak)" % args.ru))
+
+    # Слой ru-layer.ts — производный артефакт: пересобираем сразу после правки источника,
+    # иначе он останется старым и новые переводы не доедут до сборки Desktop.
+    if not args.out:
+        here = os.path.dirname(os.path.abspath(__file__))
+        build = os.path.join(here, "i18n_build_layer.py")
+        if os.path.exists(build):
+            print("Пересборка слоя ru-layer.ts...")
+            try:
+                rc = subprocess.call([sys.executable, build, "--install"])
+            except OSError as ex:
+                rc = 1
+                print("  !  не удалось запустить i18n_build_layer.py: %s" % ex)
+            if rc != 0:
+                print("  !  слой НЕ пересобран — запустите Tools.bat [9]")
     return 0
 
 

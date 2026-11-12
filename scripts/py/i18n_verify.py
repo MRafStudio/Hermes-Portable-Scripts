@@ -155,6 +155,16 @@ def main():
         (len(en) - len(holes), len(en), 100.0 * (len(en) - len(holes)) / len(en),
          len(holes), len(english)))
 
+    # ---------- слой устарел? ----------
+    try:
+        stale = os.path.getmtime(REFS.OUR_RU) > os.path.getmtime(LAYER_SRC) + 1
+    except OSError:
+        stale = False
+    if stale:
+        ok = False
+        problems.append("слой ru-layer.ts старше ru.ts — пересоберите (Tools.bat [9] или i18n_build_layer.py), иначе новые переводы не доедут до сборки")
+        say("  [!] слой устарел: ru.ts новее, чем ru-layer.ts")
+
     print()
     if ok:
         print("ИТОГ: проверка пройдена — можно собирать (Tools.bat [5])")
