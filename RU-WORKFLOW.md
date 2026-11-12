@@ -46,7 +46,7 @@ export const ru = defineLocale(mergeTranslations(ruOverrides, ruLayerOverrides))
 | `i18n_sync_refs.py` | эталоны: `en.ts` + модули `en_*.ts`, апстримный `ru.ts` из git HEAD |
 | `i18n_refs.py` | ядро: полный словарь en (разворачивает модули), апстримный ru, наш ru; `--stats`, `--flat DIR` |
 | `i18n_build_layer.py` | собирает `ru-layer.ts`; `--install` - ещё и `ru.ts` (апстрим + подключение слоя) в репу |
-| `i18n_verify.py` | проверка перед сборкой: структура, esbuild, живые ключи, установка, покрытие (exit 1 = не собирать) |
+| `i18n_verify.py` | проверка перед сборкой: структура, синтаксис (esbuild, а если его нет — tsc через node), живые ключи, установка, покрытие, свежесть слоя (exit 1 = не собирать) |
 | `i18n_status.py` | сводка покрытия и дыр; `--flat DIR` - `en.flat`/`ru.flat`/`holes.flat` для WinMerge |
 | `ru_workflow.py` | полный цикл: эталоны → слой+установка → проверка → сводка → тестовая сборка |
 | `i18n_apply_flat.py` | импорт пакета переводов в наш `ru.ts` (правки - в файл-список `ключ = текст`) |

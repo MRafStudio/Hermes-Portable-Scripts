@@ -33,11 +33,35 @@ ESBUILD_CANDIDATES = [
 ]
 
 
+TS_CANDIDATES = [
+    os.path.join(REPO, "node_modules", "typescript", "lib", "typescript.js"),
+    os.path.join(REPO, "apps", "desktop", "node_modules", "typescript", "lib", "typescript.js"),
+]
+TS_CHECK_JS = os.path.join(HERE, "ts_check.js")
+
+
 def find_esbuild():
     for c in ESBUILD_CANDIDATES:
         if os.path.exists(c):
             return c
     return None
+
+
+def find_ts():
+    """typescript.js из репозитория Hermes (esbuild после перехода на rolldown больше не ставится)."""
+    if not os.path.exists(TS_CHECK_JS):
+        return None
+    for c in TS_CANDIDATES:
+        if os.path.exists(c):
+            return c
+    return None
+
+
+def ts_ok(tslib, path):
+    r = subprocess.run(["node", TS_CHECK_JS, path, tslib],
+                       capture_output=True, text=True, timeout=180,
+                       encoding="utf-8", errors="replace")
+    return r.returncode == 0, (r.stdout or "") + (r.stderr or "")
 
 
 def esbuild_ok(exe, path, tmp):
@@ -80,33 +104,47 @@ def main():
         problems.append("в слое всего %d ключей — структура сломана?" % len(layer))
     say("  [1/5] структура ru-layer.ts: ключей %d%s" % (len(layer), "" if ok else "  <-- ПРОБЛЕМА"))
 
-    # ---------- 2) esbuild ----------
-    exe = None if args.no_esbuild else find_esbuild()
+    # ---------- 2) синтаксис: esbuild, если есть; иначе tsc через node ----------
     if args.no_esbuild:
-        say("  [2/5] esbuild: пропущен (--no-esbuild)")
-    elif exe is None:
-        say("  [2/5] esbuild: НЕ НАЙДЕН (синтаксис не проверен)")
+        say("  [2/5] синтаксис: пропущен (--no-esbuild)")
     else:
-        tmp = os.path.join(ROOT, "data", "temp")
-        os.makedirs(tmp, exist_ok=True)
-        good, log = esbuild_ok(exe, LAYER_SRC, tmp)
-        targets = [("ru-layer.ts (эталон)", good, log)]
+        exe = find_esbuild()
+        tslib = None if exe else find_ts()
+        tool = "esbuild" if exe else ("tsc" if tslib else None)
+        files = [("ru-layer.ts (эталон)", LAYER_SRC)]
         if os.path.exists(LAYER_REPO):
-            g2, l2 = esbuild_ok(exe, LAYER_REPO, tmp)
-            targets.append(("ru-layer.ts (репо)", g2, l2))
+            files.append(("ru-layer.ts (репо)", LAYER_REPO))
         if os.path.exists(RU_REPO):
-            g3, l3 = esbuild_ok(exe, RU_REPO, tmp)
-            targets.append(("ru.ts (репо)", g3, l3))
-        bad = [n for n, g, _ in targets if not g]
-        if bad:
-            ok = False
-            problems.append("esbuild: синтаксис сломан в %s" % ", ".join(bad))
-            for n, g, l in targets:
-                if not g:
-                    print(l)
-            say("  [2/5] esbuild: ПРОБЛЕМА (%s)" % ", ".join(bad))
+            files.append(("ru.ts (репо)", RU_REPO))
+        targets = []
+        if tool == "esbuild":
+            tmp = os.path.join(ROOT, "data", "temp")
+            os.makedirs(tmp, exist_ok=True)
+            for name, path in files:
+                g, l = esbuild_ok(exe, path, tmp)
+                targets.append((name, g, l))
+        elif tool == "tsc":
+            try:
+                for name, path in files:
+                    g, l = ts_ok(tslib, path)
+                    targets.append((name, g, l))
+            except FileNotFoundError:
+                tool = None
+                targets = []
+
+        if not targets:
+            say("  [2/5] синтаксис: НЕ проверен (нет ни esbuild, ни node+typescript)")
         else:
-            say("  [2/5] esbuild: синтаксис OK (%s)" % ", ".join(n for n, _, _ in targets))
+            bad = [n for n, g, _ in targets if not g]
+            if bad:
+                ok = False
+                problems.append("%s: синтаксис сломан в %s" % (tool, ", ".join(bad)))
+                for n, g, l in targets:
+                    if not g:
+                        print(l)
+                say("  [2/5] %s: ПРОБЛЕМА (%s)" % (tool, ", ".join(bad)))
+            else:
+                say("  [2/5] %s: синтаксис OK (%s)" % (tool, ", ".join(n for n, _, _ in targets)))
 
     # ---------- 3) ключи слоя ----------
     en = REFS.full_en()
