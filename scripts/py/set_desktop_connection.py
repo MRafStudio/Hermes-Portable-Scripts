@@ -77,11 +77,30 @@ def build_config(cfg_path, remote_url, remote_host):
         remote_cfg = config.setdefault("remote", {})
         remote_cfg["url"] = remote_url
         remote_cfg["authMode"] = "token"
+        # Токен: env -> сохранённый в connection.json (dict {value} ИЛИ legacy-строка).
+        # ВАЖНО: сохранённый токен НЕ обнуляем - иначе Desktop падает с
+        # "no session token is saved" сразу после обновления.
         session_token = os.environ.get("HERMES_DASHBOARD_SESSION_TOKEN", "").strip()
+        saved_token = ""
+        prev = remote_cfg.get("token")
+        if isinstance(prev, dict):
+            v = prev.get("value")
+            if isinstance(v, str):
+                saved_token = v.strip()
+        elif isinstance(prev, str):
+            saved_token = prev.strip()  # legacy-формат: токен просто строкой
         if session_token:
             remote_cfg["token"] = {"value": session_token}
-        elif not isinstance(remote_cfg.get("token"), dict):
+        elif saved_token:
+            remote_cfg["token"] = {"value": saved_token}
+        else:
             remote_cfg["token"] = {"value": ""}
+            print(
+                "warn: mode=remote, но токен не найден (нет env HERMES_DASHBOARD_SESSION_TOKEN "
+                "и нет сохранённого). Desktop покажет 'no session token is saved'. "
+                "Задайте токен: scripts\\Connection.bat -> [3], либо env службы.",
+                file=sys.stderr,
+            )
     elif not is_local and remote_url:
         config["mode"] = "remote"
         config.setdefault("remote", {})
