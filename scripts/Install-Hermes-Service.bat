@@ -46,7 +46,11 @@ del "%TEMP%\hermes-svc-update.flag" >nul 2>&1
 
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
-echo  %ESC%[1;36m##%ESC%[0m                           %ESC%[1;37mУстановка службы Hermes%ESC%[0m                          %ESC%[1;36m##%ESC%[0m
+if defined SVC_UPDATE_TARGET (
+    echo  %ESC%[1;36m##%ESC%[0m                          %ESC%[1;37mОбновление службы Hermes%ESC%[0m                         %ESC%[1;36m##%ESC%[0m
+) else (
+    echo  %ESC%[1;36m##%ESC%[0m                           %ESC%[1;37mУстановка службы Hermes%ESC%[0m                          %ESC%[1;36m##%ESC%[0m
+)
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo.
 
