@@ -24,11 +24,24 @@
 
 Версия важнее происхождения, потому что пин `pm/lock.json` ломает сборку при расхождении:
 
-1. `pnpm` из PATH с версией **ровно** `PNPM_EXPECTED` (сейчас 12.15.0) - годится и глобальный,
-   и портативный;
+1. `pnpm` нужной версии в PATH - ловим **и `pnpm.exe`, и `pnpm.cmd`** (`where pnpm`, без расширения);
 2. `tools\pnpm-<PNPM_EXPECTED>-win32-x64`;
-3. любой `tools\pnpm-*`;
-4. любой `pnpm` из PATH - с флагом `PNPM_VER_MISMATCH=1`.
+3. любой `tools\pnpm-*` (exe или cmd);
+4. `<NODE_DIR>\pnpm.cmd` - то, что поставил `npm install -g pnpm` внутрь портативного Node;
+5. любой `pnpm` из PATH - с флагом `PNPM_VER_MISMATCH=1`.
+
+### Если pnpm нет вообще - ставим сами (`:ensure_pnpm`)
+
+Родной установщик Hermes кладёт `tools\pnpm-*` не на всех машинах (видели машину, где `tools` жил
+со старым `node-26.7.0` и pnpm отсутствовал - сборка Desktop падала с «pnpm не найден (нужен 12.15.0)»).
+Поэтому резолвер сам обеспечивает pnpm:
+
+1. `curl` (или `Invoke-WebRequest`) качает
+   `https://github.com/pnpm/pnpm/releases/download/v<PNPM_EXPECTED>/pnpm-win32-x64.zip`
+   (~23 МБ, не зависит от npm-реестра);
+2. `Expand-Archive` в `tools\pnpm-<PNPM_EXPECTED>-win32-x64`;
+3. если архив недоступен - `npm install -g pnpm@<PNPM_EXPECTED>` внутрь каталога Node;
+4. версия перепроверяется, результат печатается; при полном провале - честная ошибка про github.com.
 
 ## Обновление глобального Node (`scripts\InstallOrUpdate-NodeJS.bat`)
 

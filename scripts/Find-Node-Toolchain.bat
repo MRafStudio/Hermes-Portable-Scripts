@@ -20,8 +20,9 @@ set "NODE_MIN_MAJOR=26"
 
 REM ============================================================================
 REM   pnpm: ВЕРСИЯ важнее происхождения (пин pm/lock.json ломает сборку)
-REM   1) pnpm нужной версии из PATH (глобальный или портативный) -> 2) tools\pnpm-<нужной>
-REM   -> 3) любой tools\pnpm-* -> 4) любой pnpm из PATH (флаг PNPM_VER_MISMATCH)
+REM   1) pnpm нужной версии из PATH (.exe ИЛИ .cmd) -> 2) tools\pnpm-<нужной> ->
+REM   3) любой tools\pnpm-* -> 4) pnpm в каталоге Node (npm -g) -> 5) любой из PATH
+REM   Если ничего не нашли - ставим pnpm нужной версии (см. :ensure_pnpm).
 REM ============================================================================
 set "PNPM_CMD="
 set "PNPM_DIR="
@@ -31,7 +32,8 @@ set "PNPM_VER_MISMATCH=0"
 set "PNPM_ANY="
 set "PNPM_ANY_VER="
 
-for /f "delims=" %%p in ('where pnpm.exe 2^>nul') do (
+REM --- 1) pnpm нужной версии, доступный по имени (ловим и pnpm.exe, и pnpm.cmd) ---
+for /f "delims=" %%p in ('where pnpm 2^>nul') do (
     if not defined PNPM_CMD (
         set "PV="
         for /f "delims=" %%v in ('"%%p" --version 2^>nul') do set "PV=%%v"
@@ -46,19 +48,34 @@ for /f "delims=" %%p in ('where pnpm.exe 2^>nul') do (
         )
     )
 )
+
+REM --- 2) стандартное место портативного pnpm нужной версии ---
 if not defined PNPM_CMD (
     if exist "%TOOLS_DIR%\pnpm-!PNPM_EXPECTED!-win32-x64\pnpm.exe" set "PNPM_CMD=%TOOLS_DIR%\pnpm-!PNPM_EXPECTED!-win32-x64\pnpm.exe"
 )
+
+REM --- 3) любой портативный tools\pnpm-* (exe или cmd) ---
 if not defined PNPM_CMD (
     for /d %%d in ("%TOOLS_DIR%\pnpm-*") do (
         if not defined PNPM_CMD if exist "%%~fd\pnpm.exe" set "PNPM_CMD=%%~fd\pnpm.exe"
+        if not defined PNPM_CMD if exist "%%~fd\pnpm.cmd" set "PNPM_CMD=%%~fd\pnpm.cmd"
     )
 )
+
+REM --- 4) pnpm, поставленный глобально внутрь портативного Node (npm i -g pnpm) ---
+if not defined PNPM_CMD (
+    if defined NODE_DIR (
+        if exist "!NODE_DIR!\pnpm.cmd" set "PNPM_CMD=!NODE_DIR!\pnpm.cmd"
+    )
+)
+
+REM --- 5) последний вариант - любой pnpm из PATH (с пометкой о расхождении версии) ---
 if not defined PNPM_CMD if defined PNPM_ANY (
     set "PNPM_CMD=!PNPM_ANY!"
     set "PNPM_VER=!PNPM_ANY_VER!"
     set "PNPM_VER_MISMATCH=1"
 )
+
 if defined PNPM_CMD (
     for %%f in ("!PNPM_CMD!") do set "PNPM_DIR=%%~dpf"
     if defined PNPM_DIR set "PNPM_DIR=!PNPM_DIR:~0,-1!"
@@ -70,6 +87,8 @@ if defined PNPM_VER (
     set "HAS_PNPM=1"
     if not "!PNPM_VER!"=="!PNPM_EXPECTED!" set "PNPM_VER_MISMATCH=1"
 )
+
+REM --- не нашли - попробуем поставить сами ПОСЛЕ определения Node (см. ниже) ---
 
 REM ============================================================================
 REM   Node.js: ГЛОБАЛЬНЫЙ (если >= NODE_MIN_MAJOR) -> портативный tools\node-* ->
@@ -174,6 +193,9 @@ if defined CAND (
     if !NODE_MAJOR! lss !NODE_MIN_MAJOR! set "NODE_TOO_OLD=1"
 )
 
+REM --- pnpm так и не найден: пробуем поставить сами ---
+if "!HAS_PNPM!"=="0" call :ensure_pnpm
+
 set "NPM_CMD="
 set "NPX_CMD="
 if defined NODE_DIR (
@@ -201,3 +223,59 @@ endlocal & (
     set "PNPM_VER_MISMATCH=%PNPM_VER_MISMATCH%"
     set "PATH=%PATH%"
 )
+
+exit /b 0
+
+REM ============================================================================
+REM   Установка pnpm нужной версии, если его нет ни в PATH, ни в tools
+REM   Источник 1: готовый архив GitHub pnpm-win32-x64.zip (не зависит от npm/реестра)
+REM   Источник 2: npm install -g внутрь портативного Node (если архив недоступен)
+REM ============================================================================
+:ensure_pnpm
+set "PNPM_TARGET=%TOOLS_DIR%\pnpm-!PNPM_EXPECTED!-win32-x64"
+if exist "!PNPM_TARGET!\pnpm.exe" goto ensure_pnpm_found
+
+echo   %ESC%[1;33m  .   pnpm !PNPM_EXPECTED! не найден - ставлю автоматически...%ESC%[0m
+set "PNPM_ZIP=%TEMP%\pnpm-win32-x64.zip"
+set "PNPM_URL=https://github.com/pnpm/pnpm/releases/download/v!PNPM_EXPECTED!/pnpm-win32-x64.zip"
+if exist "!PNPM_ZIP!" del "!PNPM_ZIP!" >nul 2>&1
+curl -L --max-time 180 -o "!PNPM_ZIP!" "!PNPM_URL!" >nul 2>&1
+set "CURL_RC=!errorlevel!"
+if not exist "!PNPM_ZIP!" (
+    echo   %ESC%[1;33m  .   curl не скачал архив ^(код !CURL_RC!^), пробую PowerShell...%ESC%[0m
+    powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '!PNPM_URL!' -OutFile '!PNPM_ZIP!'" >nul 2>&1
+)
+if not exist "!PNPM_ZIP!" (
+    echo   %ESC%[1;31m  x   архив pnpm не получен: !PNPM_URL!%ESC%[0m
+    echo   %ESC%[2m       Проверьте доступ к github.com ^(VPN/прокси/файрвол^).%ESC%[0m
+)
+if exist "!PNPM_ZIP!" (
+    if not exist "!PNPM_TARGET!" mkdir "!PNPM_TARGET!" >nul 2>&1
+    powershell -NoProfile -Command "Expand-Archive -Path '!PNPM_ZIP!' -DestinationPath '!PNPM_TARGET!' -Force" >nul 2>&1
+    del "!PNPM_ZIP!" >nul 2>&1
+)
+
+:ensure_pnpm_found
+if exist "!PNPM_TARGET!\pnpm.exe" (
+    set "PNPM_CMD=!PNPM_TARGET!\pnpm.exe"
+) else (
+    if defined NODE_DIR (
+        if exist "!NODE_DIR!\npm.cmd" (
+            echo   %ESC%[1;33m  .   архив недоступен - пробую npm install -g pnpm@!PNPM_EXPECTED!...%ESC%[0m
+            call "!NODE_DIR!\npm.cmd" install -g "pnpm@!PNPM_EXPECTED!" >nul 2>&1
+            if exist "!NODE_DIR!\pnpm.cmd" set "PNPM_CMD=!NODE_DIR!\pnpm.cmd"
+        )
+    )
+)
+if defined PNPM_CMD (
+    set "PNPM_VER="
+    for /f "delims=" %%v in ('"!PNPM_CMD!" --version 2^>nul') do set "PNPM_VER=%%v"
+    if defined PNPM_VER (
+        set "HAS_PNPM=1"
+        for %%f in ("!PNPM_CMD!") do set "PNPM_DIR=%%~dpf"
+        if defined PNPM_DIR set "PNPM_DIR=!PNPM_DIR:~0,-1!"
+        echo   %ESC%[1;32m  +   pnpm !PNPM_VER! готов: !PNPM_CMD!%ESC%[0m
+    )
+)
+if "!HAS_PNPM!"=="0" echo   %ESC%[1;31m  [ОШИБКА] pnpm поставить не удалось - нужен доступ к github.com или npm-реестру.%ESC%[0m
+exit /b 0
