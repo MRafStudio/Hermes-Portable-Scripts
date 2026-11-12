@@ -40,13 +40,29 @@ set "APPDATA=%DATA_DIR%\appdata"
 
 set "PYTHON_DIR="
 set "PYTHON_EXE="
-REM Ищем ЛЮБОЙ управляемый Python 3.11 в изолированном каталоге
-REM (версия минора может быть 3.11.9 или 3.11.15 — не хардкодим!)
-for /d %%d in ("%APPDATA%\uv\python\cpython-3.11*") do (
+REM Требуемая версия Python — из .python-version репозитория (НЕ хардкод):
+REM hermes-agent живёт на 3.14 (requires-python = ">=3.11,<3.15"),
+REM жёсткая 3.11 ломала детект venv и валила установку.
+set "PYVER="
+if exist "%REPO_DIR%\.python-version" for /f "usebackq delims=" %%v in ("%REPO_DIR%\.python-version") do set "PYVER=%%v"
+if not defined PYVER set "PYVER=3.11"
+
+for /d %%d in ("%APPDATA%\uv\python\cpython-!PYVER!*") do (
     if not defined PYTHON_EXE (
         if exist "%%d\python.exe" (
             set "PYTHON_DIR=%%d"
             set "PYTHON_EXE=%%d\python.exe"
+        )
+    )
+)
+REM Фолбэк: любая доступная 3.x, если точная версия не скачана
+if not defined PYTHON_EXE (
+    for /d %%d in ("%APPDATA%\uv\python\cpython-3.*") do (
+        if not defined PYTHON_EXE (
+            if exist "%%d\python.exe" (
+                set "PYTHON_DIR=%%d"
+                set "PYTHON_EXE=%%d\python.exe"
+            )
         )
     )
 )
@@ -257,6 +273,19 @@ if exist "%NODE_EXE%" (
 
 :node_ready
 
+REM ============================================================================
+REM   Финальный выбор Node.js/pnpm — общий резолвер.
+REM   Обязан стоять ПОСЛЕ метки: ветки выше делают goto :node_ready и иначе
+REM   перепрыгивают его. hermes-agent требует Node >=26 и pnpm 12.x
+REM   (pm/lock.json); портативный Node из tools\ приоритетнее глобального.
+REM ============================================================================
+call "%SCRIPTS_DIR%\Find-Node-Toolchain.bat"
+if "!HAS_NODE!"=="1" set "NODE_EXE=!NODE_CMD!"
+if "!NODE_TOO_OLD!"=="1" (
+    echo   %ESC%[1;33m  !   Node.js !NODE_VER! ниже требуемой ^(hermes-agent: engines.node ^>=26^).%ESC%[0m
+    echo   %ESC%[2m       Ожидался портативный: %HERMES_HOME%\tools\node-26*-win32-x64%ESC%[0m
+)
+
 REM cls
 echo.
 echo  %ESC%[1;35m################################################################################%ESC%[0m
@@ -311,31 +340,62 @@ echo   %ESC%[1;33m[1/6]%ESC%[0m %ESC%[1mСоздание виртуальног�
 
 cd /d "%REPO_DIR%"
 
-if exist "venv\Scripts\python.exe" (
-    REM Проверяем валидность: Python 3.11 + hermes_cli импортируется
-    "venv\Scripts\python.exe" -c "import sys; assert sys.version_info[:2]==(3,11); import hermes_cli" >nul 2>&1
+set "VENV_OK=0"
+
+REM venv валиден только если это настоящее окружение: есть pyvenv.cfg и
+REM sys.prefix указывает именно на него. Без этой сверки повреждённый каталог
+REM (остался один Scripts) считался рабочим, а uv sync ставил пакеты
+REM в базовый интерпретатор — venv оставался пустым и hermes.exe падал.
+if exist "venv\Scripts\python.exe" if exist "venv\pyvenv.cfg" (
+    REM starlette/uvicorn проверяются намеренно: hermes_cli есть и в исходниках
+    REM репозитория (CWD), поэтому один он давал ложный плюс.
+    "venv\Scripts\python.exe" -c "import sys, os, hermes_cli, starlette, uvicorn; root=os.path.realpath(r'%REPO_DIR%\venv'); assert os.path.realpath(sys.prefix).lower()==root.lower(), sys.prefix; req=open('.python-version').read().strip(); assert sys.version.split()[0].startswith(req), sys.version" >nul 2>&1
     if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   venv валиден ^(Python 3.11 + hermes_cli^) — пересоздание не нужно.%ESC%[0m
+        set "VENV_OK=1"
+        echo   %ESC%[1;32m  +   venv валиден ^(Python !PYVER! + hermes_cli^) — пересоздание не нужно.%ESC%[0m
     ) else (
-        echo   %ESC%[1;33m  .   venv невалиден ^(версия/пакеты^). Пересоздание...%ESC%[0m
-        rmdir /s /q "venv" 2>nul
+        echo   %ESC%[1;33m  .   venv невалиден ^(версия/пакеты/префикс^). Пересоздание...%ESC%[0m
     )
 ) else (
-    echo   %ESC%[1;33m  .   venv не найден. Создание...%ESC%[0m
+    echo   %ESC%[1;33m  .   venv отсутствует или повреждён ^(нет pyvenv.cfg^). Создание...%ESC%[0m
 )
 
-REM PYTHON_EXE уже выбран выше (маска cpython-3.11* или альтернативы) — используем его
+if "!VENV_OK!"=="0" (
+    REM НЕ удаляем venv на месте: при работающих службах rmdir сносит Lib и падает
+    REM на Scripts, оставляя нерабочее окружение. Откладываем каталог целиком.
+    if exist "venv" (
+        if exist "venv.old" rmdir /s /q "venv.old" 2>nul
+        move "venv" "venv.old" >nul 2>&1
+        if exist "venv" (
+            echo   %ESC%[1;31m[ОШИБКА] venv занят процессом — отложить не удалось.%ESC%[0m
+            echo   %ESC%[33m       Остановите службы Hermes и повторите:%ESC%[0m
+            echo   %ESC%[1;37m       net stop "HermesGateway ^(D:_NEURO_Hermes^)"%ESC%[0m
+            echo   %ESC%[1;37m       net stop "HermesMessengerGateway ^(D:_NEURO_Hermes^)"%ESC%[0m
+            echo   %ESC%[2m       После установки службы поднимутся при следующем запуске Hermes.%ESC%[0m
+            cd /d "%ROOT_DIR%"
+            goto error_exit
+        )
+    )
 
-REM Создаём venv с ЯВНЫМ путём (uv по умолчанию создаёт .venv — нам это НЕ нужно!)
-"%UV_EXE%" venv --clear --python "%PYTHON_EXE%" "%REPO_DIR%\venv"
+    REM Создаём venv с ЯВНЫМ путём (uv по умолчанию создаёт .venv — нам это НЕ нужно!)
+    "%UV_EXE%" venv --clear --python "%PYTHON_EXE%" "%REPO_DIR%\venv"
 
-if !errorlevel! neq 0 (
-    echo   %ESC%[1;31m[ОШИБКА] Не удалось создать venv...%ESC%[0m
-    cd /d "%ROOT_DIR%"
-    goto error_exit
+    if !errorlevel! neq 0 (
+        echo   %ESC%[1;31m[ОШИБКА] Не удалось создать venv...%ESC%[0m
+        echo   %ESC%[33m       Если это os error 32 ^(файл занят^) — остановите службы Hermes:%ESC%[0m
+        echo   %ESC%[1;37m       net stop "HermesGateway ^(D:_NEURO_Hermes^)"%ESC%[0m
+        echo   %ESC%[1;37m       net stop "HermesMessengerGateway ^(D:_NEURO_Hermes^)"%ESC%[0m
+        cd /d "%ROOT_DIR%"
+        goto error_exit
+    )
+
+    echo   %ESC%[1;32m  +   Виртуальное окружение создано.%ESC%[0m
+) else (
+    echo   %ESC%[2m       Шаг создания пропущен — используется существующий venv.%ESC%[0m
 )
 
-echo   %ESC%[1;32m  +   Виртуальное окружение создано.%ESC%[0m
+REM Отложенное старое окружение больше не нужно
+if exist "venv.old" rmdir /s /q "venv.old" 2>nul
 
 REM ============================================================================
 REM   ШАГ 2: Установка зависимостей через uv sync
@@ -404,37 +464,33 @@ if "!HAS_NODE!"=="0" (
 
 echo   %ESC%[1;33m  .   Используем Node.js:%ESC%[0m
 echo   %ESC%[2m       !NODE_CMD!%ESC%[0m
-echo   %ESC%[1;33m  -   npm install (workspace root)...%ESC%[0m
+
+REM npm install здесь принципиально невозможен: hermes-agent на pnpm, а npm-arborist
+REM падает на его store ("Cannot read properties of null (reading 'matches')").
+if "!HAS_PNPM!"=="0" (
+    echo   %ESC%[1;31m  [ОШИБКА] pnpm не найден ^(нужен !PNPM_EXPECTED!^).%ESC%[0m
+    echo   %ESC%[2m       Ожидался: %HERMES_HOME%\tools\pnpm-!PNPM_EXPECTED!-win32-x64\pnpm.exe%ESC%[0m
+    echo   %ESC%[33m       Обновите Hermes через bootstrap или поставьте pnpm !PNPM_EXPECTED! вручную.%ESC%[0m
+    goto node_done
+)
+if not "!PNPM_VER!"=="!PNPM_EXPECTED!" (
+    echo   %ESC%[1;33m  !   pnpm !PNPM_VER! вместо !PNPM_EXPECTED! — установка может быть отклонена.%ESC%[0m
+)
+
+echo   %ESC%[1;33m  -   pnpm install --frozen-lockfile (workspace root)...%ESC%[0m
 echo   %ESC%[2m       Это может занять 5-15 минут...%ESC%[0m
 
-:retry_node_deps
-call "!NPM_CMD!" install
+echo   %ESC%[2m       !PNPM_CMD! !PNPM_VER!%ESC%[0m
+call "!PNPM_CMD!" install --frozen-lockfile
+set "PNPM_RC=!errorlevel!"
 
-if !errorlevel! equ 0 (
-    echo   %ESC%[1;32m  +   Node.js зависимости установлены.%ESC%[0m
+if !PNPM_RC! equ 0 (
+    echo   %ESC%[1;32m  +   Node.js зависимости установлены ^(pnpm^).%ESC%[0m
     goto node_done
 )
 
-REM ============================================================================
-REM   ПРОВАЛ: npm install упал — пробуем fallback через Download-Electron.bat
-REM ============================================================================
-echo   %ESC%[1;33m  [i]    npm install failed. Пробуем скачать Electron вручную...%ESC%[0m
-
-if exist "%SCRIPTS_DIR%\Download-Electron.bat" (
-    call "%SCRIPTS_DIR%\Download-Electron.bat"
-
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   Electron скачан вручную. Повторяем npm install...%ESC%[0m
-        goto :retry_node_deps
-    ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] Не удалось скачать Electron вручную!%ESC%[0m
-    )
-) else (
-    echo   %ESC%[1;33m  .   Download-Electron.bat не найден. Пропускаем fallback.%ESC%[0m
-)
-
-echo   %ESC%[1;31m  [ОШИБКА] npm install failed!%ESC%[0m
-echo   %ESC%[33m       Проверьте лог выше.%ESC%[0m
+echo   %ESC%[1;31m  [ОШИБКА] pnpm install failed ^(код !PNPM_RC!^)!%ESC%[0m
+echo   %ESC%[33m       Проверьте вывод выше: сеть/прокси, либо версия pnpm != !PNPM_EXPECTED!.%ESC%[0m
 goto node_done
 
 :node_done
@@ -541,26 +597,32 @@ if not exist "package.json" (
     goto desktop_deps_done
 )
 
-echo   %ESC%[1;33m  -   npm install (apps\desktop)...%ESC%[0m
+echo   %ESC%[1;33m  -   pnpm install --frozen-lockfile (apps\desktop)...%ESC%[0m
 echo   %ESC%[2m       Это может занять 5-10 минут...%ESC%[0m
 
-REM Retry: 3 попытки с задержкой
-set "NPM_RETRY=0"
-:desktop_npm_retry
-call "!NPM_CMD!" install
-if errorlevel 1 (
-    set /a "NPM_RETRY+=1"
-    if !NPM_RETRY! lss 3 (
-        echo   %ESC%[1;33m  [i]    Повторная попытка npm install ^(!NPM_RETRY!/3^)...%ESC%[0m
-        timeout /t 10 /nobreak >nul
-        goto desktop_npm_retry
-    )
-    echo   %ESC%[1;31m  [ОШИБКА] npm install failed после 3 попыток!%ESC%[0m
-    echo   %ESC%[33m       Проверьте соединение ^(возможно, нужен VPN^).%ESC%[0m
+if "!HAS_PNPM!"=="0" (
+    echo   %ESC%[1;31m  [ОШИБКА] pnpm не найден — Desktop-зависимости не установлены.%ESC%[0m
     goto desktop_deps_done
 )
 
-echo   %ESC%[1;32m  +   Desktop-зависимости установлены.%ESC%[0m
+REM Retry: 3 попытки с задержкой (Electron-бинарник качается по сети)
+set "PNPM_RETRY=0"
+:desktop_pnpm_retry
+call "!PNPM_CMD!" install --frozen-lockfile
+if errorlevel 1 (
+    set /a "PNPM_RETRY+=1"
+    if !PNPM_RETRY! lss 3 (
+        echo   %ESC%[1;33m  [i]    Повторная попытка pnpm install ^(!PNPM_RETRY!/3^)...%ESC%[0m
+        timeout /t 10 /nobreak >nul
+        goto desktop_pnpm_retry
+    )
+    echo   %ESC%[1;31m  [ОШИБКА] pnpm install failed после 3 попыток!%ESC%[0m
+    echo   %ESC%[33m       Если виноват Electron — запустите scripts\Download-Electron.bat и повторите.%ESC%[0m
+    echo   %ESC%[33m       Иначе проверьте соединение ^(возможно, нужен VPN^).%ESC%[0m
+    goto desktop_deps_done
+)
+
+echo   %ESC%[1;32m  +   Desktop-зависимости установлены ^(pnpm^).%ESC%[0m
 
 :desktop_deps_done
 REM ============================================================================

@@ -130,7 +130,8 @@ echo.
 echo   %ESC%[1;33m[2/2]%ESC%[0m %ESC%[1mЗагрузка Node.js...%ESC%[0m
 
 set "NODE_ARCH=win-x64"
-set "NODE_VERSION=22.13.0"
+REM hermes-agent: engines.node >=26 — ставим актуальную LTS-линию из pm/lock.json
+set "NODE_VERSION=26.12.1"
 set "NODE_ZIP=node-v!NODE_VERSION!-!NODE_ARCH!.zip"
 set "NODE_URL=https://nodejs.org/dist/v!NODE_VERSION!/!NODE_ZIP!"
 

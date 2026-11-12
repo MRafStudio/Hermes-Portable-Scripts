@@ -180,46 +180,14 @@ REM PATH уже содержит NODE_DIR первым (блок изоляци�
 
 :node_ready
 REM ============================================================================
-REM   Проверка версии npm — hermes-agent требует npm <11.10 или >=11.17
-REM   Несовместимая версия (11.10-11.16 или <11.10) — авто-обновление до npm@12
+REM   Node.js/pnpm — общий резолвер (hermes-agent: engines.node ^>=26, pnpm 12.x).
+REM   npm install в этом репозитории запрещён (pnpm-workspace.yaml, engines.npm),
+REM   поэтому npm больше не обновляем: ставим и собираем через pnpm.
 REM ============================================================================
-set "NPM_VER="
-for /f "delims=" %%v in ('"!NPM_CMD!" --version 2^>nul') do set "NPM_VER=%%v"
-set "NPM_MAJOR=0"
-set "NPM_MINOR=0"
-for /f "tokens=1,2 delims=." %%a in ("!NPM_VER!") do (
-    set "NPM_MAJOR=%%a"
-    set "NPM_MINOR=%%b"
-)
-set "NPM_NEEDS_UPDATE=0"
-if !NPM_MAJOR! lss 11 set "NPM_NEEDS_UPDATE=1"
-if !NPM_MAJOR! equ 11 (
-    if !NPM_MINOR! geq 10 if !NPM_MINOR! lss 17 set "NPM_NEEDS_UPDATE=1"
-)
-if !NPM_NEEDS_UPDATE! equ 1 (
-    echo.
-    echo %ESC%[1;33m[i]%ESC%[0m npm !NPM_VER! несовместим с hermes-agent ^(нужен 11.17+ или 12^).
-    if "!AUTOCLOSE!"=="1" (
-        echo %ESC%[1;33m→%ESC%[0m Авто-обновление до npm@12...
-    ) else (
-        set /p "NPM_CHOICE=%ESC%[33mОбновить npm до 12? (Enter — да, N — нет): %ESC%[0m"
-    )
-    if /i "!NPM_CHOICE!"=="N" (
-        echo %ESC%[1;33m  .   npm не обновлён — сборка может не пройти.%ESC%[0m
-    ) else (
-        echo %ESC%[1;33m→%ESC%[0m Обновляем npm до npm@12 в реальном профиле...
-        echo %ESC%[2m    "!NPM_CMD!" install -g npm@12%ESC%[0m
-        set "APPDATA=!REAL_APPDATA!"
-        call "!NPM_CMD!" install -g npm@12
-        if !errorlevel! equ 0 (
-            echo %ESC%[1;32m+ %ESC%[0m npm обновлён до 12.
-            set "REAL_NPM_DIR=!REAL_APPDATA!\npm"
-            if exist "!REAL_NPM_DIR!\npm.cmd" set "NPM_CMD=!REAL_NPM_DIR!\npm.cmd"
-        ) else (
-            echo %ESC%[1;31m  [ОШИБКА] Не удалось обновить npm.%ESC%[0m
-        )
-        set "APPDATA=%DATA_DIR%\appdata"
-    )
+call "%SCRIPTS_DIR%\Find-Node-Toolchain.bat"
+if "!HAS_NODE!"=="1" set "NODE_EXE=!NODE_CMD!"
+if "!NODE_TOO_OLD!"=="1" (
+    echo %ESC%[1;33m[!]%ESC%[0m Node.js !NODE_VER! ниже требуемой ^(hermes-agent: engines.node ^>=26^).
 )
 
 
@@ -488,15 +456,34 @@ cd /d "%HERMES_HOME%\hermes-agent"
 echo   %ESC%[1;33m  .   Используем Node.js:%ESC%[0m
 echo   %ESC%[2m       !NODE_CMD!%ESC%[0m
 
-REM Установка npm-зависимостей в корне репо (workspace)
-echo   %ESC%[1;33m  .   Установка npm-зависимостей...%ESC%[0m
-call "!NPM_CMD!" install 2>&1
-if errorlevel 1 (
-    echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить npm-зависимости.%ESC%[0m
+REM Установка зависимостей в корне репо (workspace) — только pnpm
+echo   %ESC%[1;33m  .   Установка зависимостей через pnpm...%ESC%[0m
+if "!HAS_PNPM!"=="0" (
+    echo   %ESC%[1;31m  [ОШИБКА] pnpm не найден ^(нужен !PNPM_EXPECTED!^).%ESC%[0m
     pause >nul
     exit /b 1
 )
-echo   %ESC%[1;32m  +   npm-зависимости установлены.%ESC%[0m
+call "!PNPM_CMD!" install --frozen-lockfile 2>&1
+if errorlevel 1 (
+    echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить зависимости ^(pnpm^).%ESC%[0m
+    pause >nul
+    exit /b 1
+)
+echo   %ESC%[1;32m  +   Зависимости установлены ^(pnpm^).%ESC%[0m
+
+REM Electron-рантайм готовим ЯВНО: pnpm его postinstall не выполняет
+REM (strictDepBuilds), и упаковка падает с "Electron binary is missing or stale".
+REM Вызов идемпотентен: готовая dist проверяется и не скачивается заново.
+if exist "%HERMES_HOME%\hermes-agent\scripts\build\electron-runtime.mjs" (
+    echo   %ESC%[1;33m  .   Проверка Electron-рантайма...%ESC%[0m
+    call "!NODE_CMD!" "%HERMES_HOME%\hermes-agent\scripts\build\electron-runtime.mjs" --source "%HERMES_HOME%\hermes-agent"
+    if errorlevel 1 (
+        echo   %ESC%[1;33m  !   Electron-рантайм не подготовлен — упаковка может упасть.%ESC%[0m
+        echo   %ESC%[2m       Лог выше; проверьте сеть ^(скачивание Electron^) и место на диске.%ESC%[0m
+    ) else (
+        echo   %ESC%[1;32m  +   Electron-рантайм готов.%ESC%[0m
+    )
+)
 
 REM Добавляем node_modules/.bin в PATH
 set "PATH=%HERMES_HOME%\hermes-agent\node_modules\.bin;%PATH%"
