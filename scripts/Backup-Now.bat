@@ -26,4 +26,29 @@ if exist "%HERMES_HOME%\memos-plugin\config.yaml" copy /y "%HERMES_HOME%\memos-p
 if exist "%SCRIPTS_DIR%\InstallOrUpdate-Models.bat" copy /y "%SCRIPTS_DIR%\InstallOrUpdate-Models.bat" "%BKDIR%" >nul 2>&1
 if exist "%SCRIPTS_DIR%\py\llama_models.py" copy /y "%SCRIPTS_DIR%\py\llama_models.py" "%BKDIR%" >nul 2>&1
 echo     %BKDIR%
+
+REM ============================================================================
+REM   РОТАЦИЯ. hermes backup --quick копирует state.db целиком, а он бывает
+REM   много-гигабайтным: без ротации снапшоты накапливаются десятками ГБ
+REM   (у нас накопилось 38 ГБ). Держим только N последних.
+REM   N можно передать параметром: Backup-Now.bat 3
+REM ============================================================================
+set "KEEP=2"
+if not "%~1"=="" set "KEEP=%~1"
+
+if exist "%HERMES_HOME%\state-snapshots" (
+    powershell -NoProfile -Command "Get-ChildItem -LiteralPath '%HERMES_HOME%\state-snapshots' -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -Skip %KEEP% | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
+)
+if exist "%DATA_DIR%\backup" (
+    powershell -NoProfile -Command "Get-ChildItem -LiteralPath '%DATA_DIR%\backup' -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -Skip %KEEP% | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
+)
+echo     хранение: последние !KEEP! снапшот(а)
+
+REM state.db велик — снапшоты дорогие; подсказываем, чем уменьшить базу
+if exist "%HERMES_HOME%\state.db" (
+    for %%S in ("%HERMES_HOME%\state.db") do if %%~zS GTR 2147483648 (
+        echo     ! state.db больше 2 ГБ: уменьшить — hermes sessions optimize-storage
+    )
+)
+
 exit /b 0
