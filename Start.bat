@@ -49,6 +49,12 @@ set "APPDATA=%DATA_DIR%\appdata"
 set "LOCALAPPDATA=%DATA_DIR%\localappdata"
 set "HOME=%DATA_DIR%\home"
 set "USERPROFILE=%DATA_DIR%\home"
+
+REM Electron берёт userData через SHGetFolderPath, игнорируя APPDATA/USERPROFILE:
+REM без явного оверрайда Desktop уходит в реальный профиль пользователя
+REM (C:\Users\<user>\AppData\Roaming\Hermes) и портативность ломается.
+if not defined HERMES_DESKTOP_USER_DATA_DIR set "HERMES_DESKTOP_USER_DATA_DIR=%HOME%\AppData\Roaming\Hermes"
+if not exist "%HERMES_DESKTOP_USER_DATA_DIR%" mkdir "%HERMES_DESKTOP_USER_DATA_DIR%" 2>nul
 set "PYTHONUSERBASE=%DATA_DIR%\python-userbase"
 set "PYTHONPATH="
 set "PYTHONHOME="

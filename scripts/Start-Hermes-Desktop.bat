@@ -90,6 +90,17 @@ if not exist "%HOME%" mkdir "%HOME%" 2>nul
 if not exist "%USERPROFILE%" mkdir "%USERPROFILE%" 2>nul
 
 REM ============================================================================
+REM   Портативный userData Desktop (Electron)
+REM   Electron на Windows берёт userData из %APPDATA%\Hermes через
+REM   SHGetFolderPath, ИГНОРИРУЯ переменную APPDATA. Без явного оверрайда
+REM   сборка пишет в реальный профиль (C:\Users\<user>\AppData\Roaming\Hermes)
+REM   и перестаёт быть портативной. HERMES_DESKTOP_USER_DATA_DIR — штатный
+REM   оверрайд Desktop (dist/electron-main.mjs: USER_DATA_OVERRIDE).
+REM ============================================================================
+if not defined HERMES_DESKTOP_USER_DATA_DIR set "HERMES_DESKTOP_USER_DATA_DIR=%HOME%\AppData\Roaming\Hermes"
+if not exist "%HERMES_DESKTOP_USER_DATA_DIR%" mkdir "%HERMES_DESKTOP_USER_DATA_DIR%" 2>nul
+
+REM ============================================================================
 REM   Получение ESC
 REM ============================================================================
 for /f "delims=#" %%a in ('"prompt #$E# & echo on & for %%_ in (1) do rem"') do set "ESC=%%a"
@@ -143,10 +154,12 @@ if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI
 )
 set "REMOTE_HOST=127.0.0.1"
 set "REMOTE_URL=http://127.0.0.1:9119"
+set "REMOTE_TOKEN="
 set "START_INI=%HERMES_HOME%\portable_start.ini"
 if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI%") do (
     if /i "%%a"=="REMOTE_HOST" set "REMOTE_HOST=%%b"
     if /i "%%a"=="REMOTE_URL" set "REMOTE_URL=%%b"
+    if /i "%%a"=="REMOTE_TOKEN" set "REMOTE_TOKEN=%%b"
 )
 if /i not "!REMOTE_HOST!"=="127.0.0.1" (
     echo %ESC%[1;33m. %ESC%[0m Remote-режим: подключение через Settings -^> Gateway -^> Remote -^> Sign in.
@@ -154,12 +167,18 @@ if /i not "!REMOTE_HOST!"=="127.0.0.1" (
 )
 
 REM ============================================================================
-REM   ВНИМАНИЕ: env-оверрайд Desktop (HERMES_DESKTOP_REMOTE_URL/_TOKEN) НЕ используем!
-REM   Публичный бинд dashboard (0.0.0.0) НЕ принимает ?token= (4401, June 2026
-REM   hardening) — токен работает только на loopback. Удалённое подключение
-REM   идёт через connection.json (mode=remote, authMode=oauth) → Sign in паролем
-REM   (basic_auth), как в web. См. set_desktop_connection.py ниже.
+REM   Подключение к gateway через штатный env-оверрайд Desktop
+REM   Раньше здесь стоял запрет на HERMES_DESKTOP_REMOTE_URL/_TOKEN: публичный
+REM   бинд (0.0.0.0) не принимает ?token= (4401). Но при loopback (127.0.0.1)
+REM   токен работает, а Desktop 0.23 не может сохранить его сам:
+REM   secretStoragePolicy отбрасывает секреты без safeStorage, и в
+REM   connections.json остаётся запись без токена → "no session token is saved".
+REM   Env-путь — официальный fallback (resolveDesktopRemoteRoute, source="env").
 REM ============================================================================
+if defined REMOTE_TOKEN (
+    set "HERMES_DESKTOP_REMOTE_URL=!REMOTE_URL!"
+    set "HERMES_DESKTOP_REMOTE_TOKEN=!REMOTE_TOKEN!"
+)
 
 REM ============================================================================
 REM   Синхронизация connection.json (Desktop) с portable_start.ini

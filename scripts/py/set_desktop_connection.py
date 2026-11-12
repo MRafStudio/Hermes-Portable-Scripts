@@ -12,7 +12,7 @@
 # Локальный URL: 127.0.0.1, localhost, ::1 или адрес одного из локальных адаптеров
 # (Get-NetIPAddress на стороне .bat передаётся через REMOTE_HOST; здесь дополнительно
 # сверяемся с socket-интерфейсами).
-import json, os, socket, sys
+import json, os, socket, sys, urllib.error, urllib.request
 
 
 def is_local_host(host):
@@ -36,6 +36,24 @@ def is_local_host(host):
     return False
 
 
+def gateway_is_serving(url, timeout=3.0):
+    """True, если по адресу отвечает живой дашборд Hermes.
+
+    200/401/403 означают, что порт держит именно gateway (401 — его штатный
+    ответ без токена). Сетевая ошибка — порт свободен, поднимаем свой backend.
+    """
+    base = (url or "").rstrip("/")
+    if not base:
+        return False
+    try:
+        urllib.request.urlopen(base + "/api/profiles", timeout=timeout)
+        return True
+    except urllib.error.HTTPError as e:
+        return e.code in (401, 403)
+    except Exception:
+        return False
+
+
 def build_config(cfg_path, remote_url, remote_host):
     config = {"mode": "local", "remote": {}, "profiles": {}}
     if os.path.exists(cfg_path):
@@ -49,7 +67,22 @@ def build_config(cfg_path, remote_url, remote_host):
 
     # Локальность: если host не передан — судим по URL; иначе по host.
     host_to_check = remote_host if remote_host else remote_url.split("//")[-1].split(":")[0] if "//" in remote_url else remote_url
-    if not is_local_host(host_to_check) and remote_url:
+    is_local = is_local_host(host_to_check)
+    if remote_url and is_local and gateway_is_serving(remote_url):
+        # Локальный адрес уже держит запущенная служба: свой backend Desktop
+        # поднять не сможет (порт занят, а чужой токен даёт 401), поэтому
+        # подключаемся к службе как к внешнему gateway — по токену на loopback
+        # (публичный бинд токен не принимает, см. комментарий .bat).
+        config["mode"] = "remote"
+        remote_cfg = config.setdefault("remote", {})
+        remote_cfg["url"] = remote_url
+        remote_cfg["authMode"] = "token"
+        session_token = os.environ.get("HERMES_DASHBOARD_SESSION_TOKEN", "").strip()
+        if session_token:
+            remote_cfg["token"] = {"value": session_token}
+        elif not isinstance(remote_cfg.get("token"), dict):
+            remote_cfg["token"] = {"value": ""}
+    elif not is_local and remote_url:
         config["mode"] = "remote"
         config.setdefault("remote", {})
         config["remote"]["url"] = remote_url
@@ -66,12 +99,75 @@ def build_config(cfg_path, remote_url, remote_host):
     return config
 
 
+def write_registry(user_data, config):
+    """Синхронизирует connections.json (v2) с выбранным режимом подключения.
+
+    Desktop с версии 0.23 читает реестр подключений (version=2), а legacy
+    connection.json остаётся только для старых сборок. Запись
+    portable-gateway — наша; остальные подключения пользователя не трогаем.
+    """
+    reg_id = "portable-gateway"
+    reg_label = "Hermes Gateway (portable)"
+    path = os.path.join(user_data, "connections.json")
+    registry = {
+        "version": 2,
+        "primary": "local",
+        "launchMode": "primary",
+        "lastUsed": "local",
+        "connections": [{"id": "local", "kind": "local", "label": "This device"}],
+    }
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                loaded = json.load(f)
+            if isinstance(loaded, dict) and isinstance(loaded.get("connections"), list):
+                registry = loaded
+        except Exception:
+            pass
+
+    connections = [c for c in registry.get("connections", []) if isinstance(c, dict)]
+    remote_cfg = config.get("remote") or {}
+    if config.get("mode") == "remote" and remote_cfg.get("url"):
+        token = remote_cfg.get("token")
+        if isinstance(token, dict):
+            token = token.get("value") or ""
+        entry = {
+            "id": reg_id,
+            "kind": "remote",
+            "label": reg_label,
+            "url": remote_cfg["url"],
+            "authMode": "token",
+        }
+        if token:
+            # Desktop хранит секреты объектом {encoding, value}; строку
+            # decryptDesktopSecret() отбрасывает (typeof secret !== object).
+            entry["token"] = {"encoding": "plain", "value": str(token)}
+        connections = [c for c in connections if c.get("id") != reg_id]
+        connections.insert(0, entry)
+        registry["primary"] = reg_id
+        registry["lastUsed"] = reg_id
+    else:
+        connections = [c for c in connections if c.get("id") != reg_id]
+        if not any(c.get("id") == "local" for c in connections):
+            connections.insert(0, {"id": "local", "kind": "local", "label": "This device"})
+        if registry.get("primary") == reg_id:
+            registry["primary"] = "local"
+            registry["lastUsed"] = "local"
+
+    registry["version"] = 2
+    registry.setdefault("launchMode", "primary")
+    registry["connections"] = connections
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(registry, f, ensure_ascii=False, indent=2)
+
+
 def write_config(user_data, config):
     """Пишет конфиг в userData-каталог (создавая его при необходимости)."""
     os.makedirs(user_data, exist_ok=True)
     cfg_path = os.path.join(user_data, "connection.json")
     with open(cfg_path, "w", encoding="utf-8") as f:
         json.dump(config, f, ensure_ascii=False, indent=2)
+    write_registry(user_data, config)
 
 
 def main():
