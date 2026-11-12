@@ -34,6 +34,16 @@ set "PYTHONIOENCODING=utf-8"
 if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" 2>nul
 if not exist "%TEMP%" mkdir "%TEMP%" 2>nul
 
+REM ============================================================================
+REM   Флаг UAC-перезапуска
+REM   Start-Process -Verb RunAs теряет кавычки в аргументах, а имя службы
+REM   содержит пробел и скобки ("HermesGateway (D:_NEURO_Hermes)") — запрос
+REM   разваливается и режим update теряется. Передаём его файлом-маркером.
+REM ============================================================================
+set "SVC_UPDATE_TARGET="
+if exist "%TEMP%\hermes-svc-update.flag" for /f "usebackq delims=" %%a in ("%TEMP%\hermes-svc-update.flag") do set "SVC_UPDATE_TARGET=%%a"
+del "%TEMP%\hermes-svc-update.flag" >nul 2>&1
+
 echo.
 echo  %ESC%[1;36m################################################################################%ESC%[0m
 echo  %ESC%[1;36m##%ESC%[0m                           %ESC%[1;37mУстановка службы Hermes%ESC%[0m                          %ESC%[1;36m##%ESC%[0m
@@ -46,7 +56,11 @@ REM ============================================================================
 net session >nul 2>&1
 if !errorlevel! neq 0 (
     echo   %ESC%[1;33m  Требуются права администратора — запрашиваю UAC...%ESC%[0m
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Start-Process cmd -Verb RunAs -ArgumentList '/c','""%~f0"" %~1 %~2' -Wait } catch { exit 1 }"
+    REM Кавычки вокруг аргументов обезательны: имя службы содержит пробел и
+    REM скобки ("HermesGateway (D:_NEURO_Hermes)"), без них аргумент
+    REM разбивается на части и режим update (%~2) теряется.
+    if /i "%~2"=="update" > "%TEMP%\hermes-svc-update.flag" echo %~1
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Start-Process cmd -Verb RunAs -ArgumentList '/c','""%~f0"" ""%~1"" ""%~2""' -Wait } catch { exit 1 }"
     if !errorlevel! neq 0 (
         echo   %ESC%[1;31m[ОШИБКА] UAC отклонён — установка службы отменена.%ESC%[0m
         echo.
@@ -115,6 +129,7 @@ REM   0.23 получает 401, так как в env службы нет HERMES
 REM ============================================================================
 set "SERVICE_UPDATE=0"
 if /i "%~2"=="update" set "SERVICE_UPDATE=1"
+if defined SVC_UPDATE_TARGET set "SERVICE_UPDATE=1"
 if "!SERVICE_UPDATE!"=="1" (
     if not defined EXIST_SERVICE (
         echo   %ESC%[1;31m[ОШИБКА] Режим update: служба для %ROOT_DIR% не найдена.%ESC%[0m
