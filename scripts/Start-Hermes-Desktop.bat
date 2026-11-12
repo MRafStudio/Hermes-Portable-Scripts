@@ -161,6 +161,22 @@ if exist "%START_INI%" for /f "usebackq tokens=1,* delims==" %%a in ("%START_INI
     if /i "%%a"=="REMOTE_URL" set "REMOTE_URL=%%b"
     if /i "%%a"=="REMOTE_TOKEN" set "REMOTE_TOKEN=%%b"
 )
+
+REM ============================================================================
+REM   Fallback токена для старых установок
+REM   В portable_start.ini у них REMOTE_TOKEN пуст, но токен уже прописан
+REM   окружению службы. Читаем его из Parameters\AppEnvironmentExtra (доступно
+REM   без прав администратора). В ini не пишем — тогда смена токена в службе
+REM   подхватится при следующем запуске без рассинхронизации.
+REM ============================================================================
+if not defined REMOTE_TOKEN (
+    set "SERVICE_NAME="
+    call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_DIR%" <nul
+    if defined SERVICE_NAME (
+        for /f "usebackq delims=" %%t in (`powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPTS_DIR%\ps1\get-service-token.ps1" -ServiceName "!SERVICE_NAME!" 2^>nul`) do set "REMOTE_TOKEN=%%t"
+        if defined REMOTE_TOKEN echo %ESC%[1;32m+%ESC%[0m Токен взят из окружения службы
+    )
+)
 if /i not "!REMOTE_HOST!"=="127.0.0.1" (
     echo %ESC%[1;33m. %ESC%[0m Remote-режим: подключение через Settings -^> Gateway -^> Remote -^> Sign in.
     echo %ESC%[2m       Адрес: !REMOTE_HOST!%ESC%[0m

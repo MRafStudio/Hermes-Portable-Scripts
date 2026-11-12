@@ -106,6 +106,24 @@ set "REQUESTED_NAME=!SERVICE_NAME!"
 call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_DIR%" <nul
 set "EXIST_SERVICE=%SERVICE_NAME%"
 set "SERVICE_NAME=%REQUESTED_NAME%"
+
+REM ============================================================================
+REM   Режим обновления: %2=update — служба уже стоит; обновляем только окружение
+REM   (токен дашборда) и перезапускаем, без интерактивных вопросов о порте,
+REM   адресе и пароле. Нужен при обновлении старой установки: иначе Desktop
+REM   0.23 получает 401, так как в env службы нет HERMES_DASHBOARD_SESSION_TOKEN.
+REM ============================================================================
+set "SERVICE_UPDATE=0"
+if /i "%~2"=="update" set "SERVICE_UPDATE=1"
+if "!SERVICE_UPDATE!"=="1" (
+    if not defined EXIST_SERVICE (
+        echo   %ESC%[1;31m[ОШИБКА] Режим update: служба для %ROOT_DIR% не найдена.%ESC%[0m
+        exit /b 1
+    )
+    set "SERVICE_NAME=!EXIST_SERVICE!"
+    set "NSSM_EXE=%HERMES_HOME%\bin\nssm.exe"
+    goto :update_env
+)
 REM LOG_NAME — имя лог-файла без двоеточия (Windows запрещает ":" в именах файлов!)
 set "LOG_NAME=!SERVICE_NAME::=_!"
 if defined EXIST_SERVICE (
@@ -488,4 +506,55 @@ if !errorlevel! neq 0 (
     echo  --------------------------------------------------------------------------------
 )
 pause
+exit /b 0
+
+REM ============================================================================
+REM   :update_env — обновление окружения уже установленной службы
+REM   Ставит HERMES_DASHBOARD_SESSION_TOKEN (из portable_start.ini или новый) и
+REM   перезапускает службу. Весь остальной env — тот же, что при установке.
+REM ============================================================================
+:update_env
+echo.
+echo   %ESC%[1;33m-%ESC%[0m Обновление окружения службы "!SERVICE_NAME!"...
+
+if not exist "!NSSM_EXE!" (
+    echo   %ESC%[1;31m[ОШИБКА] nssm.exe не найден: !NSSM_EXE!%ESC%[0m
+    echo   %ESC%[33mПереустановите службу через меню установки.%ESC%[0m
+    exit /b 1
+)
+
+set "START_INI=%HERMES_HOME%\portable_start.ini"
+set "DASHBOARD_TOKEN="
+if exist "!START_INI!" for /f "usebackq tokens=1,* delims==" %%a in ("!START_INI!") do (
+    if /i "%%a"=="REMOTE_TOKEN" set "DASHBOARD_TOKEN=%%b"
+)
+if not defined DASHBOARD_TOKEN (
+    for /f "delims=" %%t in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')+[guid]::NewGuid().ToString('N')"') do set "DASHBOARD_TOKEN=%%t"
+    if defined DASHBOARD_TOKEN (
+        if not exist "!START_INI!" > "!START_INI!" echo REMOTE_HOST=127.0.0.1
+        >> "!START_INI!" echo REMOTE_TOKEN=!DASHBOARD_TOKEN!
+        echo   %ESC%[1;32m+%ESC%[0m Токен сгенерирован и сохранён в portable_start.ini
+    )
+)
+if not defined DASHBOARD_TOKEN (
+    echo   %ESC%[1;31m[ОШИБКА] Не удалось определить токен дашборда.%ESC%[0m
+    exit /b 1
+)
+
+"!NSSM_EXE!" set "!SERVICE_NAME!" AppEnvironmentExtra "HERMES_HOME=%HERMES_HOME%" "HOME=%DATA_DIR%\home" "USERPROFILE=%DATA_DIR%\home" "APPDATA=%DATA_DIR%\appdata" "LOCALAPPDATA=%DATA_DIR%\localappdata" "MEMOS_HOME=%HERMES_HOME%\memos-plugin" "TEMP=%DATA_DIR%\temp" "PYTHONIOENCODING=utf-8" "HERMES_DASHBOARD_SESSION_TOKEN=!DASHBOARD_TOKEN!" "HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist"
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;31m[ОШИБКА] nssm set AppEnvironmentExtra не удался.%ESC%[0m
+    exit /b 1
+)
+
+"!NSSM_EXE!" restart "!SERVICE_NAME!" >nul 2>&1
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;33m. %ESC%[0mПерезапуск через nssm не удался — перезапускаю через sc...
+    sc stop "!SERVICE_NAME!" >nul 2>&1
+    timeout /t 3 /nobreak >nul 2>&1
+    sc start "!SERVICE_NAME!" >nul 2>&1
+)
+
+echo   %ESC%[1;32m+%ESC%[0m Служба "!SERVICE_NAME!" обновлена и перезапущена.
+echo   %ESC%[2m  Токен дашборда синхронизирован с portable_start.ini%ESC%[0m
 exit /b 0

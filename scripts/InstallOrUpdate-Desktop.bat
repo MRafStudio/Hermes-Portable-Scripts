@@ -587,6 +587,25 @@ if exist "%SCRIPTS_DIR%\skills" (
 )
 
 REM ============================================================================
+REM   Синхронизация токена службы (старая установка → Desktop 0.23)
+REM   Без HERMES_DASHBOARD_SESSION_TOKEN в окружении службы Desktop после
+REM   обновления получает 401 "Gateway inaccessible (authorization)".
+REM   Запускаем только когда токена нет — лишний UAC при обычном обновлении не нужен.
+REM ============================================================================
+set "SERVICE_NAME="
+call "%SCRIPTS_DIR%\Find-Hermes-Service.bat" "%ROOT_DIR%" <nul
+if defined SERVICE_NAME (
+    set "TOKEN_PRESENT="
+    if exist "%HERMES_HOME%\portable_start.ini" for /f "usebackq tokens=1,* delims==" %%a in ("%HERMES_HOME%\portable_start.ini") do (
+        if /i "%%a"=="REMOTE_TOKEN" if not "%%b"=="" set "TOKEN_PRESENT=1"
+    )
+    if not defined TOKEN_PRESENT (
+        echo   %ESC%[1;33m-%ESC%[0m Синхронизация токена службы "!SERVICE_NAME!"...
+        call "%SCRIPTS_DIR%\Install-Hermes-Service.bat" "!SERVICE_NAME!" update
+    )
+)
+
+REM ============================================================================
 REM   Возвращаем службы, которые работали до обновления
 REM ============================================================================
 echo.
