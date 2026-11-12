@@ -243,25 +243,28 @@ if exist "%HERMES_HOME%\hermes-agent\.git" (
         echo   %ESC%[2m       Нет локальных изменений для сохранения.%ESC%[0m
     )
 
-    REM Сбрасываем к origin/main (чистое состояние)
-    echo   %ESC%[2m       Сброс к origin/main...%ESC%[0m
-    git fetch origin main >nul 2>&1
-    git reset --hard origin/main >nul 2>&1
-    REM Удаляем stash без вопросов
+    REM Снимаем "dubious ownership": иначе git молча отказывает и релиз не применяется
+    git config --global --add safe.directory "%HERMES_HOME%\hermes-agent" >nul 2>&1
+
+    REM Сбрасываем к origin/main И подтягиваем теги релизов:
+    REM без --tags теги не приезжают, а версия в UI берётся именно из релиз-тега
+    echo   %ESC%[2m       Сброс к origin/main, подтягиваем теги...%ESC%[0m
+    git fetch --tags origin main >nul 2>&1
+    if !errorlevel! neq 0 (
+        echo   %ESC%[1;31m  [ОШИБКА] git fetch не прошёл - репозиторий НЕ обновлён.%ESC%[0m
+        echo   %ESC%[1;33m           Проверьте доступ к github.com ^(сеть/VPN/прокси^) и владельца каталога.%ESC%[0m
+        echo   %ESC%[1;33m           Продолжаем с текущим кодом: версия, скорее всего, НЕ изменится.%ESC%[0m
+    ) else (
+        git reset --hard origin/main >nul 2>&1
+        if !errorlevel! neq 0 (
+            echo   %ESC%[1;31m  [ОШИБКА] git reset --hard не удался - репозиторий НЕ обновлён.%ESC%[0m
+        ) else (
+            echo   %ESC%[1;32m  +   Репозиторий сброшен к origin/main, теги обновлены.%ESC%[0m
+        )
+    )
+    REM Удаляем stash без вопросов - это НЕ показатель успеха обновления
     echo   %ESC%[2m       Очистка stash...%ESC%[0m
     git stash drop >nul 2>&1
-    if !errorlevel! equ 0 (
-        echo   %ESC%[1;32m  +   Репозиторий сброшен к origin/main.%ESC%[0m
-    ) else (
-        echo   %ESC%[1;31m  [ОШИБКА] Не удалось сбросить репозиторий.%ESC%[0m
-        echo.
-        echo   %ESC%[1;33m  В главном меню выберите %ESC%[2m[3] Инструменты.%ESC%[0m
-        echo   %ESC%[1;33m  А затем %ESC%[2m[2] Очистить репозиторий%ESC%[0m
-        echo.
-        cd /d "%ROOT_DIR%"
-        pause >nul
-        exit /b 1
-    )
 
     cd /d "%ROOT_DIR%"
 ) else (
