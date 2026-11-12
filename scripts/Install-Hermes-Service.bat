@@ -321,9 +321,32 @@ if !errorlevel! neq 0 (
 )
 
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppDirectory "%HERMES_HOME%"
+
+REM ============================================================================
+REM   Стабильный токен дашборда
+REM   Без него gateway генерирует новый токен на каждом старте, и Desktop
+REM   (REMOTE_TOKEN из portable_start.ini) перестаёт проходить авторизацию —
+REM   401 "Gateway inaccessible (authorization)". Токен храним в ini: он же
+REM   читается лаунчером Desktop.
+REM ============================================================================
+set "START_INI=%HERMES_HOME%\portable_start.ini"
+set "DASHBOARD_TOKEN="
+if exist "!START_INI!" for /f "usebackq tokens=1,* delims==" %%a in ("!START_INI!") do (
+    if /i "%%a"=="REMOTE_TOKEN" set "DASHBOARD_TOKEN=%%b"
+)
+if not defined DASHBOARD_TOKEN (
+    for /f "delims=" %%t in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString('N')+[guid]::NewGuid().ToString('N')"') do set "DASHBOARD_TOKEN=%%t"
+    if defined DASHBOARD_TOKEN (
+        if not exist "!START_INI!" > "!START_INI!" echo REMOTE_HOST=127.0.0.1
+        >> "!START_INI!" echo REMOTE_URL=http://127.0.0.1:!SERVICE_PORT!
+        >> "!START_INI!" echo REMOTE_TOKEN=!DASHBOARD_TOKEN!
+        echo   %ESC%[1;32m+%ESC%[0m Сгенерирован токен дашборда и сохранён в portable_start.ini
+    )
+)
+
 REM HERMES_WEB_DIST — готовый web dist из Desktop-сборки (иначе dashboard
 REM пытается собрать web UI при каждом старте и падает: "Web UI npm install failed")
-"%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra "HERMES_HOME=%HERMES_HOME%" "HOME=%DATA_DIR%\home" "USERPROFILE=%DATA_DIR%\home" "APPDATA=%DATA_DIR%\appdata" "LOCALAPPDATA=%DATA_DIR%\localappdata" "MEMOS_HOME=%HERMES_HOME%\memos-plugin" "TEMP=%DATA_DIR%\temp" "PYTHONIOENCODING=utf-8" "HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist"
+"%NSSM_EXE%" set "!SERVICE_NAME!" AppEnvironmentExtra "HERMES_HOME=%HERMES_HOME%" "HOME=%DATA_DIR%\home" "USERPROFILE=%DATA_DIR%\home" "APPDATA=%DATA_DIR%\appdata" "LOCALAPPDATA=%DATA_DIR%\localappdata" "MEMOS_HOME=%HERMES_HOME%\memos-plugin" "TEMP=%DATA_DIR%\temp" "PYTHONIOENCODING=utf-8" "HERMES_DASHBOARD_SESSION_TOKEN=!DASHBOARD_TOKEN!" "HERMES_WEB_DIST=%REPO_DIR%\apps\desktop\release\win-unpacked\resources\app.asar.unpacked\dist"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppStdout "%DATA_DIR%\temp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppStderr "%DATA_DIR%\temp\service-!LOG_NAME!.log"
 "%NSSM_EXE%" set "!SERVICE_NAME!" AppRotateFiles 1
