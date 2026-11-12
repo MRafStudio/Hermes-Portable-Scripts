@@ -264,6 +264,19 @@ if exist "%SCRIPTS_DIR%\bin\uv.exe" (
     )
 )
 REM ============================================================================
+REM   ОБЯЗАТЕЛЬНО: остановить службы Hermes ПЕРЕД обновлением.
+REM   Службы держат venv\Scripts\*.exe и web_dist: uv/сборка падают с os error 32.
+REM   Продолжаем только после реального STOPPED.
+REM ============================================================================
+call "%SCRIPTS_DIR%\Hermes-Services.bat" stop
+if !errorlevel! neq 0 (
+    echo   %ESC%[1;31m[ОШИБКА] Службы Hermes не остановлены — установка прервана.%ESC%[0m
+    echo   %ESC%[33m       Остановите их вручную ^(scripts\Stop-Hermes-Service.bat^) и повторите.%ESC%[0m
+    pause >nul
+    exit /b 1
+)
+
+REM ============================================================================
 REM   ШАГ 2: Запуск install.ps1
 REM ============================================================================
 echo.
@@ -298,6 +311,7 @@ if "%SETUP%"=="1" (
 if errorlevel 1 (
     echo.
     echo   %ESC%[1;31m[ОШИБКА] install.ps1 завершился с ошибкой.%ESC%[0m
+    call "%SCRIPTS_DIR%\Hermes-Services.bat" start >nul 2>&1
     echo.
     echo   %ESC%[1;33m  Нажмите любую клавишу для продолжения fallback установки...%ESC%[0m
     pause >nul
@@ -461,6 +475,7 @@ if "!HAS_PNPM!"=="0" (
 call "!PNPM_CMD!" install --frozen-lockfile 2>&1
 if errorlevel 1 (
     echo   %ESC%[1;31m  [ОШИБКА] Не удалось установить зависимости ^(pnpm^).%ESC%[0m
+    call "%SCRIPTS_DIR%\Hermes-Services.bat" start >nul 2>&1
     pause >nul
     exit /b 1
 )
@@ -474,6 +489,7 @@ echo   %ESC%[1;33m  .   Сборка web UI ^(npm run build -w web^)...%ESC%[0m
 call "!NPM_CMD!" run build -w web 2>&1
 if errorlevel 1 (
     echo   %ESC%[1;31m  [ОШИБКА] Сборка web UI не удалась.%ESC%[0m
+    call "%SCRIPTS_DIR%\Hermes-Services.bat" start >nul 2>&1
     pause >nul
     exit /b 1
 )
@@ -523,6 +539,15 @@ if exist "%SCRIPTS_DIR%\skills" (
     )
 ) else (
     echo   %ESC%[1;33m  .   scripts\skills не найден - скиллы не копировались.%ESC%[0m
+)
+
+REM ============================================================================
+REM   Возвращаем службы, которые работали до обновления
+REM ============================================================================
+echo.
+call "%SCRIPTS_DIR%\Hermes-Services.bat" start
+if errorlevel 1 (
+    echo   %ESC%[1;33m  !   Службы не запустились автоматически — запустите scripts\Start-Hermes-Service.bat%ESC%[0m
 )
 
 REM ============================================================================
