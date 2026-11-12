@@ -287,13 +287,15 @@ REM ============================================================================
 set "GLOBAL_UPDATED=0"
 echo.
 echo   %ESC%[2m       [обновление] попытка 1: winget OpenJS.NodeJS...%ESC%[0m
-where winget >nul 2>&1
-if !errorlevel! equ 0 (
-    powershell -NoProfile -Command "Start-Process -FilePath winget -ArgumentList 'install','--id','OpenJS.NodeJS','-e','--silent','--accept-package-agreements','--accept-source-agreements','--upgrade' -Verb RunAs -Wait" >nul 2>&1
+call :find_winget
+if defined WINGET (
+    echo   %ESC%[2m       winget: !WINGET! ^(v!WINGET_VER!^)%ESC%[0m
+    powershell -NoProfile -Command "Start-Process -FilePath '!WINGET!' -ArgumentList 'install','--id','OpenJS.NodeJS','-e','--silent','--accept-package-agreements','--accept-source-agreements','--upgrade' -Verb RunAs -Wait" >nul 2>&1
     call :recheck_global_node
     if "!GLOBAL_UPDATED!"=="1" exit /b 0
 ) else (
-    echo   %ESC%[2m       winget не найден.%ESC%[0m
+    echo   %ESC%[1;33m  !   winget не найден ни в PATH, ни в WindowsApps - шаг пропущен.%ESC%[0m
+    echo   %ESC%[2m       Перехожу к установке MSI ^(запрос UAC^).%ESC%[0m
 )
 echo.
 echo   %ESC%[2m       [обновление] попытка 2: MSI v!NODE_VERSION! ^(запрос UAC^)...%ESC%[0m
@@ -324,5 +326,32 @@ if !G_MAJOR! GEQ !NODE_MIN_MAJOR! (
     echo   %ESC%[1;32m  +   Глобальный Node.js обновлён: !G_VER!%ESC%[0m
 ) else (
     echo   %ESC%[1;31m  x   Глобальный Node.js всё ещё !G_VER!%ESC%[0m
+)
+exit /b 0
+
+REM ============================================================================
+REM   Поиск winget: PATH -> алиас реального профиля -> PowerShell Get-Command
+REM   ВАЖНО: каталог "C:\Program Files\WindowsApps" из cmd НЕ листается (ACL),
+REM   поэтому перебор пакетов DesktopAppInstaller невозможен - только эти три пути.
+REM   В обычном запуске (пользователь из Explorer/cmd) winget лежит в PATH.
+REM ============================================================================
+:find_winget
+set "WINGET="
+set "WINGET_VER="
+for /f "delims=" %%w in ('where winget 2^>nul') do if not defined WINGET set "WINGET=%%w"
+if not defined WINGET (
+    if defined REAL_LOCALAPPDATA (
+        if exist "%REAL_LOCALAPPDATA%\Microsoft\WindowsApps\winget.exe" set "WINGET=%REAL_LOCALAPPDATA%\Microsoft\WindowsApps\winget.exe"
+    )
+)
+if not defined WINGET (
+    for /f "delims=" %%w in ('powershell -NoProfile -Command "$p = Get-AppxPackage Microsoft.DesktopAppInstaller; if ($p) { Join-Path $p.InstallLocation winget.exe }" 2^>nul') do if not defined WINGET if exist "%%w" set "WINGET=%%w"
+)
+if not defined WINGET (
+    for /f "delims=" %%w in ('powershell -NoProfile -Command "(Get-Command winget -ErrorAction SilentlyContinue).Source" 2^>nul') do if not defined WINGET set "WINGET=%%w"
+)
+if defined WINGET (
+    set "WINGET_EXE=!WINGET!"
+    for /f "delims=" %%v in ('powershell -NoProfile -Command "try { (& $env:WINGET_EXE --version) | Select-Object -First 1 } catch { }" 2^>nul') do if not defined WINGET_VER set "WINGET_VER=%%v"
 )
 exit /b 0

@@ -43,8 +43,21 @@
 
 ## Грабли
 
-- `winget` есть не на каждой машине (проверять `where winget`); MSI требует UAC - вызывать
-  `Start-Process ... -Verb RunAs -Wait`, иначе установка пройдёт в фоне без прав и молча провалится.
+- **winget есть почти всегда, но найти его из скрипта - задача.** Проверено на этой машине:
+  - `C:\Users\<user>\AppData\Local\Microsoft\WindowsApps\winget.exe` - это **алиас** (0 байт);
+    при запуске из чужого/изолированного окружения даёт «Доступ к этому файлу из системы отсутствует»;
+  - `C:\Program Files\WindowsApps\Microsoft.DesktopAppInstaller_*\winget.exe` - рабочий exe
+    (у нас `v1.29.380`), но **каталог `WindowsApps` не листается** (`dir` → «Отказано в доступе»),
+    значит перебрать пакеты через `for /d` нельзя;
+  - `Get-AppxPackage Microsoft.DesktopAppInstaller` в обычном контексте даёт `InstallLocation`,
+    а в изолированном окружении Hermes пакетов не видит вовсе.
+  Поэтому `:find_winget` ищет так: `where winget` → `%REAL_LOCALAPPDATA%\Microsoft\WindowsApps\winget.exe`
+  → `Get-AppxPackage ... InstallLocation` → `(Get-Command winget).Source`.
+- **Версию winget спрашивать через переменную окружения**, а не подставлять путь в кавычки:
+  `for /f ... in ('powershell -Command "(& $env:WINGET_EXE --version)"')`. Одинарные кавычки
+  внутри `for /f` рвут разбор, а путь с пробелами (`Program Files`) без кавычек не запускается.
+- `winget install`/`upgrade` требует прав: `Start-Process ... -Verb RunAs -Wait`, иначе установка
+  пройдёт в фоне без прав и молча провалится.
 - `%ProgramFiles%\nodejs` может содержать старый Node, хотя в `tools\` уже лежит новый - именно
   поэтому выбор идёт по версии, а не по факту наличия.
 - Дубликаты `tools\node-*` копятся при обновлениях Hermes; лишние можно удалять (выбор идёт по
