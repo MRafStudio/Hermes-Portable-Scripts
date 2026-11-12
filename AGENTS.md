@@ -29,6 +29,17 @@ Messenger Gateway) через `.bat`-скрипты в `scripts\`.
   `scripts\skills` → `data\hermes\skills`, обратно — никогда. Правишь только рабочую копию —
   после переустановки правка исчезнет.
 - Скилл русификации: `scripts\skills\localization\hermes-portable-ru-locale\SKILL.md`.
+
+### Обновление наших скриптов: fetch + reset, а НЕ pull
+- `scripts\Update-Scripts.bat` - краткая синхронизация только наших скриптов: `git fetch origin main` →
+  сравнить HEAD с `origin/main` → при расхождении сохранить локальные правки (патч в `data\backup\`
+  + ветка `autostash-<дата>`) → `git reset --hard origin/main`.
+- Коды выхода: `0` = уже актуально, `1` = ошибка (сеть/креды, идём дальше с текущими скриптами),
+  `10` = обновились → **вызывающий скрипт обязан перезапуститься** (`start "" "%~f0" %*`), иначе
+  дальше выполняется старый код из памяти.
+- `InstallOrUpdate-Desktop.bat` и `InstallOrUpdate-Web.bat` вызывают его ШАГОМ 0 (до установки Hermes).
+- **`git pull` для наших скриптов не используем:** после переписывания истории (вынос скиллов и личного
+  из репы) pull даёт «ahead 523 / behind 531» и конфликты. Только `fetch` + `reset --hard origin/main`.
 - **Русификация — схема A** (апстрим-база + наш слой `ru-layer.ts`): апстрим сам держит
   `ru` (регистрация, плюрализация, модули), мы держим только то, чего у него нет.
   Полный разбор и инструменты — `RU-WORKFLOW.md`; цикл — `python scripts\py\ru_workflow.py`.
