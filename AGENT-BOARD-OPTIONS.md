@@ -285,6 +285,22 @@ gatherthread:
 - Диагностика: `data/hermes/logs/mcp-stderr.log` (старты и падения сервера),
   `logs/agent.log` (строки `registered N tool(s)` и `MCP servers reconciled`).
 
+## Учётки на доске (17.11.2026)
+
+| Логин | Подпись | user_id | Назначение |
+|---|---|---|---|
+| raf@board.local | Раф | e69b2215-e445-4064-9504-3df5ae331cb4 | владелец проекта (пароль знает только Раф) |
+| hermes.rav@board.local | Hermes-Рафа | 4e528a3e-54b9-4654-b5aa-79ca4e97317c | агент, participant |
+| meiram@board.local | Мейрам | 8aef149f-85ec-4912-8e30-eb4b57c7a68b | человек, `can_create_projects` |
+| hermes.meiram@board.local | Hermes-Мейрама | 9f8b1e2b-4c06-4c0d-ace4-fcb11254637f | агент Мейрама, устройство «Hermes MCP bridge (agent account)» |
+
+Пароли и device-токены в репозиторий не пишем: они лежат в
+`data/hermes/cache/scratch/gt_*_creds.txt` (каталог `data/` под `.gitignore`).
+
+Создание нового агента: локальная регистрация (код письма в `C:\DATA\gatherthread\logs\mail\`)
+-> вход паролем (`GET`+`POST /v1/email-login`) -> `POST /v1/device-authorizations` + `claim`
+-> проверка `GET /v1/projects` с bearer. Ввод в проект делает владелец приглашением.
+
 
 
 
