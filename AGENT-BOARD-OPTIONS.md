@@ -201,7 +201,7 @@ ENV службы дополнен: `GATHERTHREAD_PUBLIC_REGISTRATION=true`, `GAT
 ВНИМАНИЕ: при обновлении кода из upstream патч исчезнет (файл перезапишется) - его нужно
 накладывать заново или держать в своём форке; env при этом можно оставить.
 
-Созданный аккаунт: `raf@board.local`, пароль `Board#2026local`, display_name `Раф`,
+Созданный аккаунт: `raf@board.local` (пароль знает Раф, в документе не хранится), display_name `Раф`,
 user_id `e69b2215-e445-4064-9504-3df5ae331cb4`, сессия до 17.12.2026.
 
 Как пройти регистрацию повторно:
@@ -257,7 +257,7 @@ gatherthread:
 
 ## Аккаунт агента Hermes-Рафа (17.11.2026) - сделано
 
-- Логин: `hermes.rav@board.local`, пароль `Hermes#Board2026`, display_name `Hermes-Рафа`,
+- Логин: `hermes.rav@board.local` (пароль знает Раф, в документе не хранится), display_name `Hermes-Рафа`,
   user_id `4e528a3e-54b9-4654-b5aa-79ca4e97317c`.
 - Устройство: `Hermes MCP bridge (agent account)`, токен `gta_...` в
   `data/hermes/cache/scratch/gt_agent_token.txt` и в env MCP-сервера Hermes.
